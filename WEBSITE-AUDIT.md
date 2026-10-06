@@ -179,3 +179,107 @@ Pick one recommendation and use it on both pages.
 - [ ] Fix FAQ typos and the 13/16/18 age rule
 - [ ] Make FAQ and Blog timing advice match
 - [ ] Click the 3 Stripe "Buy Now" links, WhatsApp, Instagram and TikTok yourself to check they still work
+
+---
+
+# Part 2 — Booking system check (BookingPress)
+
+**What I did:** I went through the whole booking form like a customer, on an iPhone-sized screen and on a laptop: Service → extras pop-up → Room → Date & Time → Cart → Customer Details → Summary. I tried four services and both rooms, and checked the next 8 days of time slots. **I stopped before pressing "Book Appointment"**, so no booking was made and no slot was blocked; the browser record shows nothing was sent except "show me the time slots".
+
+**Good news:** the form loads quickly with no errors. Every step works. You can't book a time that has already passed, and fully booked times are hidden. The pricing is consistent: a 2-person session is always AED 40 more than 1 person, matching the FAQ. Empty or badly typed email addresses are correctly rejected.
+
+> **Where things are:** in WordPress, click **BookingPress** in the left menu. Your "rooms" (Tub, Barrel) are set up in BookingPress as **Staff Members**, so look there for anything about rooms. Exact menu names can differ slightly between BookingPress versions. If something isn't where I say, look in **BookingPress → Customize** or **BookingPress → Settings**.
+
+## 🔴 Fix first
+
+### B1. Opening hours in the booking system don't match the website
+The website says **"Open 7 Days a Week, 7AM – 8PM"** (and 9PM on the Contact page). The booking form actually offers:
+
+| Day | First slot | Last 60-min slot (finishes) | Last 15-min cold plunge (finishes) |
+|---|---|---|---|
+| Mon 12 / Tue 13 Oct | **10:00 am** (all services, both rooms) | 6:50 pm (7:50 pm) | 7:30 pm (7:45 pm) |
+| Wed / Thu | 7:00 am | 6:50 pm (7:50 pm) | 7:30 pm (7:45 pm) |
+| Fri | 7:00 am | ~7:20 pm (8:20 pm) | 8:00 pm (8:15 pm) |
+| Sat | 7:00 am | 7:50 pm (**8:50 pm**) | 8:30 pm (**8:45 pm**) |
+| Sun | 8:00 am | 7:50 pm (**8:50 pm**) | 8:30 pm (8:45 pm) |
+
+So customers **can't book before 10am on Mondays and Tuesdays**, even though the site says 7AM. On weekends they can book sessions that finish around 8:50pm, after the "8PM" closing time on your homepage.
+
+**How to fix:**
+1. Decide your real hours for each day.
+2. Go to **BookingPress → Settings → Working Hours**. Set each day's start and end time.
+3. Go to **BookingPress → Staff Members**. Open **Tub**, then **Barrel**. If either has its own **Working Hours** tab, set it the same (or turn off "custom working hours").
+4. Update the homepage and Contact Us page so they say the same thing. If the hours differ by day, list them, e.g. "Mon–Tue 10AM–8PM, Wed–Sun 7AM–9PM".
+
+### B2. On phones, the payment choice is hidden
+On the last step (Summary) on a phone, the heading **"Select Payment Method"** is cut off at the bottom of the box. The two options, **"Pay Post Service"** and **"Credit Card/Apple Pay"**, only appear if the customer scrolls *inside* the booking box. **Neither option is pre-selected**, but the "Book Appointment" button is right there. Customers may press it without noticing they need to choose how to pay.
+
+**How to fix:** in **BookingPress → Settings → Payment** (sometimes **Payment Gateways**), set a **default payment method** if your version has that option. Also ask your developer to make the booking box taller on phones so the payment options are visible. To see what customers see, do one real test booking on your own phone and press "Book Appointment" *without* choosing a payment method.
+
+### B3. Phone number isn't checked
+I typed **"12"** as the phone number and the form accepted it. Only the email address is checked. You could end up with bookings you can't call or WhatsApp.
+
+**How to fix:** go to **BookingPress → Customize → Form Fields** (or **Settings → General**). Find **Phone Number** and turn on **phone number validation** if it's there. Set a minimum length too.
+
+### B4. Phone box defaults to the USA 🇺🇸
+The phone field shows a **US flag** and the example "**+1** 201 555 0123". Almost all your customers will have UAE (+971) numbers, so many will type their number with the wrong country code.
+
+**How to fix:** go to **BookingPress → Settings → General** and set **Default Phone Country Code** to **United Arab Emirates (+971)**. Click **Save**.
+
+## 🟠 Confusing for customers
+
+### B5. "Cart Total (Deposit)" but you charge the full price
+The cart step says **"Cart Total (Deposit) 220.00"**, and the summary then says **"Total Amount Payable 220.00"**. Customers may think 220 is only a deposit and more is due later.
+
+**How to fix:** if you don't take deposits, go to **BookingPress → Settings → Payment**. Turn **Deposit payment** off, or rename the label in **BookingPress → Customize → Labels**.
+
+### B6. The cart says "220.00 of 220.00"
+Under the price, the cart shows "of 220.00". This is a leftover from the deposit feature in B5, and fixing B5 should remove it.
+
+### B7. Date and time are stuck together in the cart
+The cart shows **"October 7, 202610:00 am – 11:00 am"**. The space between the year and time is missing. Change the **date format** in **BookingPress → Settings → General** (e.g. to "7 Oct 2026"), or ask your developer to add a space.
+
+### B8. Payment option called "Pay Post Service"
+It's unclear English. **How to fix:** in **BookingPress → Settings → Payment**, open the on-site / pay-later method. Change its **title** to **"Pay at the studio"**.
+
+### B9. Prices show "د.إ" instead of "AED"
+The booking form shows prices like **220.00د.إ**, but the rest of your website uses "AED 220". Some visitors won't recognise the Arabic symbol. **How to fix:** in **BookingPress → Settings → Payment**, look for **Currency symbol / price format**. Pick the option that shows **AED**, or ask your developer to swap it.
+
+### B10. Rooms "Tub" and "Barrel" have no photos or explanation
+The Room step shows two large grey **person-shaped placeholders**. On a phone, the room names are hidden below them. Customers can't tell what the difference is.
+
+**How to fix:**
+1. Go to **BookingPress → Staff Members** and open **Tub**.
+2. Upload a photo of the room as its profile picture. In the description, add one line like *"Room with a round cold-plunge tub"*.
+3. Repeat for **Barrel**.
+
+There's also an **"Any Room"** option, which is good for customers who don't mind.
+
+### B11. Services have no photos, and two pairs have identical names
+All 8 services show a grey mountain placeholder (also in item 11 of Part 1). Two services are both called **"1 Person: Private Contrast Therapy"** and two are called **"1 Person: Private Cold Plunge"**; only the small "Duration" line tells them apart.
+
+**How to fix:** in **BookingPress → Services**, open each one and upload a **Service image**. Put the time in the name, e.g. **"1 Person: Private Contrast Therapy – 60 min"** and "… – 30 min".
+
+### B12. Services you mention on the website but can't book
+- The FAQ says *"Contrast Therapy: 30/60/90mins sessions"*, but **there is no 90-minute session** in the booking form; the "Extra Time" add-on is 20 minutes for AED 60. Either add a 90-min service or change the FAQ.
+- The homepage **Memberships** (Silver / Gold / Black) can only be bought through the Stripe links, not the booking form. Make sure members know how to book their sessions without paying again, e.g. a coupon code or a note on the booking page.
+
+### B13. The Intro Offer: how do people book sessions 2 and 3?
+*"Intro Offer… AED 350, and get 3x 60min contrast therapy sessions"* is booked as **one** 60-minute appointment. Nothing tells the customer how to book their 2nd and 3rd sessions. Add a sentence to the offer's description (**BookingPress → Services → Intro Offer**), e.g. *"Book your first session here. We'll send you a code to book your next two."* Match it to however you actually do it.
+
+## 🟡 Small wording fixes (in BookingPress → Services or Customize → Labels)
+
+| Where | Current | Change to |
+|---|---|---|
+| Contrast Therapy service descriptions | "This invigorating combination… **are** guaranteed" | "…**is** guaranteed" |
+| Intro Offer description | "Only available to avail once." | "Can only be used once per customer." |
+| Summary step | "Have a coupon code **?**" | "Have a coupon code?" |
+| Extras pop-up | "Extra Time — 20 m" | "Extra 20 minutes" (clearer) |
+
+## ✅ Still worth doing: one real test booking
+These parts can only be tested with a real booking: Stripe payment, the confirmation email, the "Thank you" page, and the cancel/reschedule links. Make one booking yourself with your own email and the **Credit Card/Apple Pay** option, then check:
+- [ ] Payment page opens and shows the right amount
+- [ ] Confirmation email arrives, with the right date, time, room and address
+- [ ] The "Thank you" page shows the Booking ID, service and date (they're blank fields when the page is opened directly)
+- [ ] The cancel link in the email works
+- [ ] Cancel the test appointment afterwards in **BookingPress → Appointments**, and refund it in Stripe
