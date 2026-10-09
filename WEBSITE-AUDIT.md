@@ -283,3 +283,134 @@ These parts can only be tested with a real booking: Stripe payment, the confirma
 - [ ] The "Thank you" page shows the Booking ID, service and date (they're blank fields when the page is opened directly)
 - [ ] The cancel link in the email works
 - [ ] Cancel the test appointment afterwards in **BookingPress → Appointments**, and refund it in Stripe
+
+---
+
+# Part 3 — SEO (getting found on Google)
+
+**Checked on 9 October 2026.** The good news: your basics are already in place. Every main page has a Google title and description, the sitemap works, Google is allowed to read the site, and the pages are mobile-friendly. Since my first check, the "Infared" typo in the booking page title has been fixed. ✅
+
+The biggest opportunities are below, **most valuable first**. People searching "ice bath Dubai" or "sauna near me" are mostly found through **Google Maps** and **dedicated pages for each service**. Right now you have neither set up fully.
+
+## ⭐ 1. Google Business Profile (biggest win, not on your website)
+For local businesses, the map listing at the top of Google often matters more than the website.
+1. Go to **business.google.com** and claim or check the listing for **Beit Sisu**.
+2. Make sure the **name, address (Arjaan by Rotana, Dubai Media City), phone, website and opening hours** match your website *exactly*. Decide the hours first (Part 2, B1).
+3. Choose categories: primary **"Sauna"**; add **"Wellness center"**, **"Health spa"** and **"Day spa"** if offered.
+4. Upload 10+ real photos of the suites, sauna, plunge and reception.
+5. **Ask happy customers for Google reviews.** A QR code at reception, or a link in your booking confirmation email. Reply to every review.
+6. Add the **booking link** (beitsisu.com/book-appointment/) as the "Book" button.
+
+## ⭐ 2. Turn the empty Services pages into real pages (changes Part 1, item 3)
+In Part 1 I suggested hiding the 3 empty Services pages. **For SEO it's better to fill them**, because each one can rank for its own search. Your site currently has **no page focused on "cold plunge Dubai", "ice bath Dubai", "infrared sauna Dubai" or "red light therapy Dubai"**. Everything is squeezed onto the homepage.
+
+For each of **Infrared Saunas**, **Cold Plunges** and **Red Light Therapy**, write about 400–700 words covering:
+- What it is and what a session at Beit Sisu looks like (private suite, temperatures, duration)
+- Benefits, using the text already on your homepage
+- Prices (from the booking form) and a **Book now** button
+- 3–5 FAQs specific to that service
+- Location line: "in Dubai Media City, minutes from Dubai Marina, JBR and Palm Jumeirah"
+
+Suggested Google titles and descriptions (set in the **Yoast SEO** box at the bottom of each page):
+
+| Page | SEO title | Meta description |
+|---|---|---|
+| Infrared Saunas | Private Infrared Sauna in Dubai Media City \| Beit Sisu | Book a private full-spectrum infrared sauna suite in Dubai Media City. 30 or 60 min sessions, cold plunge included. Free valet parking. |
+| Cold Plunges | Private Cold Plunge & Ice Bath Dubai \| Beit Sisu | Private ice bath sessions at 3.5–8°C in Dubai Media City. 15 or 30 min cold plunge, solo or with a friend. Book online today. |
+| Red Light Therapy | Red Light Therapy Dubai \| Private Suites \| Beit Sisu | Red light therapy towers in private contrast therapy suites in Dubai Media City. Pair with infrared sauna and cold plunge. Book online. |
+
+*Note:* the theme shows these pages with a sidebar ("Recent Posts", "Archives") and a photo that's too wide on phones (Part 1, item 3). Ask your developer for a clean layout without the sidebar before you publish them, or I can try a fix with access.
+
+## ⭐ 3. Tell Google you're a local business ("LocalBusiness schema")
+Behind the scenes, your site tells Google it's an "Organization", but not **what kind of business, where it is, or when it's open**. Google uses this for Maps and rich results.
+
+**How to fix:**
+- **Free:** install the plugin **"WPCode"**. Go to **Code Snippets → Add Snippet**, choose **Add Your Custom Code**, set type to **HTML**, and set location to **Site Wide Header**. Then paste the code below, with your *real* hours, and click **Save** and **Activate**.
+- **Or** buy **Yoast Local SEO** (paid add-on), which adds this through a simple form.
+
+```html
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HealthAndBeautyBusiness",
+  "@id": "https://beitsisu.com/#localbusiness",
+  "name": "Beit Sisu",
+  "url": "https://beitsisu.com/",
+  "image": "https://beitsisu.com/wp-content/uploads/2024/10/DSC08781.jpg",
+  "logo": "https://beitsisu.com/wp-content/uploads/2026/07/Beit-Sisu-Circle-Logo-02-3.png",
+  "telephone": "+971585963805",
+  "email": "hello@beitsisu.com",
+  "priceRange": "AED 85–1,899",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Arjaan by Rotana, Dubai Media City",
+    "addressLocality": "Dubai",
+    "addressCountry": "AE"
+  },
+  "openingHoursSpecification": [
+    { "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+      "opens": "07:00", "closes": "20:00" }
+  ],
+  "sameAs": [
+    "https://www.instagram.com/beitsisu/",
+    "https://www.tiktok.com/@beitsisu"
+  ]
+}
+</script>
+```
+⚠️ Change `"opens"` / `"closes"` to your real hours first (see Part 2, B1). If hours differ by day, I can write the per-day version.
+
+Also in **Yoast SEO → Settings → Site representation**, add your **TikTok** profile; only Instagram is listed now.
+
+## 4. One main heading per page
+Google reads the biggest heading (the "H1") as the topic of the page. Several pages have many H1s: the **homepage has 8**, the FAQ 5 and About Us 4. Your homepage's main heading should say what you are and where, e.g. **"Private Cold Plunge & Infrared Sauna Studio in Dubai"**.
+
+**How to fix:** in the page editor, click a heading block, and in the toolbar change the level from **H1** to **H2**. Keep only one H1 per page. On the homepage, the headings are probably set in the theme's code, so this one may need your developer.
+
+## 5. Make the Blog a real blog
+Your only article ("Cold Plunge or Sauna First?") is pasted *into* the **Blog page**, so it has no address of its own. The real blog list only contains "Hello world!". New articles have nowhere to go, and Google can't treat the article as an article.
+
+**How to fix:**
+1. Go to **Posts → Add New**. Paste the article, give it the same title, and add a photo as the **Featured image**. Click **Publish**.
+2. Change its address (the **Permalink**/**URL** field in the right panel) to `sauna-or-cold-plunge-first`.
+3. Go to **Settings → Reading** and set **Posts page** to **Blog**. Click **Save**. The Blog page will now list your articles automatically.
+4. Add **Blog** to the top menu (Part 1, item 13).
+
+**Article ideas** that people in Dubai search for. Aim for one a month, each linking to the matching service page and the booking page:
+- How cold is an ice bath? Beginner's guide to cold plunging in Dubai
+- Infrared sauna vs traditional sauna: what's the difference?
+- Contrast therapy for athletes and runners in Dubai
+- Is red light therapy worth it? What the research says
+- Best recovery routine after a workout in Dubai Marina / JLT
+- Date-night and friends ideas in Dubai that aren't brunch (2-person suites)
+- Corporate wellness ideas for Dubai Media City teams (links to Collaborations)
+
+## 6. Thin pages: add a bit more text
+- **Contact Us** has only ~49 words. Add a "How to find us" paragraph (hotel entrance, valet, which floor, nearest metro/tram), your opening hours, and the Google Map. People search "Beit Sisu location", and Google likes to see it.
+- **Book Appointment** has ~33 words. Above the booking form, add 2–3 lines: what's included, cancellation policy, and "Questions? WhatsApp us".
+
+## 7. Images: descriptions and speed
+- **Alt text (descriptions):** the homepage has **9 images without a description** and About Us has 2. Go to **Media → Library**, click each photo and fill in **Alternative Text** with plain words, e.g. *"Private infrared sauna suite at Beit Sisu Dubai"*. Don't stuff keywords.
+- **Rename future uploads** before uploading, e.g. `cold-plunge-dubai-beit-sisu.jpg` instead of `DSC08817.jpg`. Also fix the misspelt file `red-light-theraphy.png`.
+- **Speed:** your server runs LiteSpeed, but the free **LiteSpeed Cache** plugin isn't installed. Install it (**Plugins → Add New → "LiteSpeed Cache"**, **Install**, **Activate**). Then in **LiteSpeed Cache → Image Optimization**, click **Send Optimization Request** to convert photos to the lighter WebP format. That should cut the homepage's 1.5 MB of images by roughly half. *Check the booking form still works after turning it on.* If the booking calendar misbehaves, go to **LiteSpeed Cache → Cache → Excludes** and add `/book-appointment/`.
+- For your developer: jQuery is loaded twice, and the fonts are in the old `.ttf` format (`.woff2` is about 50% smaller).
+
+## 8. Social sharing previews
+Most pages have no preview image, so links shared on WhatsApp, Instagram or Facebook show a blank box. Go to **Yoast SEO → Settings → Site basics** (or **Social sharing**) and set a **default social image**. Use a 1200×630 photo of a suite. While there, fill in the **Tagline**; it's currently empty.
+
+## 9. Small Yoast settings
+- **Yoast SEO → Settings → Advanced → Author archives:** turn **off** (removes the `/author/admin/` page).
+- **Yoast SEO → Settings → Categories & tags → Categories:** set **Show in search results** to **off** until you have real blog categories.
+- **Yoast SEO → Settings → Content types → Services:** fill in the services first (item 2). Until then, set them to **not show in search results**.
+- After the leftover pages are trashed (Part 1), go to **Google Search Console** (search.google.com/search-console). Add beitsisu.com if it isn't there, and submit `https://beitsisu.com/sitemap_index.xml`. You already have **Site Kit by Google** installed, which can connect this for you under **Site Kit → Dashboard**.
+
+## What I can do once I have access (Part 1 "access" steps)
+- Set the SEO titles and descriptions above, plus the Tagline, default social image and Yoast settings
+- Add the LocalBusiness code (after you confirm the hours)
+- Fix heading levels on pages I can edit
+- Move the blog article into a real post and set up the Blog page
+- Write alt text for all images
+- **Draft** the three service pages and 2–3 blog articles for you to review. I'll save them as drafts, not publish, so you can check the facts and tone first.
+
+What only you can do: **Google Business Profile**, asking customers for reviews, and approving the drafts.
