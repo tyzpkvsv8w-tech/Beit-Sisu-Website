@@ -83,6 +83,31 @@ Stripe debug log, every website card payment in the last month:
 3. Ask the host for the PHP `error_log` for 29 Sep 09:37 UTC, 30 Sep 15:13 UTC, 5 Oct 10:51 UTC and 7 Oct 12:24 UTC, to confirm whether the cart branch fatals or returns quietly.
 4. Consider turning off auto-updates for the four BookingPress plugins once fixed. Updates should go through a staging test.
 
+## Root cause (session 3, 12 Oct 2026)
+
+Found by reading the plugin source in WP admin's Plugin File Editor (view only, nothing saved).
+
+1. On 2026-09-21 the Stripe add-on's Vue 3 code was rewritten onto a new "payment layer" (`bookingpress-stripe/src/Vue3/StripeFeature.php` header: "All removed 2026-09-21"). This matches the 21–29 Sep window when bookings started failing.
+2. The new code builds the Stripe metadata as `custom = entry_id|(is_shared_payment ? 1 : 0)` (`StripeGateway::metadata_for`).
+3. `is_shared_payment()` comes from `bookingpress-appointment-booking/src/Vue3/Payments/Contexts/BookingFormContext.php:368`:
+   `'group_mode' => has_filter( Hooks::FILTER_SUBMIT_PAYMENT_GROUP ) ? GROUP_SHARED : GROUP_PER_BOOKING`.
+   That checks whether *any* plugin has hooked the filter, not whether this booking is a multi-item cart.
+4. The Cart add-on (`bookingpress-cart/src/Vue3/CartFeature.php:119`) always hooks `bookingpress_form_v3_submit_payment_group`. Its own docs say a single item should stay `is_cart=0`. So while Cart is active, **every** booking-form payment is marked shared and sent to Stripe as `entry|1`.
+5. Stripe Checkout is still settled by the legacy listener (`?bookingpress-listener=bpa_pro_stripe_url` → `bookingpress_StripeEventListener`). It reads `|1` as a cart order and calls `bookingpress_confirm_booking(..., is_cart=1)`. There is no cart order for a single entry, so it writes nothing.
+6. Nothing else hooks that filter. I scanned all 151 Pro `src/` files, all 538 core `src/` files and the Stripe add-on; only Cart does.
+
+**Cart is not used:** 0 of 1,070 BookingPress payments in 2026 are cart orders (`is_cart` = 0 and `order_id` = 0 on every row).
+
+### Fix
+**Deactivate the "BookingPress - Cart Addon" plugin.** Then `has_filter` is false, payments are `per_booking`, metadata is `entry|0`, and the webhook takes the non-cart confirmation path. That path saves bookings every day (e.g. entry 3140) and saved card bookings up to 20 Sep. The only visible change is that the booking form loses its unused "cart / add another service" step. It is fully reversible: reactivate the plugin.
+
+Status:
+- Fresh UpdraftPlus backup (database + files, also uploaded to Google Drive): **12 Oct 2026 09:58, done.**
+- No new card payments since 10 Oct (Stripe log checked 12 Oct), so no further bookings were lost after entry 3139.
+- **Deactivation not yet applied.** It was blocked by the session's permission check for live-site changes and needs explicit approval, or the owner can do it in Plugins → BookingPress - Cart Addon → Deactivate.
+- After deactivating: make one real card booking (e.g. the cheapest service), then refund it. Confirm in Settings → Debug Log → Stripe that `Webhook Log array` shows `bp_is_cart":"0"` followed by "before insert appointment", and that the appointment appears.
+- Report the `has_filter` bug to Repute support (point 3 above), so the Cart add-on can be reactivated safely later if it's ever wanted.
+
 ## Customer follow-up (owner)
 - **Four paid website bookings are missing (not one).** Each needs contact and a rebooking or refund: entry 3074 (Intro Offer, paid 29 Sep, was for 30 Sep 18:30), 3087 (Cold Plunge, paid 30 Sep, was for 1 Oct 12:00; the customer used a dummy phone number, so this may have been a test payment), 3117 (Intro Offer + towel, paid 5 Oct, was for 8 Oct 07:00), 3139 (below). Look up the customer and Stripe payment for each entry in BookingPress / Stripe (Stripe metadata `bookingpress_entry_id`). None of these slots has an appointment in BookingPress.
 - Entry 3139's customer paid but had no booking (session was 10 Oct 12:00). Contact her and rebook all 3 sessions.
