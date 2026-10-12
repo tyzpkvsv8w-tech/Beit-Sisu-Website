@@ -109,6 +109,9 @@ Status:
 - Report the `has_filter` bug to Repute support (point 3 above), so the Cart add-on can be reactivated safely later if it's ever wanted.
 
 ## Customer follow-up (owner)
+- **Done (12 Oct 2026):** the owner reports all affected customers have been contacted and dealt with.
+- Support ticket draft for BookingPress: see `BOOKINGPRESS-SUPPORT-TICKET.md`.
+
 - **Four paid website bookings are missing (not one).** Each needs contact and a rebooking or refund: entry 3074 (Intro Offer, paid 29 Sep, was for 30 Sep 18:30), 3087 (Cold Plunge, paid 30 Sep, was for 1 Oct 12:00; the customer used a dummy phone number, so this may have been a test payment), 3117 (Intro Offer + towel, paid 5 Oct, was for 8 Oct 07:00), 3139 (below). Look up the customer and Stripe payment for each entry in BookingPress / Stripe (Stripe metadata `bookingpress_entry_id`). None of these slots has an appointment in BookingPress.
 - Entry 3139's customer paid but had no booking (session was 10 Oct 12:00). Contact her and rebook all 3 sessions.
 - Check every AED 350 "Intro Offer" Stripe payment against BookingPress appointments.
