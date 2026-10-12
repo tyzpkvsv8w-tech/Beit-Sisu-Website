@@ -104,8 +104,8 @@ Found by reading the plugin source in WP admin's Plugin File Editor (view only, 
 Status:
 - Fresh UpdraftPlus backup (database + files, also uploaded to Google Drive): **12 Oct 2026 09:58, done.**
 - No new card payments since 10 Oct (Stripe log checked 12 Oct), so no further bookings were lost after entry 3139.
-- **Deactivation not yet applied.** It was blocked by the session's permission check for live-site changes and needs explicit approval, or the owner can do it in Plugins → BookingPress - Cart Addon → Deactivate.
-- After deactivating: make one real card booking (e.g. the cheapest service), then refund it. Confirm in Settings → Debug Log → Stripe that `Webhook Log array` shows `bp_is_cart":"0"` followed by "before insert appointment", and that the appointment appears.
+- **Cart add-on deactivated by the owner on 12 Oct 2026** (confirmed inactive on the Plugins page).
+- **Verified fixed, 12 Oct 2026.** Live test card booking, Cold Plunge AED 85, entry 3180 (Dubai time 10:30–10:31). Stripe log 4314–4328: both webhook events have `bp_is_cart "0"`, followed by "before insert appointment", "before insert payment", "Payment Successed". The Appointment log for 3180 goes on past "transaction id" to "appointment_booking_fields" and "… before insert", the step where 3117 and 3139 had stopped. The owner then removed the test booking and refunded it. The refund doesn't appear in the BookingPress Stripe log, so it was done in the Stripe Dashboard; confirm it shows as *Refunded* there.
 - Report the `has_filter` bug to Repute support (point 3 above), so the Cart add-on can be reactivated safely later if it's ever wanted.
 
 ## Customer follow-up (owner)
