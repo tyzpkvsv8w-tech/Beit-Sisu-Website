@@ -115,3 +115,9 @@ Status:
 - **Four paid website bookings are missing (not one).** Each needs contact and a rebooking or refund: entry 3074 (Intro Offer, paid 29 Sep, was for 30 Sep 18:30), 3087 (Cold Plunge, paid 30 Sep, was for 1 Oct 12:00; the customer used a dummy phone number, so this may have been a test payment), 3117 (Intro Offer + towel, paid 5 Oct, was for 8 Oct 07:00), 3139 (below). Look up the customer and Stripe payment for each entry in BookingPress / Stripe (Stripe metadata `bookingpress_entry_id`). None of these slots has an appointment in BookingPress.
 - Entry 3139's customer paid but had no booking (session was 10 Oct 12:00). Contact her and rebook all 3 sessions.
 - Check every AED 350 "Intro Offer" Stripe payment against BookingPress appointments.
+
+## Follow-up 14 Oct 2026: Intro Offer booking reported as "cancelled" (read-only check)
+- The only website card booking since the fix is entry 3182 / appointment 3064: Intro Offer, room Tub, 14 Oct 08:30, AED 350. It was booked 12 Oct 13:46 and paid 13:48 (Dubai). The Stripe webhook had `bp_is_cart "0"` and the appointment and payment were saved with status 1 (Approved). The confirmation email to the customer was sent 12 Oct 13:48.
+- On 14 Oct the Appointments list, the Calendar (month view and popover) and the Payments data all show it as **Approved**, paid by card.
+- No "Appointment Canceled" email was sent for it, to the customer or to the Tub room. The cancellation emails on 12 Oct (12:28 Barrel, 17:24 Tub) were for other services (1 Person / 2 Person Contrast Therapy). The debug logs show no other change to the appointment.
+- Conclusion: in BookingPress this appointment was never cancelled, or if someone changed it, it was set back without any notification. The "cancelled" status was most likely seen somewhere else (e.g. Fresha, another booking, or a different screen). Waiting for the owner to say where they saw it.
