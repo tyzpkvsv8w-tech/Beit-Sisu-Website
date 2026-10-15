@@ -493,3 +493,10 @@ Backup first: **15 Oct 2026 13:17**. All items from `WEBSITE-CHANGES-FOR-APPROVA
 - WebP image conversion in LiteSpeed needs a free QUIC.cloud account linked by the owner (LiteSpeed Cache → General → Request Domain Key). WP-Optimize and reSmush.it were left as they were.
 - Room/service photos in the booking form: need photos chosen by the owner.
 - **Owner: one real test card booking + refund** now that caching is on (same as 12 Oct), then confirm the appointment appears.
+
+## Update: 15 October 2026: booking form service photos (Part 2, B11)
+Owner-supplied photos, resized to 1200×800 (59 KB / 94 KB), uploaded to every BookingPress service:
+- Red-lit infrared sauna photo → Intro Offer (1), Contrast Therapy 1 & 2 person, 30 & 60 min (2, 3, 6, 7)
+- Suite with cedar cold plunge barrel → Cold Plunge services (4, 5, 8)
+
+Verified on the live booking form (phone): all 8 photos load, and service names/prices/descriptions are unchanged (before/after diff). Room photos (Tub/Barrel, B10) are still placeholders.
