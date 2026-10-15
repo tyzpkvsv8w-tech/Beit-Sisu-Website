@@ -500,3 +500,4 @@ Owner-supplied photos, resized to 1200×800 (59 KB / 94 KB), uploaded to every B
 - Suite with cedar cold plunge barrel → Cold Plunge services (4, 5, 8)
 
 Verified on the live booking form (phone): all 8 photos load, and service names/prices/descriptions are unchanged (before/after diff). Room photos (Tub/Barrel, B10) are still placeholders.
+- **Barrel room photo (B10):** owner's barrel-and-shower photo, cropped square (900×900, 70 KB), set on BookingPress → Rooms → Barrel (ID 2). Verified on the live Room step (phone). Tub and Cold Plunge rooms still have placeholders.
