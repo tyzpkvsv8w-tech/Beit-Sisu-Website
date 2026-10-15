@@ -121,3 +121,13 @@ Status:
 - On 14 Oct the Appointments list, the Calendar (month view and popover) and the Payments data all show it as **Approved**, paid by card.
 - No "Appointment Canceled" email was sent for it, to the customer or to the Tub room. The cancellation emails on 12 Oct (12:28 Barrel, 17:24 Tub) were for other services (1 Person / 2 Person Contrast Therapy). The debug logs show no other change to the appointment.
 - Conclusion: in BookingPress this appointment was never cancelled, or if someone changed it, it was set back without any notification. The "cancelled" status was most likely seen somewhere else (e.g. Fresha, another booking, or a different screen). Waiting for the owner to say where they saw it.
+
+## Booking system test, 15 Oct 2026 (after caching was switched on)
+1. **Real card bookings since the fix:** entries 3180 (test, 12 Oct) and 3182 (12 Oct) both have `bp_is_cart "0"` and "before insert appointment", so they were saved. No website card bookings since caching was enabled. The 14 Oct AED payment without an entry is a Stripe payment link.
+2. **End-to-end walkthrough (phone, logged out):**
+   - Service (1 Person Cold Plunge) → Room (Cold Plunge) → Date & Time (15 Oct 7:20 pm) → Customer Details (phone box defaults to +971) → Summary (AED 120; payment options "Pay at the studio" / "Credit Card/Apple Pay") → Book Appointment.
+   - The browser was redirected to the live Stripe Checkout page showing "1 Person: Private Cold Plunge – AED 120.00".
+   - Stripe log 4357 (submit) / 4358 (checkout session created).
+   - Test customer: "TEST Website test (please ignore)", test.booking@beitsisu.com. **Not paid**, so no appointment was created. The Stripe session expires by itself after 24 h.
+3. **Caching:** `/book-appointment/` is `no-cache`. Form availability/payment calls are POST requests (`form-v3/timeslots`, `month-details`, `payment-v3/prepare`), which LiteSpeed never caches.
+4. **Not testable by me:** the final paid step (card → webhook → appointment). It needs a real card, so the owner should do one test booking and refund it.
