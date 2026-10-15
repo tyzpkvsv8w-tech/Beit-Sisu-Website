@@ -460,3 +460,15 @@ A full UpdraftPlus backup (database + files, also copied to Google Drive) was ta
 - Contact Us "How to find us" text and Book Appointment intro (SEO #6). Needs your details.
 - LiteSpeed Cache / image compression (SEO #7). Needs a booking test afterwards.
 - Booking form photos and labels (Part 2 B2–B13).
+
+## Update: 15 October 2026 (afternoon)
+Backup first: **15 Oct 2026 12:31**.
+
+**Done on the live site**
+- **One H1 per page (SEO #4):** section headings in `front-page.php` and `page.php` changed from `<h1>` to `<h2 class="section-title section-h1">`, with a matching CSS rule so they look identical (checked with before/after screenshots, phone and laptop). The homepage "Book a private contrast therapy suite now." heading is now an H2. Every main page now has exactly one H1.
+- **FAQ page:** removed an empty `<h3>` the template printed in every Infrared Sauna / Cold Plunge question (a typo in the theme). Those sections now have the same spacing as the General section.
+
+**Waiting for your approval** (my session's safety check blocks publishing new wording or larger theme changes without it): see **`WEBSITE-CHANGES-FOR-APPROVAL.md`**:
+- Services pages text, Red Light FAQ, Contact "How to find us", Booking intro
+- Proposed `single.php` layout (`proposed-theme-changes/single.php`) and the Blog move
+- Caching/image plan and the BookingPress settings
