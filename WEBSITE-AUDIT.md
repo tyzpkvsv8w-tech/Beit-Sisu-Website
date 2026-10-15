@@ -414,3 +414,49 @@ Most pages have no preview image, so links shared on WhatsApp, Instagram or Face
 - **Draft** the three service pages and 2–3 blog articles for you to review. I'll save them as drafts, not publish, so you can check the facts and tone first.
 
 What only you can do: **Google Business Profile**, asking customers for reviews, and approving the drafts.
+
+---
+
+# Progress update: 15 October 2026 (fixes made directly on the site)
+
+A full UpdraftPlus backup (database + files, also copied to Google Drive) was taken first: **15 Oct 2026 11:36**. Each change was re-read after saving and checked on the live page.
+
+## ✅ Done
+| Item | What changed |
+|---|---|
+| Opening hours (Part 1 #5, B1 website side) | Homepage (Company Info) and Contact Us now both show: Mon–Tue 9:30AM–8PM · Wed–Fri 6:30AM–8PM · Sat 6:30AM–9PM · Sun 7:30AM–9PM (may change on public holidays) |
+| Jo Watkins' review (#6) | Duplicated sentence removed (Testimonials) |
+| © 2024 on homepage (#7) | Footer now shows the current year automatically (`footer.php`) |
+| "Item description" (#4) | Removed (Services → Infrared Saunas → Improve Skin Health) |
+| FAQ typos (🟡 table) | "from from", 50–70C → 50–75C, "equip" → "equipped", "afte", "effect" → "affect", "doctor professional", "Infrared Red Sauna", "drinking device" → "water bottle", "AED40+" wording, "30 mins or 1 hr" → "30, 60 or 90 min" |
+| Age rule | "Children under 13 (guests aged 13–17 must be accompanied by a parent or guardian)" |
+| Homepage wording | "reduces" → "reduce", "melatonin-", "and how this can help" |
+| About Us | "Dubai Media City", "natural stone set the tone" |
+| Contact Us | WhatsApp now "+971 58 596 3805" |
+| FAQ vs Blog timings | Blog now matches the FAQ: ~10 min sauna, 30 sec–1 min plunge, 3–4 rounds an hour |
+| Cancel pages | Clearer wording on "Appointment canceled" and "Cancel Payment" |
+| Leftover Shop page (#2) | Unpublished (set to Draft): now "not found" and out of the sitemap. Demo pages, My account, Cart and Checkout were already gone. |
+| Social links (#15) | Instagram/TikTok now `https://` (Company Info) |
+| Phone buttons (#9) | "Book now"/"Buy Now" text 9.6px → 14px on phones (`style.css`) |
+| Sideways scroll on laptops (#10) | Fixed (`style.css`, `body { overflow-x: clip; }`) |
+| LocalBusiness schema (SEO #3) | Added to `header.php` with the per-day hours, address, phone, email, Instagram and TikTok |
+| Image descriptions (SEO #7) | Alt text on the 5 main photos; homepage template now uses them instead of "Hero Banner" / empty |
+| Tagline (SEO #8) | "Private infrared sauna, cold plunge & red light therapy in Dubai Media City" |
+| Social preview image (SEO #8) | Yoast default image = suite photo (DSC08781); shows on every page |
+| Yoast | TikTok added and Instagram link cleaned (Site representation); category archives hidden from Google |
+
+## ⏳ Still to do
+**Owner (2 minutes each, in BookingPress → Services → click the service → Description → Save):**
+- 1 Person / 2 Person Private Contrast Therapy: "…combination of infrared sauna and cold plunge **are** guaranteed…" → "**is** guaranteed".
+- Intro Offer: "Only available to avail once." → "Can only be used once per customer."
+  (I didn't automate these because saving that screen re-saves the whole service setup.)
+
+**Owner, outside the website:** Google Business Profile with the new hours (SEO #1), Google Search Console sitemap submit (SEO #9), asking for reviews.
+
+**Bigger jobs I can do next, with your OK:**
+- Write the three Services pages (SEO #2). The Red Light Therapy service also has 8 copies of a placeholder FAQ ("Mental Health & Brain Boosters") that should be replaced.
+- Turn the Blog article into a real post (SEO #5).
+- One H1 per page (SEO #4). Needs theme template changes and a visual check.
+- Contact Us "How to find us" text and Book Appointment intro (SEO #6). Needs your details.
+- LiteSpeed Cache / image compression (SEO #7). Needs a booking test afterwards.
+- Booking form photos and labels (Part 2 B2–B13).
