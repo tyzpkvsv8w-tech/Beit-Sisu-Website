@@ -1,4 +1,4 @@
-# Website changes waiting for your approval (15 October 2026)
+# Website changes for approval (15 October 2026): ✅ APPROVED AND PUBLISHED 15 Oct (see WEBSITE-AUDIT.md, last update)
 
 These are ready but **not live**. They're new wording I wrote, or bigger theme changes, and my session's safety check won't publish them without your explicit OK.
 

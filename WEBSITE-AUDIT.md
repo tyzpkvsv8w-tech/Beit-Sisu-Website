@@ -472,3 +472,24 @@ Backup first: **15 Oct 2026 12:31**.
 - Services pages text, Red Light FAQ, Contact "How to find us", Booking intro
 - Proposed `single.php` layout (`proposed-theme-changes/single.php`) and the Blog move
 - Caching/image plan and the BookingPress settings
+
+## Update: 15 October 2026 (evening): approved changes published
+Backup first: **15 Oct 2026 13:17**. All items from `WEBSITE-CHANGES-FOR-APPROVAL.md` were approved ("approve all") and published, using the owner's answers.
+
+| Item | Result |
+|---|---|
+| Services/blog layout | `single.php` now has the black title banner (one H1), photo column, text, Benefits + FAQ accordions, Book Now button, no sidebar. Checked on phone and laptop, no sideways scroll. |
+| Services content box | `functions.php`: `'editor'` support switched on for the Services post type, so Services now edit in the block editor with a main content area. |
+| Services pages text | Infrared Saunas, Cold Plunges (incl. 30 min AED 120) and Red Light Therapy now have full text (~1,100 words each including Benefits/FAQ) |
+| Red Light FAQ | 8 placeholder copies replaced with 5 real questions (no set time; no eye protection provided) |
+| Contact Us | "How to find us" added (ground floor, just past the lobby) |
+| Book Appointment | Intro added, incl. 12-hour cancellation/reschedule policy |
+| Blog | Article is now a real post: `/sauna-or-cold-plunge-first/` (Yoast title/description carried over). `/blog/` lists posts (Settings → Reading → Posts page = Blog) with a styled `index.php`. Blog page SEO title: "Blog \| Contrast Therapy, Sauna & Cold Plunge Tips \| Beit Sisu". |
+| BookingPress | Phone default = UAE (+971); "Pay Post Service" → "Pay at the studio"; description typos fixed on services 1, 2, 3, 6, 7 (booking form before/after diff: only those sentences changed) |
+| Caching | LiteSpeed Cache activated. Booking pages excluded (`/book-appointment/`, `/thank-you/`, `/my-bookings/`, cancel/reschedule pages, `/bookingpress-complete-payment/`), plus query strings `bookingpress-listener` and `appointment_id`. Normal pages show `x-litespeed-cache: hit`; booking pages show `no-cache`. Booking form tested up to the Room step. |
+
+**Not possible / still open**
+- "AED" instead of "د.إ": BookingPress has no setting for the symbol (only its position).
+- WebP image conversion in LiteSpeed needs a free QUIC.cloud account linked by the owner (LiteSpeed Cache → General → Request Domain Key). WP-Optimize and reSmush.it were left as they were.
+- Room/service photos in the booking form: need photos chosen by the owner.
+- **Owner: one real test card booking + refund** now that caching is on (same as 12 Oct), then confirm the appointment appears.
