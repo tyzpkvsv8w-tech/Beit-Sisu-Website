@@ -523,3 +523,21 @@ Verified on the live booking form (phone): all 8 photos load, and service names/
   - Yoast title and description set; featured image is the barrel room photo (media 563, with alt text).
   - Listed on /blog/ and in the post sitemap. One H1, 9 H2s, internal links to the Cold Plunges page, the first article and Book Appointment.
   - Next: Search Console → URL inspection → Request indexing.
+
+## Update: 20 October 2026: mobile speed fixes
+Site Kit report (22 Sep–19 Oct): 0 visitors/impressions because Google Analytics was only connected on 20 Oct 09:28 UTC (tag GT-55VVX9WX / G-6DT2RM8CLF is on the site; Search Console property `https://beitsisu.com/`). Real issue: mobile LCP 8.7 s (Poor).
+
+Backup first: **20 Oct 2026 13:39**. Changes:
+- `styles/style.css`:
+  - `@font-face` now loads `.woff2` first (35–42 KB each instead of 137–157 KB `.ttf`).
+  - Fixed a missing comma in the Light font rule.
+  - Added `font-display: swap`.
+- `front-page.php`: hero image now uses `the_post_thumbnail()` with `srcset` (768/1024/1500 px), `fetchpriority="high"`, `sizes="100vw"`. Below-the-fold images (services carousel, content image, testimonial photos) get `loading="lazy" decoding="async"`.
+- `page.php`: same lazy loading. Services carousel image now also has alt text.
+
+Results:
+- Mobile LCP under simulated slow 4G (3 runs each): **7.5 s → 5.5 s** median.
+- Fonts downloaded: **287 KB → 75 KB**.
+- Before/after screenshots (6 pages × phone/laptop): identical apart from sub-pixel font smoothing.
+
+Next biggest gain (owner): link QUIC.cloud in LiteSpeed Cache → General → Request Domain Key, so images are served as WebP (homepage images ≈ 1.5 MB today).
