@@ -1,4 +1,4 @@
-# Blog draft for review: not published
+# Blog article: ✅ PUBLISHED 20 Oct 2026 at https://beitsisu.com/how-cold-is-an-ice-bath/
 
 **Suggested address:** `beitsisu.com/how-cold-is-an-ice-bath/`
 **Google title (Yoast SEO title):** How Cold Is an Ice Bath? Beginner's Guide to Cold Plunging in Dubai

@@ -519,3 +519,7 @@ Verified on the live booking form (phone): all 8 photos load, and service names/
   - Infrared Saunas FAQ ("What do I need to bring?" and "What do I need to do after my sauna?") updated.
   - All 4 confirmation emails: "Refillable water bottle" → "A refillable water bottle (optional – we provide free filtered water and cups)".
   - Blog draft updated to match.
+- **New article published (20 Oct):** https://beitsisu.com/how-cold-is-an-ice-bath/
+  - Yoast title and description set; featured image is the barrel room photo (media 563, with alt text).
+  - Listed on /blog/ and in the post sitemap. One H1, 9 H2s, internal links to the Cold Plunges page, the first article and Book Appointment.
+  - Next: Search Console → URL inspection → Request indexing.
