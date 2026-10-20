@@ -59,7 +59,7 @@ For most healthy adults, short cold plunges are safe. But please **check with yo
 
 ## What to bring to your first session
 
-Just your swimsuit and a water bottle. At Beit Sisu, every room is completely private, with its own shower, a towel and Gymskin shower products. Showering before your plunge is required, so arrive a few minutes early.
+Just your swimsuit – we take care of the rest. At Beit Sisu, every room is completely private, with its own shower, a towel, Gymskin shower products and free filtered water. Showering before your plunge is required, so arrive a few minutes early.
 
 ## Try your first ice bath in Dubai Media City
 
@@ -78,4 +78,4 @@ Beit Sisu is inside the Arjaan by Rotana Hotel in Dubai Media City, a few minute
 - **Please check:**
   1. Is "Plenty of regulars work towards around three minutes" OK? It's the figure in your Cold Plunge FAQ.
   2. Are the safety lines (heart condition, high blood pressure, pregnancy, alcohol) worded how you want?
-- **Spotted while editing the emails:** your booking confirmation emails say "Salt & Mud amenities" (not Gymskin), "sauna reaches up to 79°C" (website says 50–75°C) and "cold plunge 3–8°C" (website says 3.5–8°C). Tell me which is correct and I'll make them match.
+- Email inconsistencies (Salt & Mud, 79°C, 3–8°C): fixed on 20 Oct – emails now say Gymskin and 3.5–8°C; website now says the sauna reaches 79°C.

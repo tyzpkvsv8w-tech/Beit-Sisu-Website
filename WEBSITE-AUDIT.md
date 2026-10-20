@@ -511,3 +511,7 @@ Verified on the live booking form (phone): all 8 photos load, and service names/
 - To do: swap in the official `g.page/r/…/review` link from Google Business Profile → "Ask for reviews" when available.
 - Blog draft for review: `BLOG-DRAFT-ice-bath-guide.md` (not published).
 - Email content inconsistencies found: "Salt & Mud amenities", "sauna up to 79°C", "cold plunge 3–8°C" vs the website. Waiting for the owner's answer.
+- **Owner confirmed facts (20 Oct):** sauna reaches 79°C, Gymskin products, cold plunge 3.5–8°C.
+  - Website: 75°C changed to 79°C on the homepage ("50-79C"), FAQ (two answers) and Infrared Saunas page.
+  - All 4 confirmation emails: "Salt & Mud amenities" → "Gymskin shower products", "3-8°C" → "3.5-8°C".
+  - Blog draft: "bring a water bottle" removed (free filtered water provided).
