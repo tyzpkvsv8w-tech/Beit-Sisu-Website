@@ -515,3 +515,7 @@ Verified on the live booking form (phone): all 8 photos load, and service names/
   - Website: 75°C changed to 79°C on the homepage ("50-79C"), FAQ (two answers) and Infrared Saunas page.
   - All 4 confirmation emails: "Salt & Mud amenities" → "Gymskin shower products", "3-8°C" → "3.5-8°C".
   - Blog draft: "bring a water bottle" removed (free filtered water provided).
+- **Water (20 Oct, owner):** free filtered water and cups provided; guests may bring a bottle to refill.
+  - Infrared Saunas FAQ ("What do I need to bring?" and "What do I need to do after my sauna?") updated.
+  - All 4 confirmation emails: "Refillable water bottle" → "A refillable water bottle (optional – we provide free filtered water and cups)".
+  - Blog draft updated to match.

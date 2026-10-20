@@ -59,7 +59,7 @@ For most healthy adults, short cold plunges are safe. But please **check with yo
 
 ## What to bring to your first session
 
-Just your swimsuit – we take care of the rest. At Beit Sisu, every room is completely private, with its own shower, a towel, Gymskin shower products and free filtered water. Showering before your plunge is required, so arrive a few minutes early.
+Just your swimsuit – we take care of the rest. At Beit Sisu, every room is completely private, with its own shower, a towel, Gymskin shower products and free filtered water with cups – or bring your own bottle and we'll refill it. Showering before your plunge is required, so arrive a few minutes early.
 
 ## Try your first ice bath in Dubai Media City
 
