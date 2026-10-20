@@ -504,3 +504,10 @@ Verified on the live booking form (phone): all 8 photos load, and service names/
 - **Service photos updated (owner's request):** Tub room photo (square crop) on Intro Offer and all Contrast Therapy services (1, 2, 3, 6, 7); Barrel room photo (square crop) on all Cold Plunge services (4, 5, 8). All 8 load on the live form; names/prices/descriptions unchanged (diff).
 - **Tub room photo:** Tub photo (square crop) set on BookingPress → Rooms → Tub (ID 1). Both Tub and Barrel photos load on the live Room step.
 - **"Aesop bath products" → "Gymskin shower products"** everywhere it appeared: Infrared Saunas page text, Infrared Saunas FAQ ("What do I need to bring?", also shown on the FAQ page), Book Appointment intro. Live check: 0 mentions of Aesop left on any page in the sitemap.
+
+## Update: 20 October 2026: Google review link in emails + first new blog draft
+- **Review link** (`https://www.google.com/search?q=beit+sisu+reviews`, a cleaned version of the owner's link without session tracking codes) added as a line above the "Visit Our Website" button in all 4 booking confirmation emails (Cold Plunge / Contrast Therapy × Pre-paid / Pay at the studio). Each was saved and re-read to confirm.
+- **Appointment Follow Up email:** text updated with the review link, but the email is still **switched off** (it has never been sent). Switching it on is the owner's decision.
+- To do: swap in the official `g.page/r/…/review` link from Google Business Profile → "Ask for reviews" when available.
+- Blog draft for review: `BLOG-DRAFT-ice-bath-guide.md` (not published).
+- Email content inconsistencies found: "Salt & Mud amenities", "sauna up to 79°C", "cold plunge 3–8°C" vs the website. Waiting for the owner's answer.
