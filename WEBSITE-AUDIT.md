@@ -541,3 +541,11 @@ Results:
 - Before/after screenshots (6 pages × phone/laptop): identical apart from sub-pixel font smoothing.
 
 Next biggest gain (owner): link QUIC.cloud in LiteSpeed Cache → General → Request Domain Key, so images are served as WebP (homepage images ≈ 1.5 MB today).
+
+## Update: 21 October 2026: Site Kit report + missed SEO titles
+- **Site Kit (23 Sep–20 Oct):** 183 Google impressions, 2 clicks. Top searches: "cold plunge dubai" (14 impressions), "infrared sauna dubai" (14 impressions, 1 click), "beit sisu" (5 impressions, 1 click). 15 visitors since Analytics was connected on 20 Oct. Mobile LCP 7.4 s (was 8.7 s).
+- **Fixed:** the three Services pages never had Yoast titles/descriptions (approved 15 Oct but missed). Now set:
+  - Cold Plunges → "Private Cold Plunge & Ice Bath Dubai | Beit Sisu"
+  - Infrared Saunas → "Private Infrared Sauna in Dubai Media City | Beit Sisu"
+  - Red Light Therapy → "Red Light Therapy Dubai | Private Suites | Beit Sisu"
+  - Each with a description; verified live.
