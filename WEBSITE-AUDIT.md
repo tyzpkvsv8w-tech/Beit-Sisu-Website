@@ -573,3 +573,4 @@ Backup first: **22 Oct 2026 11:39**. Owner approved the wording ("Availability i
 - **Next (owner):**
   - Search Console → URL inspection → Request indexing for `/ice-bath-rental-dubai/`.
   - Send your own photos and they'll be added to the page.
+- **22 Oct (owner request):** both "Contact us on WhatsApp for rates" buttons on the rental page are now WhatsApp green (#25D366) with black text, set with an inline style on the two links. Checked on phone and laptop, including hover.
