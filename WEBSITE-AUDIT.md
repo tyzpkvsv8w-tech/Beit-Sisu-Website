@@ -563,7 +563,7 @@ Backup first: **22 Oct 2026 11:39**. Owner approved the wording ("Availability i
   - title "Ice Bath Rental Dubai | Portable Cold Plunge Hire | Beit Sisu"
   - description as in the draft; verified live.
 - **Top menu:** "Ice Bath Rental" added after Collaborations.
-  - Note: "Join The Club" is still in the menu but hidden, because its page has been in the trash since 30 Sep. Remove it from Appearance → Menus, or restore the page.
+  - "Join The Club" menu link removed at the owner's request (22 Oct). It was already hidden because its page has been in the trash since 30 Sep.
 - **Homepage:** new section "Rent a portable ice bath" with a "Find out more" button, after the Memberships section (`front-page.php`).
 - **Internal links:** one line linking to the rental page at the end of the Cold Plunges page and of the "How cold is an ice bath?" article.
 - **Checks:**
