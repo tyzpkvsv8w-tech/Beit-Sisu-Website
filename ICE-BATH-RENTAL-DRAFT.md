@@ -1,4 +1,4 @@
-# Ice bath rental: draft for approval (not live)
+# Ice bath rental: ✅ PUBLISHED 22 Oct 2026 at https://beitsisu.com/ice-bath-rental-dubai/
 
 ## Where it will appear
 | Place | What |
@@ -95,6 +95,6 @@ Message us on WhatsApp with your dates, location and whether you have power avai
 - Photos: your own, added once you send them. The page launches without a product photo.
 - Kula Recovery: named, with the note above.
 
-## Still to confirm
-1. Is "Availability is limited" OK (instead of "5 ice baths")?
-2. Are you an official Kula Recovery partner? (Changes the bottom line, see above.)
+## Confirmed by the owner (22 Oct)
+1. "Availability is limited" (no number of units shown).
+2. Not an official Kula Recovery partner, so the not-affiliated line is used.

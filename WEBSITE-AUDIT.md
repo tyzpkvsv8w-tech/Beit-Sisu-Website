@@ -550,3 +550,26 @@ Next biggest gain (owner): link QUIC.cloud in LiteSpeed Cache → General → Re
   - Red Light Therapy → "Red Light Therapy Dubai | Private Suites | Beit Sisu"
   - Each with a description; verified live.
 - **22 Oct:** published https://beitsisu.com/infrared-sauna-vs-traditional-sauna/ (Yoast title/description, red-lit sauna photo as featured image, media 567). Ice bath rental draft updated with deliver/set up/collect and a trademark note.
+
+## Update: 22 October 2026: portable ice bath rental published
+Backup first: **22 Oct 2026 11:39**. Owner approved the wording ("Availability is limited"; not an official Kula Recovery partner).
+- **New page:** https://beitsisu.com/ice-bath-rental-dubai/ (page 570).
+  - Copy from `ICE-BATH-RENTAL-DRAFT.md`.
+  - Two "Contact us on WhatsApp for rates" buttons; they open WhatsApp with "Hi Beit Sisu, I'd like to rent a portable ice bath."
+  - 7 FAQs.
+  - Not-affiliated trademark line at the bottom.
+  - Service + FAQPage structured data (area served: Dubai, UAE).
+- **Yoast:**
+  - title "Ice Bath Rental Dubai | Portable Cold Plunge Hire | Beit Sisu"
+  - description as in the draft; verified live.
+- **Top menu:** "Ice Bath Rental" added after Collaborations.
+  - Note: "Join The Club" is still in the menu but hidden, because its page has been in the trash since 30 Sep. Remove it from Appearance → Menus, or restore the page.
+- **Homepage:** new section "Rent a portable ice bath" with a "Find out more" button, after the Memberships section (`front-page.php`).
+- **Internal links:** one line linking to the rental page at the end of the Cold Plunges page and of the "How cold is an ice bath?" article.
+- **Checks:**
+  - Cache purged; booking smoke test OK.
+  - Phone and laptop checks: one H1, no sideways scroll, links and structured data present.
+  - Logged out.
+- **Next (owner):**
+  - Search Console → URL inspection → Request indexing for `/ice-bath-rental-dubai/`.
+  - Send your own photos and they'll be added to the page.
