@@ -549,3 +549,4 @@ Next biggest gain (owner): link QUIC.cloud in LiteSpeed Cache → General → Re
   - Infrared Saunas → "Private Infrared Sauna in Dubai Media City | Beit Sisu"
   - Red Light Therapy → "Red Light Therapy Dubai | Private Suites | Beit Sisu"
   - Each with a description; verified live.
+- **22 Oct:** published https://beitsisu.com/infrared-sauna-vs-traditional-sauna/ (Yoast title/description, red-lit sauna photo as featured image, media 567). Ice bath rental draft updated with deliver/set up/collect and a trademark note.

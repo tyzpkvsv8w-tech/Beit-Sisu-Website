@@ -25,6 +25,7 @@ Whether you want a week of daily plunges at home or a recovery station at your n
 
 ## How it works
 
+- **We deliver, set up and collect.** You just plunge
 - **Single-person portable ice bath** from Kula Recovery
 - **With a chiller** when there's a power supply nearby, so the water stays cold all day
 - **No power? No problem.** We can provide ice instead
@@ -57,6 +58,9 @@ With the chiller connected, the water stays cold throughout your rental. Without
 **Can it go outdoors?**
 Yes, the ice baths work indoors and outdoors.
 
+**Do you deliver and set it up?**
+Yes. We deliver the ice bath, set it up for you and collect it at the end of your rental.
+
 **Do you deliver outside Dubai?**
 We cover Dubai and the surrounding areas as standard. Other emirates are possible on request.
 
@@ -75,13 +79,22 @@ Message us on WhatsApp with your dates, location and whether you have power avai
 
 ## Homepage section (short)
 > **Rent a portable ice bath**
-> Kula Recovery ice baths delivered to your home, event or team, anywhere in Dubai and the surrounding areas. Indoor or outdoor, with a chiller or ice.
+> Kula Recovery ice baths delivered, set up and collected, for your home, event or team, anywhere in Dubai and the surrounding areas. Indoor or outdoor, with a chiller or ice.
 > **[Find out more]** → /ice-bath-rental-dubai/
 
 ---
 
-## Questions for you
-1. Is "**Availability is limited**" OK? I didn't put "5 ice baths" on the page, because the number may change.
-2. Are you happy to name **Kula Recovery**? It helps people who search for the brand, but check that's fine with them.
-3. Do you **set it up** and **collect** it, or does the customer? (I've left this out for now.)
-4. Photos: are you getting official photos from Kula, or taking your own?
+## Trademark note (Kula Recovery)
+- Naming the brand in plain text to describe the genuine equipment you rent is normally fine ("fair" or "nominative" use).
+- **Don't** use the Kula logo, and don't call Beit Sisu an "official partner" or "authorised dealer" unless Kula has agreed to that.
+- To be safe, the page will carry a small line at the bottom: *"Kula Recovery is a trademark of its respective owner. Beit Sisu is not affiliated with Kula Recovery and uses the name only to describe the equipment we rent."* If you **are** an official partner, tell me and I'll replace it with "Official Kula Recovery partner".
+- This isn't legal advice. If in doubt, a quick email to Kula asking "Are we OK to mention your brand on our rental page?" settles it, and they may send official photos too.
+
+## Settled
+- Deliver, set up and collect: added.
+- Photos: your own, added once you send them. The page launches without a product photo.
+- Kula Recovery: named, with the note above.
+
+## Still to confirm
+1. Is "Availability is limited" OK (instead of "5 ice baths")?
+2. Are you an official Kula Recovery partner? (Changes the bottom line, see above.)

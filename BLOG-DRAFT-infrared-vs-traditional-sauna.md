@@ -1,4 +1,4 @@
-# Blog draft for review: not published
+# Blog article: ✅ PUBLISHED 22 Oct 2026 at https://beitsisu.com/infrared-sauna-vs-traditional-sauna/
 
 **Suggested address:** `beitsisu.com/infrared-sauna-vs-traditional-sauna/`
 **Google title (Yoast SEO title):** Infrared Sauna vs Traditional Sauna: What's the Difference? | Beit Sisu Dubai
