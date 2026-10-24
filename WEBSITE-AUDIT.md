@@ -574,3 +574,16 @@ Backup first: **22 Oct 2026 11:39**. Owner approved the wording ("Availability i
   - Search Console → URL inspection → Request indexing for `/ice-bath-rental-dubai/`.
   - Send your own photos and they'll be added to the page.
 - **22 Oct (owner request):** both "Contact us on WhatsApp for rates" buttons on the rental page are now WhatsApp green (#25D366) with black text, set with an inline style on the two links. Checked on phone and laptop, including hover.
+
+## Update: 24 October 2026: QUIC.cloud image optimization (blocked, owner step needed)
+- LiteSpeed Cache 7.9.1 no longer has "Request Domain Key". The button is now **LiteSpeed Cache → General → Enable QUIC.cloud services**. It sends you to `my.quic.cloud` to sign in or create a free account and approve the site.
+- That step could not be done from the Claude session: its network policy blocks `my.quic.cloud`. Nothing was changed on the site.
+- Homepage images on a phone today total **1.3 MB**. The biggest are `DSC08817.jpg` (349 KB), `infrared-sauna-scaled.jpg` (319 KB), `red-light-theraphy.png` (224 KB) and `DSC08781.jpg` (165 KB).
+- After the owner activates QUIC.cloud:
+  - Image Optimization settings:
+    - Auto Request Cron ON
+    - Optimize Original Images ON
+    - Image WebP Replacement ON
+    - WebP for extra srcset ON
+  - Send optimization requests until all 40 image groups are done.
+  - Purge the cache and re-measure.
