@@ -587,3 +587,27 @@ Backup first: **22 Oct 2026 11:39**. Owner approved the wording ("Availability i
     - WebP for extra srcset ON
   - Send optimization requests until all 40 image groups are done.
   - Purge the cache and re-measure.
+
+## Update: 26 October 2026: QUIC.cloud linked + mobile image and script fixes
+- **QUIC.cloud:** linked **anonymously** at the owner's choice (no QUIC.cloud login; the CDN isn't available, image optimization works). LiteSpeed now shows "QUIC.cloud Integration Enabled with limitations". Upgrade later via LiteSpeed Cache → General → Link to QUIC.cloud.
+- **Image Optimization settings:**
+  - Auto Request Cron **ON**
+  - Optimize Original Images ON
+  - Next-Gen format **WebP**
+  - WebP for extra srcset **ON**
+  - Original backups kept, so it can be reverted
+- **Progress so far:** 10 images optimized (about 120 KB saved). Then the anonymous **daily quota** ran out. Auto Request Cron carries on each day by itself; the 40 image groups will take several days. The homepage photo `DSC08817` is already served as `.webp`.
+- **Theme changes** (`front-page.php`, `page.php`):
+  - The content-section image and the services carousel used to send the full-size file to every device. They now use WordPress `srcset` (`large` + smaller sizes), so phones get a smaller file.
+  - Carousel `sizes="(max-width: 767px) 86vw, 33vw"`; content image `sizes="(max-width: 767px) 100vw, 50vw"`.
+- **Theme change** (`functions.php`):
+  - Removed the duplicate `bootstrap.min.js` (`bootstrap.bundle.min.js` already contains it).
+  - Moved `bootstrap.bundle.min.js`, the theme's `jquery.min.js` and `owl.carousel.min.js` from `<head>` to the footer, in the same order, so they no longer block the first paint.
+- **Results** (phone, simulated slow 4G):
+  - Homepage images: **1,323 KB → 926 KB**
+  - First paint: **2.7 s → 2.0 s**
+  - LCP median: 5.6 s → 5.5 s. LCP is the hero photo `DSC08781.jpg` (165 KB); it will drop further once QUIC.cloud's quota reaches it and it's served as WebP.
+- **Checks:**
+  - Before/after screenshots on 6 pages × phone/laptop are identical apart from image resampling.
+  - On 4 pages × phone/laptop, before and after give identical results: menu, accordions, carousel and jQuery/Bootstrap all work, with no JS errors.
+  - Booking smoke test OK; cache purged; logged out.
