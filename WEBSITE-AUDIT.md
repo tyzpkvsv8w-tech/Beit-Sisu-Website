@@ -611,3 +611,11 @@ Backup first: **22 Oct 2026 11:39**. Owner approved the wording ("Availability i
   - Before/after screenshots on 6 pages × phone/laptop are identical apart from image resampling.
   - On 4 pages × phone/laptop, before and after give identical results: menu, accordions, carousel and jQuery/Bootstrap all work, with no JS errors.
   - Booking smoke test OK; cache purged; logged out.
+
+## Update: 27 October 2026: Search Console indexing fixes
+See `SEARCH-CONSOLE-ISSUES-2026-10-26.md`:
+- 7 booking pages set to noindex
+- articles and rental page now authored by "Beit Sisu" (admin account display name)
+- Yoast author archives off (author URLs redirect to the homepage)
+- Services archive set to noindex
+- Cache purged, booking smoke test OK, logged out

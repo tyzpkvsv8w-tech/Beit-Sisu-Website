@@ -1,4 +1,4 @@
-# Search Console "Page indexing" issues: investigation (26 Oct 2026)
+# Search Console "Page indexing" issues: investigation (26 Oct 2026), ✅ fixes applied 27 Oct
 
 Source: Search Console export "Coverage", data up to **19 Oct 2026**. At that point 12 pages were indexed and 17 were not.
 
@@ -37,3 +37,28 @@ The export only gives counts per reason, not which pages. I checked every sitema
 ## Normal and expected
 - New pages (the two new articles and the ice bath rental page) are often "Crawled, currently not indexed" for a few weeks. Use URL inspection → Request indexing in Search Console to speed them up.
 - After the fixes, open each issue in Search Console and click **Validate fix**.
+
+## Owner's screenshots (26 Oct) confirmed
+- **Crawled, currently not indexed (10):**
+  - 7 are code files: BookingPress `.js` files (4), the WordPress emoji script (2), `/services/feed/`. Google never indexes those, so it's normal.
+  - The other 3 are `/bookingpress-complete-payment/`, `/thank-you/` and `/my-bookings/`.
+- **404 (3):**
+  - `/join-the-club/` (deleted page)
+  - `/wp-content/plugins/*` (a malformed address, not a real page)
+  - an old BookingPress cart calendar-download link (the Cart add-on is now off)
+  - All fine.
+- **Indexed (14):** includes `/ice-bath-rental-dubai/` and `/how-cold-is-an-ice-bath/` (crawled 24 Oct), but also `/author/claude-helper1/` and `/services/`.
+
+## ✅ Fixes applied 27 Oct 2026 (owner: "Go ahead. Use Beit Sisu")
+1. **Booking pages hidden** (Yoast "noindex" on each): thank-you, my-bookings, cancel-appointment, cancel-payment, appointment-cancellation-confirmation, appointment-reschedule, bookingpress-complete-payment. Page content checked unchanged; booking smoke test OK.
+2. **Author:**
+   - The 3 articles and the rental page now belong to the main `admin` account, whose public display name is now **Beit Sisu**. Google's data on the articles shows author "Beit Sisu"; "claude" no longer appears anywhere on the page.
+   - Yoast author archives turned off: `/author/claude-helper1/` and `/author/admin/` now 301-redirect to the homepage, and the author sitemap is gone.
+3. **Services Archive** (`/services/`): now "noindex" (Yoast → Content types → Services → archive). The 3 service pages stay indexed.
+
+Sitemaps now list only real pages:
+- **Pages:** home, Collaborations, About, Contact, Book Appointment, FAQ, Ice Bath Rental
+- **Services:** the 3 service pages
+- **Posts:** Blog plus the 3 articles
+
+**Owner next step:** in Search Console → Page indexing, open "Crawled – currently not indexed" and click **Validate fix**. Optionally do the same for "Not found (404)". Results take 1–4 weeks.
