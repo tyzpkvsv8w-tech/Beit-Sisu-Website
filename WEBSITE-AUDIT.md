@@ -619,3 +619,17 @@ See `SEARCH-CONSOLE-ISSUES-2026-10-26.md`:
 - Yoast author archives off (author URLs redirect to the homepage)
 - Services archive set to noindex
 - Cache purged, booking smoke test OK, logged out
+
+## Update: 29 October 2026: Kula Recovery removed from the website (owner request)
+- **Ice bath rental page:**
+  - "portable single-person ice baths from Kula Recovery" → "portable single-person ice baths".
+  - "Single-person portable ice bath from Kula Recovery." → "Single-person portable ice bath, compact enough for a balcony, garden or gym floor."
+  - Trademark/not-affiliated footnote removed (no longer needed).
+- **Google/social description:** now "Rent a portable ice bath in Dubai for your home, event or team. Delivered, set up and collected. Chiller or ice, indoor or outdoor. WhatsApp us for rates."
+- **Homepage section** (`front-page.php`): "Kula Recovery ice baths delivered…" → "Portable ice baths delivered…".
+- **Verified:**
+  - 0 mentions in any page, post, service, media item or theme file.
+  - 0 mentions on 16 live pages, the sitemap and the feed.
+  - Green WhatsApp buttons and structured data intact.
+  - Cache purged, booking smoke test OK, logged out.
+- Google may show the old description until it re-crawls the page. Owner can speed this up with Search Console → URL inspection → Request indexing.

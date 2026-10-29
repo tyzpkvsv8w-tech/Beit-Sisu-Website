@@ -1,4 +1,4 @@
-# Ice bath rental: ✅ PUBLISHED 22 Oct 2026 at https://beitsisu.com/ice-bath-rental-dubai/
+# Ice bath rental: ✅ PUBLISHED 22 Oct 2026 at https://beitsisu.com/ice-bath-rental-dubai/ (29 Oct: all Kula Recovery mentions removed from the live site at owner request)
 
 ## Where it will appear
 | Place | What |
