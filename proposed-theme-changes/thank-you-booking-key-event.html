@@ -1,0 +1,12 @@
+
+<script id="bs-booking-key-event">
+/* Beit Sisu: tell Google Analytics a booking was completed (GA4 counts "purchase" as a key event automatically). Sent once per browser session. */
+(function () {
+  try { if (sessionStorage.getItem('bs_booking_tracked')) return; sessionStorage.setItem('bs_booking_tracked', '1'); } catch (e) {}
+  function send() {
+    if (typeof gtag !== 'function') return;
+    gtag('event', 'purchase', { transaction_id: 'bs-' + Date.now() + '-' + Math.floor(Math.random() * 1e6), currency: 'AED', items: [{ item_name: 'Beit Sisu booking' }] });
+  }
+  if (document.readyState === 'complete') send(); else window.addEventListener('load', send);
+})();
+</script>

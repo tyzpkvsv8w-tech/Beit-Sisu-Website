@@ -667,4 +667,16 @@ See `SEARCH-CONSOLE-ISSUES-2026-10-26.md`:
 - While preparing the booking key-event change, every page started returning **HTTP 500 "Error establishing a database connection"**. The login page alternated between the browser check and "Database Error".
 - It was working minutes earlier (11:3x UTC, after the homepage service-links change and logout). A WordPress page or theme edit cannot cause a database connection error. It means the MySQL server is down or overloaded, or rejecting the site's login.
 - Still down at 11:46 UTC after 3 minutes of checks. Nothing was changed on the site after the error appeared.
+- **Recovered by itself at 11:47 UTC** (about 7 minutes down). Homepage, booking, thank-you and service pages all return 200; a booking smoke test passed afterwards. If it happens again, ask the host why MySQL dropped connections.
 - **Owner action:** contact the hosting company's support (live chat), report "Error establishing a database connection on beitsisu.com since about 11:40 UTC (15:40 Dubai)", and ask them to check/restart MySQL and check database connection limits.
+
+## Update: 3 November 2026: bookings tracked as a Google Analytics key event
+- Owner asked to set up booking tracking ("Key events: 0" in Site Kit). The session has no Google Analytics access, so the event is sent from the website instead.
+- The **thank-you page** (page 215, where BookingPress sends customers after a booking) now ends with a small script that sends GA4 a **`purchase`** event (currency AED, unique transaction id) through Site Kit's existing `gtag`. GA4 treats `purchase` as a key event by default, so no GA setup is needed.
+- It's sent once per browser session; a reload does not count twice. The script is saved in `proposed-theme-changes/thank-you-booking-key-event.html`; the original page content is backed up in the session scratchpad.
+- **Verified:**
+  - Live page content = original + script, exactly (9,603 characters).
+  - On the live page the event is queued in `dataLayer` as `purchase` on the first visit and not on reload; no JS errors; the thank-you message still shows.
+  - The test browser couldn't reach Google's servers, so no test booking was counted in GA.
+  - Booking smoke test OK; cache purged; logged out.
+- **Owner check:** after the next real booking, look in GA → Reports → Realtime (or Admin → Data display → Key events) for `purchase`. It should also appear in Site Kit's "Key events" within a day or two. If GA doesn't list `purchase` as a key event, switch it on there.
