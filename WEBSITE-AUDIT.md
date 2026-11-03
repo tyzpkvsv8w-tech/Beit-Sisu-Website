@@ -646,3 +646,19 @@ See `SEARCH-CONSOLE-ISSUES-2026-10-26.md`:
   - No sideways scroll on phone or laptop.
   - Cache purged, booking smoke test OK, logged out.
 - **Next (owner):** Search Console → URL inspection → Request indexing for `/what-is-contrast-therapy/`.
+
+## Update: 3 November 2026: Site Kit review + homepage links to service pages
+- **Site Kit (6 Oct–2 Nov):**
+  - 224 visitors, 2.9K Google impressions, 60 clicks.
+  - Service pages had only 2 views each; the homepage had **no links** to them.
+  - High impressions but very few clicks for "sauna dubai" (183), "ice bath dubai" (171), "cold plunge dubai" (155) and "infrared sauna dubai" (82).
+  - Key events 0: the GA "booking complete" key event isn't set up yet (owner step).
+  - Mobile LCP 5.3 s.
+- **Fix** (`front-page.php` and `page.php`, services section):
+  - Each service title ("Benefits of Cold Plunges" etc.) now links to its service page.
+  - Added a "Learn more" button (theme `common-btn bor-btn-black`) under each service's benefits.
+- **Checks:**
+  - The homepage now links to each of the 3 service pages twice; the button goes to the right page.
+  - Before/after screenshots: other pages unchanged; the homepage is only taller by the buttons.
+  - Menu, accordions and carousel all work, with no JS errors.
+  - Booking smoke test OK; cache purged; logged out.
