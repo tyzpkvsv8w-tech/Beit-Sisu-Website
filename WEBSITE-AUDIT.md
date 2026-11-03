@@ -633,3 +633,16 @@ See `SEARCH-CONSOLE-ISSUES-2026-10-26.md`:
   - Green WhatsApp buttons and structured data intact.
   - Cache purged, booking smoke test OK, logged out.
 - Google may show the old description until it re-crawls the page. Owner can speed this up with Search Console → URL inspection → Request indexing.
+
+## Update: 3 November 2026: contrast therapy article + Blog menu link
+- **Published** https://beitsisu.com/what-is-contrast-therapy/ (post 588), owner-approved text from `BLOG-DRAFT-what-is-contrast-therapy.md`.
+  - Featured image: suite photo with sauna, shower and plunge (media 587, with alt text).
+  - Author "Beit Sisu"; Yoast title and description set.
+  - 7 H2s and one H1; links to all 3 service pages, both related articles, the ice bath guide and Book Appointment.
+  - Listed first on /blog/ and in the post sitemap.
+- **"Sauna or Cold Plunge First?"** now links to the new article, just before its closing section.
+- **Top menu:** "Blog" added between FAQs and Contact Us. It shows in the header and footer on phone and laptop, and goes to /blog/.
+- **Checks:**
+  - No sideways scroll on phone or laptop.
+  - Cache purged, booking smoke test OK, logged out.
+- **Next (owner):** Search Console → URL inspection → Request indexing for `/what-is-contrast-therapy/`.

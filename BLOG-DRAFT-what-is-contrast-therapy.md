@@ -1,4 +1,4 @@
-# Blog article: draft for approval (not live)
+# Blog article: ✅ PUBLISHED 3 Nov 2026 at https://beitsisu.com/what-is-contrast-therapy/
 
 **Suggested address:** `beitsisu.com/what-is-contrast-therapy/`
 **Google title (Yoast SEO title):** What Is Contrast Therapy? Benefits & How to Do It in Dubai | Beit Sisu
