@@ -662,3 +662,9 @@ See `SEARCH-CONSOLE-ISSUES-2026-10-26.md`:
   - Before/after screenshots: other pages unchanged; the homepage is only taller by the buttons.
   - Menu, accordions and carousel all work, with no JS errors.
   - Booking smoke test OK; cache purged; logged out.
+
+## Incident: 3 November 2026, ~11:40 UTC: site down ("Error establishing a database connection")
+- While preparing the booking key-event change, every page started returning **HTTP 500 "Error establishing a database connection"**. The login page alternated between the browser check and "Database Error".
+- It was working minutes earlier (11:3x UTC, after the homepage service-links change and logout). A WordPress page or theme edit cannot cause a database connection error. It means the MySQL server is down or overloaded, or rejecting the site's login.
+- Still down at 11:46 UTC after 3 minutes of checks. Nothing was changed on the site after the error appeared.
+- **Owner action:** contact the hosting company's support (live chat), report "Error establishing a database connection on beitsisu.com since about 11:40 UTC (15:40 Dubai)", and ask them to check/restart MySQL and check database connection limits.
