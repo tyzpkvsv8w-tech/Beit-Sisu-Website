@@ -680,3 +680,43 @@ See `SEARCH-CONSOLE-ISSUES-2026-10-26.md`:
   - The test browser couldn't reach Google's servers, so no test booking was counted in GA.
   - Booking smoke test OK; cache purged; logged out.
 - **Owner check:** after the next real booking, look in GA → Reports → Realtime (or Admin → Data display → Key events) for `purchase`. It should also appear in Site Kit's "Key events" within a day or two. If GA doesn't list `purchase` as a key event, switch it on there.
+
+## Update: 6 November 2026: "Reduce unused CSS / JavaScript" (Site Kit speed suggestions)
+Owner shared Site Kit Speed → "How to improve" (mobile lab LCP 4.8 s, "Reduce unused JavaScript", "Reduce unused CSS").
+
+**Coverage measured on the homepage (phone):**
+- Bootstrap CSS: 190 KB, 180 KB of it unused.
+- Two copies of jQuery: the theme's `assets/jquery.min.js` plus WordPress's.
+- Bootstrap JS bundle: 79 KB, 66 KB unused.
+- WordPress emoji scripts loaded but not used.
+
+**Changes:**
+1. **Bootstrap CSS trimmed** with PurgeCSS against:
+   - 130 rendered snapshots: 25 URLs × phone/laptop/tablet, with the menu and accordions opened
+   - all theme templates and JS
+
+   Bootstrap's collapse/accordion/navbar state classes are safelisted.
+   - Result: **195 KB → 27 KB** (27 KB → 5.7 KB gzipped). `assets/bootstrap-5.2.3-dist/css/bootstrap.min.css` now holds the trimmed file, with a header comment; it's enqueued with version `5.2.3-trim1` so browsers fetch the new file.
+   - Full original: `bootstrap.css` in the same theme folder, and `proposed-theme-changes/speed-2026-11-06/bootstrap.min.ORIGINAL.css` in this repo.
+   - **If a future design change uses a Bootstrap class that no longer works**, restore the original file, or re-run `purge.mjs`.
+2. **Duplicate jQuery removed:**
+   - `functions.php`: no longer enqueues the theme's `assets/jquery.min.js`. `owl.carousel` now depends on WordPress `jquery`, and `script.js` (version 3.0.1) depends on `jquery` + owl.
+   - `js/script.js`: `$(document).ready(function() {` → `jQuery(function($) {`, because WordPress's jQuery doesn't set the global `$`.
+   - WordPress jQuery and jQuery Migrate are put in the footer group, so they no longer block `<head>`.
+3. **Bootstrap JS:** `bootstrap.bundle.min.js` → `bootstrap.min.js`, without Popper (22.5 KB → 15.6 KB gzipped). The site only uses `data-bs-toggle="collapse"`: no dropdowns, tooltips or popovers.
+4. **Emoji scripts/styles off** (`remove_action` in `functions.php`).
+
+**Results** (phone, simulated slow 4G):
+- First paint 2.0 s → **1.5 s**.
+- LCP median 5.5 s → **4.8 s** (Site Kit lab: 4.8 s before these changes).
+- The hero photo is now served as WebP by QUIC.cloud.
+
+**Checks:**
+- Before/after screenshots: 11 pages × phone/laptop, plus menu-open and accordion-open states (27 screens). 26 are pixel-identical. The phone homepage differs by 2 px, traced to the Instagram feed: the layout is identical with the full and trimmed Bootstrap when swapped in a test browser (contact section at the same position).
+- Behaviour test identical before and after on 4 pages × phone/laptop: menu, accordions, carousel, jQuery and Bootstrap present, no JS errors.
+- Booking smoke test OK; cache purged; logged out.
+
+**Remaining unused code is from plugins in use:**
+- Instagram Feed CSS/JS (the feed is on the homepage).
+- Burst Statistics: a second analytics tool alongside Site Kit/GA, which the owner could remove.
+- The rest of jQuery/Bootstrap that some pages use.
