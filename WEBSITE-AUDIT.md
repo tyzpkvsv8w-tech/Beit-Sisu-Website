@@ -720,3 +720,13 @@ Owner shared Site Kit Speed → "How to improve" (mobile lab LCP 4.8 s, "Reduce 
 - Instagram Feed CSS/JS (the feed is on the homepage).
 - Burst Statistics: a second analytics tool alongside Site Kit/GA, which the owner could remove.
 - The rest of jQuery/Bootstrap that some pages use.
+
+## Update: 6 November 2026: Burst Statistics off + SEO check
+- **Burst Statistics deactivated** at the owner's request, through its own deactivate link on Plugins.
+  - Not deleted: deleting erases its stored stats and can't be undone. The owner can delete it from Plugins any time.
+  - Its scripts no longer load on the site. All other plugins checked unchanged (ACF PRO, BookingPress, Site Kit, Yoast, LiteSpeed, Instagram Feed all active). Booking smoke test OK.
+  - Note: an earlier attempt's generic "Deactivate" button match pointed at ACF PRO's link. A pop-up blocked the click and nothing changed; the script was fixed to use Burst's exact link.
+- **SEO check of all 15 sitemap pages:**
+  - Each has one H1, a Yoast title and description, an OG image and LocalBusiness data.
+  - **Fixed:** the 6 guest photos in the homepage reviews carousel had no alt text. They now have "<name>, Beit Sisu guest" (media 275–280), with each name checked against its own review card.
+  - Suggestions waiting for owner approval are in `SEO-NEXT-STEPS.md`.
