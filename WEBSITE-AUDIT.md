@@ -773,3 +773,8 @@ Owner shared Site Kit Speed → "How to improve" (mobile lab LCP 4.8 s, "Reduce 
   - Logged out.
 - This also removes the "BookingPress - WooCommerce Addon needs updating" admin notice. Site Health's "remove inactive plugins" now only points at the Cart Addon (kept on purpose).
 - Site Health also recommends removing **inactive themes**; not done (owner only asked about plugins).
+
+## Update: 11 November 2026: real cron job (owner step)
+- The owner asked for a real cron job. It needs the hosting control panel (cPanel → Cron Jobs), which this session can't reach; it only has WordPress admin.
+- Verified that `https://beitsisu.com/wp-cron.php?doing_wp_cron` returns HTTP 200 and isn't blocked by the browser check, so a cPanel `wget`/`curl` cron or an external scheduler will work.
+- Step-by-step guide: `CRON-JOB-SETUP.md`. It's every 15 minutes and WP-Cron stays enabled as a fallback.
