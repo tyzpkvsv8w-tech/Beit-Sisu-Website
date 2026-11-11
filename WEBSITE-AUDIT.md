@@ -730,3 +730,29 @@ Owner shared Site Kit Speed → "How to improve" (mobile lab LCP 4.8 s, "Reduce 
   - Each has one H1, a Yoast title and description, an OG image and LocalBusiness data.
   - **Fixed:** the 6 guest photos in the homepage reviews carousel had no alt text. They now have "<name>, Beit Sisu guest" (media 275–280), with each name checked against its own review card.
   - Suggestions waiting for owner approval are in `SEO-NEXT-STEPS.md`.
+
+## Update: 11 November 2026: health check + plugin updates
+- **Backup first:** UpdraftPlus 11 Nov 2026 15:53 (Dubai), database + files.
+- **Pages:** all 16 public pages load (HTTP 200), each with one H1, no PHP errors and no JS errors. The menu, accordions and carousel work.
+- **Booking:**
+  - Smoke test passes (service list → Room step).
+  - Today's email log shows a steady run of paid bookings with both confirmation emails sent.
+  - Booking pages are still excluded from the LiteSpeed cache, and the GA booking tracking script is on the thank-you page.
+- **Site Health:** "Good". Recommendations:
+  - remove inactive plugins and themes
+  - PHP 8.1 → 8.2/8.3 (hosting panel)
+  - `action_scheduler_run_queue` cron late (WP-Cron only runs on uncached visits; a real server cron job fixes it)
+  - persistent object cache (optional)
+  - send a WP Mail SMTP test email
+- **Updated successfully:** AIOS 5.4.10→5.5.1, LiteSpeed Cache 7.9.1→7.9.3, Site Kit 1.189.0→1.191.0, UpdraftPlus 1.26.13→1.26.14, WP-Optimize 4.7.0→4.7.1.
+  - After the updates: all pages give identical check results and the booking smoke test passes.
+- **Could not update (licence needed):**
+  - Advanced Custom Fields PRO 6.3.11→6.8.11 ("Update package not available")
+  - Gravity Forms 2.9.15→3.2.2 (same message)
+  - All-in-One WP Migration Google Drive Extension 2.99→2.104 ("Download failed. Not Found")
+  - The owner needs to enter or renew these licence keys (ACF → Updates, Forms → Settings → License, All-in-One WP Migration account). The Collaborations form (Gravity Forms) still works and its validation works.
+- **Not updated (inactive):** Burst Statistics, Extendify, Loginizer. Better to delete unused inactive plugins (owner's call).
+- **Other checks:**
+  - QUIC.cloud image optimization is complete: all images done, 3.29 MB saved.
+  - SSL certificate is valid until 11 Dec 2026 (normally renews automatically; check it has renewed by early December).
+- The scratchpad helper scripts were rebuilt after a container restart: login, logout, backup, booking smoke test, page check and plugin update.
