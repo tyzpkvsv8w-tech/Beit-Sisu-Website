@@ -756,3 +756,20 @@ Owner shared Site Kit Speed → "How to improve" (mobile lab LCP 4.8 s, "Reduce 
   - QUIC.cloud image optimization is complete: all images done, 3.29 MB saved.
   - SSL certificate is valid until 11 Dec 2026 (normally renews automatically; check it has renewed by early December).
 - The scratchpad helper scripts were rebuilt after a container restart: login, logout, backup, booking smoke test, page check and plugin update.
+
+## Update: 11 November 2026: unused plugins deleted (owner request)
+- **Backup first:** UpdraftPlus 11 Nov 2026 16:42.
+- **Deleted 16 inactive plugins:**
+  - Akismet, BookingPress WooCommerce Payment Gateway Addon, Burst Statistics, CoBlocks, easy-update-urls, Extendify, Hello Dolly
+  - Loginizer, Loginizer Security, Site Assistant, Softaculous Pro, SQL Executioner
+  - Payment Plugins for Stripe WooCommerce, WooCommerce Stripe Gateway, WooPayments, WooCommerce
+- The WooCommerce payment add-ons had to be deleted one by one before WooCommerce itself, because of plugin dependencies.
+- **Kept (inactive): BookingPress Cart Addon.** It's a paid add-on that may be needed again once BookingPress fixes the cart/Stripe bug (see `BOOKINGPRESS-SUPPORT-TICKET.md`).
+- **Active plugins unchanged (18).**
+- **Checks after deleting:**
+  - Cache purged; booking smoke test OK (Service → Room).
+  - All 16 public pages give results identical to before (status, H1, content, menu, accordions, carousel, no JS errors).
+  - Collaborations form OK.
+  - Logged out.
+- This also removes the "BookingPress - WooCommerce Addon needs updating" admin notice. Site Health's "remove inactive plugins" now only points at the Cart Addon (kept on purpose).
+- Site Health also recommends removing **inactive themes**; not done (owner only asked about plugins).
