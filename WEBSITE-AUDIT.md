@@ -778,3 +778,15 @@ Owner shared Site Kit Speed → "How to improve" (mobile lab LCP 4.8 s, "Reduce 
 - The owner asked for a real cron job. It needs the hosting control panel (cPanel → Cron Jobs), which this session can't reach; it only has WordPress admin.
 - Verified that `https://beitsisu.com/wp-cron.php?doing_wp_cron` returns HTTP 200 and isn't blocked by the browser check, so a cPanel `wget`/`curl` cron or an external scheduler will work.
 - Step-by-step guide: `CRON-JOB-SETUP.md`. It's every 15 minutes and WP-Cron stays enabled as a fallback.
+
+## Update: 12 November 2026: discount code Lizzie20 (owner request)
+- **Created in BookingPress → Discounts:**
+  - title "Lizzie", code **Lizzie20**, **20%** (owner confirmed % not AED), **Never Expires**
+  - **unlimited uses** (0 = ∞, same as the existing JJRC10 code)
+- **Services (7):** all Contrast Therapy (1 and 2 person, both lengths) and all Cold Plunge services (1 and 2 person). **Not** the Intro Offer.
+  - Memberships aren't BookingPress services (they're sold through the Stripe links on the homepage), so the code can't apply to them.
+- **Tested on the live booking form**, stopping at the Summary step (no booking, no payment):
+  - 1 Person Contrast Therapy (60 min): AED 220 → coupon −44 → **AED 176**.
+  - Intro Offer: refused with "Coupon code is not valid for selected service".
+  - Works whether typed as `Lizzie20`, `LIZZIE20` or `lizzie20`.
+- Logged out.
