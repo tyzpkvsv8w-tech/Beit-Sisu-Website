@@ -1,4 +1,4 @@
-# Collaborations page: draft for approval (not live)
+# Collaborations page: ✅ PUBLISHED 16 Nov 2026 (owner confirmed: corporate wellness yes, content shoots yes, no partner names)
 
 **Page:** `beitsisu.com/event-partnership-enquiries/` (menu: Collaborations)
 **Where it goes:** above the existing enquiry form. The form stays exactly as it is.

@@ -796,3 +796,12 @@ See `SEARCH-CONSOLE-ISSUES-2026-10-26.md` → "Follow-up":
 - Yoast crawl optimization on: junk feed/REST/oEmbed links removed from `<head>`, extra feeds redirected, internal search blocked in robots.txt. WP-JSON API, global feed and URL parameters left untouched.
 - `/join-the-club/` now 301-redirects to the homepage (`functions.php`).
 - Booking smoke test and 16-page check unchanged; logged out.
+
+## Update: 16 November 2026: Collaborations page content published
+- Owner approved the draft: corporate wellness offered, content shoots OK, no partner names.
+- Added to the page's main content (page 231), which shows above the existing page-builder intro and Gravity Forms enquiry form; those were left untouched.
+  - Four H2 sections: Partner with Beit Sisu / Ways we work together / Why Beit Sisu? / Get in touch.
+  - Links to the ice bath rental page and WhatsApp.
+- One wording change from the draft: "Get in touch" leaves out "we'll reply within 24 hours", because the existing intro below already says it.
+- Page now ~264 words (was ~58). One H1, no sideways scroll on phone or laptop, no JS errors; the form (7 fields) and its validation still work.
+- Cache purged; logged out. **Owner:** Search Console → URL inspection → Request indexing for `/event-partnership-enquiries/`.
