@@ -790,3 +790,9 @@ Owner shared Site Kit Speed → "How to improve" (mobile lab LCP 4.8 s, "Reduce 
   - Intro Offer: refused with "Coupon code is not valid for selected service".
   - Works whether typed as `Lizzie20`, `LIZZIE20` or `lizzie20`.
 - Logged out.
+
+## Update: 16 November 2026: indexing fixes (Coverage export 16 Nov)
+See `SEARCH-CONSOLE-ISSUES-2026-10-26.md` → "Follow-up":
+- Yoast crawl optimization on: junk feed/REST/oEmbed links removed from `<head>`, extra feeds redirected, internal search blocked in robots.txt. WP-JSON API, global feed and URL parameters left untouched.
+- `/join-the-club/` now 301-redirects to the homepage (`functions.php`).
+- Booking smoke test and 16-page check unchanged; logged out.

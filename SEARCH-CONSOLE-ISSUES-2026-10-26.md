@@ -62,3 +62,35 @@ Sitemaps now list only real pages:
 - **Posts:** Blog plus the 3 articles
 
 **Owner next step:** in Search Console → Page indexing, open "Crawled – currently not indexed" and click **Validate fix**. Optionally do the same for "Not found (404)". Results take 1–4 weeks.
+
+## Follow-up: Coverage export 16 Nov 2026 (data to 13 Nov)
+- **Indexed 14 → 12 on 10 Nov:** expected. `/author/claude-helper1/` now redirects (the new "Page with redirect" row) and `/services/` is noindex.
+- **"Crawled – currently not indexed" 10 → 22 (jump on 24 Oct).**
+  - All 15 sitemap pages checked as Googlebot on 16 Nov: HTTP 200, `index, follow`, self-canonical, real content. So the extra entries are not real pages.
+  - They're technical URLs WordPress advertised in every page's `<head>`: comment feeds, per-post-type feeds (`/services/feed/`), the REST API page link (`/wp-json/wp/v2/pages/…`), oEmbed links, plus the JS files seen before.
+- **Fixed 16 Nov:**
+  1. **Yoast → Settings → Crawl optimization**, turned on:
+     - remove shortlinks, REST API links, RSD/WLW, oEmbed links and the generator tag
+     - remove the pingback and powered-by headers
+     - remove the global comment feeds, post comment feeds, author feeds, post type feeds, category, tag, custom taxonomy and search feeds, and Atom/RDF feeds
+     - remove emoji scripts
+     - prevent crawling of internal site search
+
+     Kept OFF on purpose: Remove WP-JSON API (BookingPress and Site Kit need it), Remove global feed (blog RSS), Remove unregistered URL parameters (could break Stripe return URLs), Redirect pretty URLs.
+
+     Result:
+     - The homepage `<head>` now advertises only the main RSS feed.
+     - `/comments/feed/` and `/services/feed/` 301 to their parent pages.
+     - robots.txt now blocks `/?s=` and `/search/`.
+     - The REST API still answers (200).
+  2. **`/join-the-club/` (a 404 Google keeps visiting) now 301-redirects to the homepage**, where memberships are listed. Small `template_redirect` in `functions.php`; only fires when that exact path is a 404. Other missing pages still 404 correctly.
+- **Checks:** booking smoke test OK; all 16 public pages give results identical to before; cache purged; logged out.
+- **Still normal / no action:**
+  - 403 = `xmlrpc.php` / login, blocked for security.
+  - "Excluded by noindex" will grow as Google re-crawls the 7 booking pages; that's intended.
+  - Remaining 404s are a malformed `/wp-content/plugins/*` address and an old cart calendar link.
+- **Owner next steps in Search Console:**
+  1. Page indexing → "Crawled – currently not indexed" → **Validate fix**.
+  2. Same for "Not found (404)".
+  3. URL inspection → **Request indexing** for `/what-is-contrast-therapy/` and `/infrared-sauna-vs-traditional-sauna/`, if not yet indexed.
+  4. The thin Collaborations page (~58 words) is a likely "crawled, not indexed" candidate. Fixing it needs approved copy ("draft collaborations").
