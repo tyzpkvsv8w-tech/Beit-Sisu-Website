@@ -1,4 +1,4 @@
-# Blog article: draft for approval (not live)
+# Blog article: ✅ PUBLISHED 17 Nov 2026 at https://beitsisu.com/sauna-in-dubai-guide/
 
 **Suggested address:** `beitsisu.com/sauna-in-dubai-guide/`
 **Google title (Yoast SEO title):** Sauna in Dubai: How to Choose the Right One | Beit Sisu (54)
@@ -30,7 +30,7 @@ Most private studios in Dubai use **infrared saunas**. A traditional Finnish sau
 - **Privacy:** do you want to switch off on your own or with a friend, or don't you mind sharing?
 - **Cleanliness:** look for places that clean between every booking and give you your own shower and towel.
 - **A cold plunge:** sauna on its own is great; sauna plus cold plunge is even better. Alternating the two is called [contrast therapy](/what-is-contrast-therapy/).
-- **Temperature control:** being able to ask for a cooler or hotter session makes a big difference, especially for first-timers.
+- **Temperature control:** being able to adjust the heat or the cold makes a big difference, especially for first-timers. At Beit Sisu, the sauna can be turned down on request, and if time allows before your session, we can adjust the cold plunge temperature too.
 - **Easy booking:** online booking with clear prices and short sessions (30 or 60 minutes) fits around a busy day.
 - **Location and parking:** in Dubai, easy parking matters more than you'd think.
 

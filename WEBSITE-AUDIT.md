@@ -829,3 +829,16 @@ Site Kit, 20 Oct–16 Nov:
 4. **#6 New article draft** for approval: `BLOG-DRAFT-sauna-in-dubai-guide.md`, targeting "sauna dubai".
 
 **Checks:** booking smoke test OK; all 16 pages same as before (apart from homepage/collab word counts); cache purged; logged out.
+
+## Update: 17 November 2026: "Sauna in Dubai" article published
+- Owner approved with two answers:
+  - suites are cleaned after every session (correct as written)
+  - ice bath temperature can be adjusted if time allows; the "Temperature control" bullet now says the sauna can be turned down on request and the cold plunge adjusted if time allows
+- Owner supplied the photo (red-lit infrared sauna). Resized to 1500×2000 (134 KB), uploaded as media 597 with alt text.
+- **Published** https://beitsisu.com/sauna-in-dubai-guide/ (post 598):
+  - author Beit Sisu
+  - Yoast title "Sauna in Dubai: How to Choose the Right One | Beit Sisu" and description set
+  - one H1, 6 H2s, links to both service pages, two articles and Book Appointment
+- Now first in the homepage "From the blog" section, on /blog/ and in the post sitemap.
+- Booking smoke test OK; cache purged; logged out.
+- **Owner:** Search Console → URL inspection → Request indexing.
