@@ -842,3 +842,15 @@ Site Kit, 20 Oct–16 Nov:
 - Now first in the homepage "From the blog" section, on /blog/ and in the post sitemap.
 - Booking smoke test OK; cache purged; logged out.
 - **Owner:** Search Console → URL inspection → Request indexing.
+
+## Update: 17 November 2026: cron job confirmed working
+- The owner set up a free external cron at cron-job.org: `https://beitsisu.com/wp-cron.php?doing_wp_cron` every 15 minutes. The hosting is almost certainly Namecheap (cPanel/CloudLinux/LiteSpeed, IP 162.0.229.129, the Namecheap "Site Assistant" plugin was installed), but the owner chose the external option.
+- **Site Health now shows "Scheduled events are running"** (passed). The "A scheduled event is late" warning is gone.
+  - Action Scheduler: 98 complete, 4 pending, 0 past-due.
+  - `wp-cron.php` answers 200 in ~0.6 s.
+- Remaining Site Health recommendations, none urgent:
+  - inactive plugin (Cart Addon, kept on purpose) and inactive themes
+  - PHP 8.1 → 8.2/8.3
+  - persistent object cache (optional)
+  - WP Mail SMTP test email
+- Logged out.
