@@ -854,3 +854,9 @@ Site Kit, 20 Oct–16 Nov:
   - persistent object cache (optional)
   - WP Mail SMTP test email
 - Logged out.
+
+## Update: 17 November 2026: unused themes deleted (owner request)
+- Backup first: UpdraftPlus 17 Nov 2026 10:45.
+- Deleted 6 inactive themes: Extendable, Go, Twenty Twenty-Four, Twenty Twenty-Three, Twenty Twenty-Two, Twenty Twenty-One.
+- Kept: **beit-sisu** (active) and **Twenty Twenty-Five** as WordPress's recommended fallback default theme.
+- Checks: cache purged; booking smoke test OK; all 16 public pages same as before; logged out.
