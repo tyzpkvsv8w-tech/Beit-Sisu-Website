@@ -805,3 +805,27 @@ See `SEARCH-CONSOLE-ISSUES-2026-10-26.md` → "Follow-up":
 - One wording change from the draft: "Get in touch" leaves out "we'll reply within 24 hours", because the existing intro below already says it.
 - Page now ~264 words (was ~58). One H1, no sideways scroll on phone or laptop, no JS errors; the form (7 fields) and its validation still work.
 - Cache purged; logged out. **Owner:** Search Console → URL inspection → Request indexing for `/event-partnership-enquiries/`.
+
+## Update: 17 November 2026: Site Kit review follow-ups (#4–#7)
+Site Kit, 20 Oct–16 Nov:
+- 461 visitors, 4.9K impressions, 100 clicks, 151 search visitors.
+- Phone lab LCP 4.4 s.
+- Big searches mostly on page 2: "sauna dubai" 360 impressions / 2 clicks, "cold plunge dubai" 284/3, "ice bath dubai" 275/2.
+
+1. **#4 Google titles (owner-approved):**
+   - Contact → "Contact Beit Sisu | Sauna & Ice Bath in Dubai Media City"
+   - FAQ → "FAQ | Private Infrared Sauna & Ice Bath Dubai | Beit Sisu"
+   - Infrared vs traditional → "Infrared vs Traditional Sauna: Key Differences | Beit Sisu"
+   - Contrast therapy → "What Is Contrast Therapy? Benefits & How-To | Beit Sisu Dubai"
+   - Ice bath guide → "How Cold Is an Ice Bath? Beginner's Guide | Beit Sisu Dubai"
+   - Descriptions are unchanged (verified).
+2. **#5 Homepage "From the blog" section** (`front-page.php`, after the ice bath rental section):
+   - The latest 3 posts, each with photo (lazy-loaded, alt text), title, 22-word excerpt and "Read more", plus an "All articles" button to /blog/.
+   - Uses only CSS classes that still exist in the trimmed Bootstrap. New posts appear automatically.
+3. **#7 Phone speed:** the header and homepage logo used the 1500×1500 original (served as a 73 KB WebP), which competed with the hero photo.
+   - Now `wp_get_attachment_image_url(…, 'medium')`, i.e. 300×300 (8.6 KB WebP), in `header.php` and `front-page.php`.
+   - The homepage banner logo also gets a `srcset`, so retina laptops get the 600 px version.
+   - Lighthouse-like mobile test (412×823 @1.75x, 4× CPU, 1.6 Mbps): homepage LCP median **3.2 s → 1.6 s** (cached page), 2.3 s uncached.
+4. **#6 New article draft** for approval: `BLOG-DRAFT-sauna-in-dubai-guide.md`, targeting "sauna dubai".
+
+**Checks:** booking smoke test OK; all 16 pages same as before (apart from homepage/collab word counts); cache purged; logged out.
