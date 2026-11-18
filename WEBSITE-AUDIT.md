@@ -872,3 +872,8 @@ Site Kit, 20 Oct–16 Nov:
   - Booking smoke test and Collaborations form OK.
   - Logged out.
 - Visitors saw a blank homepage for about 20 minutes (10:24–10:45 Dubai).
+
+## Update: 18 November 2026: backup before redesign
+- The owner asked for a backup of the original site before any redesign work: UpdraftPlus **18 Nov 2026 11:56**, full (database, plugins, themes, uploads, must-use plugins, others). Remote storage: **Google Drive**.
+- Note: UpdraftPlus is set to manual schedules (files and database) and keeps the 2 latest backups. Automatic weekly backups are recommended (owner decision).
+- Redesign mockup: the label font changed from IBM Plex Mono to DM Mono (owner wanted it smoother).
