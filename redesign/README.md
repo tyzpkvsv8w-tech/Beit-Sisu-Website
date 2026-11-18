@@ -63,3 +63,7 @@ All text pairs are at least 5:1 contrast.
   - Journal photos are landscape (3:2).
   - Section spacing is 72 px on laptop and 48 px on phone; it was 104 and 64.
 - Opening hours are grouped (Mon–Tue / Wed–Fri / Sat / Sun).
+
+## 18 Nov: rounded buttons + WhatsApp (owner request)
+- All buttons are now fully rounded (pill shape, `border-radius: 999px`). Icon-only buttons (menu, review arrows, close) are circles.
+- Added a green **Chat on WhatsApp** button (#25D366 with ink text, as on the rental page) next to "Book a suite" and "See prices" in the hero. The Visit section's WhatsApp button is now the same green "Chat on WhatsApp". It links to wa.me/971585963805.
