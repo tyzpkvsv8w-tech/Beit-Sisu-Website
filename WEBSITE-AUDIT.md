@@ -860,3 +860,15 @@ Site Kit, 20 Oct–16 Nov:
 - Deleted 6 inactive themes: Extendable, Go, Twenty Twenty-Four, Twenty Twenty-Three, Twenty Twenty-Two, Twenty Twenty-One.
 - Kept: **beit-sisu** (active) and **Twenty Twenty-Five** as WordPress's recommended fallback default theme.
 - Checks: cache purged; booking smoke test OK; all 16 public pages same as before; logged out.
+
+## Incident: 18 November 2026: homepage blank (theme switched to Hello Elementor) — FIXED
+- **Report:** the owner said the site wasn't loading on their iPad.
+- **Found:** the server was up, but the live theme was **Hello Elementor**, not beit-sisu. The homepage showed only "Home" and the tagline, for every visitor on every device.
+- **Cause (AIOS audit log):** on 18 Nov, 10:21–10:24 Dubai time, the site's main `admin` login installed and activated the **Elementor** plugin, installed **Hello Elementor**, and activated it as the theme. It was the same login location the `admin` account used on 17 Nov, so most likely the owner or their team.
+- **Fix (~10:45 Dubai):** re-activated the **beit-sisu** theme (its menus, logo and settings came back intact) and purged the cache. Elementor is left active and Hello Elementor installed but inactive; removing them is the owner's call.
+- **Verified:**
+  - Full homepage on iPad Pro 11, iPad (gen 7) and iPad Mini.
+  - All 16 public pages same as before.
+  - Booking smoke test and Collaborations form OK.
+  - Logged out.
+- Visitors saw a blank homepage for about 20 minutes (10:24–10:45 Dubai).
