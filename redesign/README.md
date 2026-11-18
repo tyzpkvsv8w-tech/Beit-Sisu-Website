@@ -2,7 +2,7 @@
 
 - **Mockup (private canvas):** https://claude.ai/artifact/1qD4RptMe31DZLWDpJBeAJ. The source is in `homepage-mockup.dc.html`.
 - **Direction (owner, 18 Nov 2026):** warm editorial "Cedar & Stone". Hot vs cold is the organising idea: ember #B3361F for heat, plunge #3E5B66 for cold, on stone #EEEDEB / paper #F6F4F0, with charcoal #191715 sections. No gradients and no boxes; structure comes from space, photos, type and hairline rules.
-- **Fonts:** Instrument Serif (headlines; italic for Heat/Cold), Hanken Grotesk (body and buttons), DM Mono (labels, temperatures, prices; replaced IBM Plex Mono on 18 Nov at owner request for a smoother feel).
+- **Fonts:** Instrument Serif (headlines; italic for Heat/Cold), Hanken Grotesk (body and buttons), labels, temperatures and prices now in Hanken Grotesk with tabular figures (owner dropped the monospace font entirely on 18 Nov; was IBM Plex Mono, then DM Mono).
 - **Layout:** phone-first single column (20 px margins, 8-px spacing scale). Laptop: 12-column grid to 1240 px, uneven 5/7 splits, photos to the screen edge.
 - **Section order:**
   1. Sticky header with "Book a suite" (full-screen menu on phones)
