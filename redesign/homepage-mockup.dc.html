@@ -16,30 +16,30 @@ body{margin:0;background:#EEEDEB}
 a{color:#8A5A36}a:hover{color:#1C1A17}
 .wrap{max-width:1240px;margin:0 auto;padding:0 20px;box-sizing:border-box}
 .g12{display:grid;grid-template-columns:minmax(0,1fr);row-gap:24px}
-.sec{padding:64px 0;border-top:1px solid rgba(28,26,23,.14)}
-.suite{display:grid;grid-template-columns:minmax(0,1fr)}
-.suite .txt{padding:40px 20px 64px}
+.sec{padding:48px 0}
 .nav-d{display:none}
-.hero-img{height:62vh;min-height:360px;max-height:760px}
+.bar-d{display:none}
+.hero-img{height:46vh;min-height:300px;max-height:560px}
 .arrow{display:inline-block;transition:transform .2s ease}
 .btn:hover .arrow{transform:translateX(4px)}
 .xfade{transition:opacity .6s ease}
-.cols3{display:grid;grid-template-columns:minmax(0,1fr);row-gap:40px}
-.steps{display:grid;grid-template-columns:minmax(0,1fr);row-gap:40px}
+.cols3{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+.steps{display:grid;grid-template-columns:minmax(0,1fr);row-gap:32px}
+.split{display:grid;grid-template-columns:minmax(0,1fr)}
+.split .txt{padding:32px 20px 40px}
 @media (min-width:960px){
   .wrap{padding:0 40px}
   .g12{grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px}
   .s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:1/-1}
-  .st2{grid-column-start:2}.st8{grid-column-start:8}
-  .sec{padding:104px 0}
-  .suite{grid-template-columns:7fr 5fr;align-items:center}
-  .suite.flip{grid-template-columns:5fr 7fr}
-  .suite.flip .ph{order:2}
-  .suite .txt{padding:64px 64px}
+  .st8{grid-column-start:8}
+  .sec{padding:72px 0}
   .nav-d{display:flex}
+  .bar-d{display:inline}
   .menu-btn{display:none}
-  .cols3{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:40px}
+  .cols3{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
   .steps{grid-template-columns:repeat(4,minmax(0,1fr));column-gap:40px}
+  .split{grid-template-columns:5fr 7fr;align-items:center}
+  .split .txt{padding:40px 64px}
 }
 @media (prefers-reduced-motion:no-preference){
   .hero-img img{animation:settle 1.6s cubic-bezier(.2,.7,.2,1) both}
@@ -60,6 +60,14 @@ a{color:#8A5A36}a:hover{color:#1C1A17}
 </helmet>
 
 <div style="background: #EEEDEB; color: #1C1A17; font-family: 'Hanken Grotesk', system-ui, sans-serif; font-size: 17px; line-height: 1.6;">
+
+<!-- ============ TOP BAR ============ -->
+<div style="background: #191715; color: #EEEDEB; font-size: 14px;">
+  <div class="wrap" style="display: flex; align-items: center; justify-content: center; gap: 24px; min-height: 40px; flex-wrap: wrap;">
+    <p style="margin: 0; text-align: center;">First visit? <strong style="font-weight: 600;">Intro Offer — 3 × 60 min for AED 350.</strong> <a href="https://beitsisu.com/book-appointment/" style="color: #EEEDEB; text-decoration: underline; text-underline-offset: 3px; display: inline-flex; align-items: center; min-height: 40px;">Book now</a></p>
+    <span class="bar-d" style="color: #B9B4AB;">Arjaan by Rotana, Dubai Media City · Free valet · <a href="https://wa.me/971585963805" style="color: #EEEDEB;">WhatsApp</a></span>
+  </div>
+</div>
 
 <!-- ============ HEADER ============ -->
 <header class="hdr" style="position: sticky; top: 0; z-index: 20; background: #EEEDEB;">
@@ -108,15 +116,15 @@ a{color:#8A5A36}a:hover{color:#1C1A17}
 <section aria-labelledby="hero-title">
   <div class="hero-img" style="position: relative; overflow: hidden; background: #191715;">
     <img src="/_blob/906102cc3d66b83f84287d55e1e663b9" alt="A private Beit Sisu suite: cedar infrared sauna, terrazzo walls and a wooden cold plunge tub in warm, low light" style="width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; display: block;">
-    <div class="wrap" style="position: absolute; left: 0; right: 0; bottom: 0; padding-bottom: 40px;">
-      <p style="margin: 0; font-family: 'Instrument Serif', serif; font-size: clamp(44px, 7.2vw, 104px); line-height: 0.98; letter-spacing: -0.01em; color: #F6F4F0;"><em style="font-style: italic;">Heat.</em> <em style="font-style: italic;">Cold.</em><br>Total privacy.</p>
+    <div class="wrap" style="position: absolute; left: 0; right: 0; bottom: 0; padding-bottom: 32px;">
+      <p style="margin: 0; font-family: 'Instrument Serif', serif; font-size: clamp(44px, 6.6vw, 96px); line-height: 0.98; letter-spacing: -0.01em; color: #F6F4F0;"><em style="font-style: italic;">Heat.</em> <em style="font-style: italic;">Cold.</em><br>Total privacy.</p>
     </div>
   </div>
   <div class="wrap">
-    <div class="g12" style="padding: 40px 0 64px; align-items: end;">
+    <div class="g12" style="padding: 32px 0 48px; align-items: end;">
       <div class="s7">
-        <h1 id="hero-title" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(30px, 3.4vw, 48px); line-height: 1.1;">Private contrast therapy suites in Dubai Media City</h1>
-        <p style="margin: 16px 0 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; letter-spacing: 0.02em; color: #5E5A53;"><span style="color: #3E5B66;">Cold plunge 3.5–8°C</span> · <span style="color: #B3361F;">Infrared 50–79°C</span> · Red light · From AED 160</p>
+        <h1 id="hero-title" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(28px, 3vw, 42px); line-height: 1.1;">Private contrast therapy suites in Dubai Media City</h1>
+        <p style="margin: 12px 0 0; font-size: 15px; letter-spacing: 0.01em; color: #5E5A53; font-variant-numeric: tabular-nums;"><span style="color: #3E5B66; font-weight: 500;">Cold plunge 3.5–8°C</span> · <span style="color: #B3361F; font-weight: 500;">Infrared 50–79°C</span> · Red light · From AED 160</p>
       </div>
       <div class="s5" style="display: flex; flex-wrap: wrap; gap: 12px;">
         <a class="btn" href="https://beitsisu.com/book-appointment/" style="display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 24px; background: #1C1A17; color: #F6F4F0; text-decoration: none; font-size: 17px; font-weight: 500; border-radius: 2px;">Book a suite <span class="arrow" aria-hidden="true">→</span></a>
@@ -127,237 +135,196 @@ a{color:#8A5A36}a:hover{color:#1C1A17}
 </section>
 
 <!-- ============ MANIFESTO ============ -->
-<section class="sec" style="background: #E7DCCD; border-top: 0;">
+<section class="sec" style="background: #E7DCCD;">
   <div class="wrap">
     <div class="g12 reveal">
-      <p class="s3" style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">The idea</p>
-      <div class="s8">
-        <p style="margin: 0; font-family: 'Instrument Serif', serif; font-size: clamp(32px, 3.8vw, 56px); line-height: 1.12;">Not a spa or a gym. BEIT SISU is a dedicated space for you to reset, refocus and restart — your own suite, your own pace, nobody else in the room.</p>
-        <p style="margin: 24px 0 0; max-width: 560px; color: #5E5A53;">New to contrast therapy? Our team will guide your first session, from how long to stay in the heat to your first 30 seconds in the cold.</p>
-      </div>
+      <p class="s3" style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">The idea</p>
+      <p class="s8" style="margin: 0; font-family: 'Instrument Serif', serif; font-size: clamp(28px, 3vw, 44px); line-height: 1.15;">Not a spa or a gym. BEIT SISU is a dedicated space to reset, refocus and restart — your own suite, nobody else in the room, and a team to guide your first session.</p>
     </div>
   </div>
 </section>
 
-<!-- ============ INSIDE THE SUITE ============ -->
-<section id="suite" class="sec" aria-labelledby="suite-title" style="position: relative; padding-bottom: 0;">
+<!-- ============ INSIDE THE SUITE (one row of three) ============ -->
+<section id="suite" class="sec" aria-labelledby="suite-title" style="position: relative;">
   <div class="temp-line" aria-hidden="true" style="position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #B3361F;"></div>
   <div class="wrap">
-    <div class="g12 reveal" style="padding-bottom: 64px;">
-      <p class="s3" style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">Inside the suite</p>
-      <h2 id="suite-title" class="s8" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(40px, 5vw, 72px); line-height: 1.02;">Three elements, one private room. <em style="color: #B3361F;">Heat</em> and <em style="color: #3E5B66;">cold</em>, in rounds.</h2>
+    <div class="g12 reveal" style="padding-bottom: 40px;">
+      <p class="s3" style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">Inside the suite</p>
+      <h2 id="suite-title" class="s8" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(36px, 4.2vw, 60px); line-height: 1.02;">Three elements, one private room. <em style="color: #B3361F;">Heat</em> and <em style="color: #3E5B66;">cold</em>, in rounds.</h2>
+    </div>
+    <div class="cols3 reveal">
+      <article aria-labelledby="cold-title" style="background: #DCE5E8;">
+        <div style="aspect-ratio: 4 / 3; overflow: hidden;"><img src="/_blob/285307e866f9e543fa0530335df90bd1" alt="Cedar cold plunge tub filled with clear water" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
+        <div style="padding: 24px 24px 28px;">
+          <p style="margin: 0; font-size: 14px; font-weight: 500; color: #3E5B66; font-variant-numeric: tabular-nums;">01 — 3.5–8°C</p>
+          <h3 id="cold-title" style="margin: 4px 0 12px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 36px; line-height: 1.05;">Cold plunge</h3>
+          <ul style="margin: 0; padding-left: 18px; color: #5E5A53;"><li>A natural rush of energy and focus</li><li>Soothes sore, tired muscles</li><li>Teaches calm under pressure</li></ul>
+          <a class="btn" href="https://beitsisu.com/services/cold-plunges/" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; margin-top: 8px; font-size: 16px; font-weight: 500; color: #1C1A17;">Cold plunge <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      </article>
+      <article aria-labelledby="heat-title" style="background: #F1DDD5;">
+        <div style="aspect-ratio: 4 / 3; overflow: hidden;"><img src="/_blob/01ab5c57eb50a0a78c509233ee35e505" alt="Cedar full-spectrum infrared sauna glowing with warm light" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
+        <div style="padding: 24px 24px 28px;">
+          <p style="margin: 0; font-size: 14px; font-weight: 500; color: #B3361F; font-variant-numeric: tabular-nums;">02 — 50–79°C · fits two</p>
+          <h3 id="heat-title" style="margin: 4px 0 12px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 36px; line-height: 1.05;">Infrared sauna</h3>
+          <ul style="margin: 0; padding-left: 18px; color: #5E5A53;"><li>Gentle, dry heat to switch off</li><li>Many guests sleep better after</li><li>Warmth for tired muscles</li></ul>
+          <a class="btn" href="https://beitsisu.com/services/infrared-saunas/" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; margin-top: 8px; font-size: 16px; font-weight: 500; color: #1C1A17;">Infrared sauna <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      </article>
+      <article aria-labelledby="red-title" style="background: #7A2A1C; color: #F6F4F0;">
+        <div style="aspect-ratio: 4 / 3; overflow: hidden;"><img src="/_blob/cf592db5f416a4c2f3fac3498c181118" alt="Red light therapy tower beside the infrared sauna" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
+        <div style="padding: 24px 24px 28px;">
+          <p style="margin: 0; font-size: 14px; font-weight: 500; color: #F0D9D1;">03 — Included in every suite</p>
+          <h3 id="red-title" style="margin: 4px 0 12px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 36px; line-height: 1.05;">Red light therapy</h3>
+          <ul style="margin: 0; padding-left: 18px; color: #F0D9D1;"><li>Clearer, brighter-looking skin</li><li>Eases post-training soreness</li><li>A calm pause between rounds</li></ul>
+          <a class="btn" href="https://beitsisu.com/services/red-light-therapy/" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; margin-top: 8px; font-size: 16px; font-weight: 500; color: #F6F4F0;">Red light <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+      </article>
     </div>
   </div>
-
-  <!-- 01 Cold plunge -->
-  <article class="suite reveal" aria-labelledby="cold-title" style="background: #DCE5E8;">
-    <div class="ph" style="height: 640px; max-height: 80vh; overflow: hidden;"><img src="/_blob/285307e866f9e543fa0530335df90bd1" alt="Cedar cold plunge tub filled with clear water in a Beit Sisu suite" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
-    <div class="txt">
-      <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #3E5B66;">01 — 3.5–8°C</p>
-      <h3 id="cold-title" style="margin: 8px 0 24px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(36px, 4vw, 56px); line-height: 1.05;">Cold plunge</h3>
-      <dl style="margin: 0; display: flex; flex-direction: column; gap: 16px;">
-        <div><dt style="font-weight: 600;">Mood and focus</dt><dd style="margin: 4px 0 0; color: #5E5A53;">Cold water brings a natural rush of energy and alertness.</dd></div>
-        <div><dt style="font-weight: 600;">Recovery</dt><dd style="margin: 4px 0 0; color: #5E5A53;">Helps soothe sore, tired muscles after training.</dd></div>
-        <div><dt style="font-weight: 600;">Calm under pressure</dt><dd style="margin: 4px 0 0; color: #5E5A53;">Short, controlled cold teaches your body to stay steady.</dd></div>
-      </dl>
-      <a class="btn" href="https://beitsisu.com/services/cold-plunges/" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; margin-top: 24px; font-size: 16px; font-weight: 500; color: #1C1A17;">About the cold plunge <span class="arrow" aria-hidden="true">→</span></a>
-    </div>
-  </article>
-
-  <!-- 02 Infrared sauna -->
-  <article class="suite flip reveal" aria-labelledby="heat-title" style="background: #F1DDD5;">
-    <div class="ph" style="height: 640px; max-height: 80vh; overflow: hidden;"><img src="/_blob/01ab5c57eb50a0a78c509233ee35e505" alt="Cedar full-spectrum infrared sauna glowing with warm light" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
-    <div class="txt">
-      <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #B3361F;">02 — 50–79°C · fits two</p>
-      <h3 id="heat-title" style="margin: 8px 0 24px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(36px, 4vw, 56px); line-height: 1.05;">Infrared sauna</h3>
-      <dl style="margin: 0; display: flex; flex-direction: column; gap: 16px;">
-        <div><dt style="font-weight: 600;">Deep relaxation</dt><dd style="margin: 4px 0 0; color: #5E5A53;">Gentle, dry heat that warms you through and helps you switch off.</dd></div>
-        <div><dt style="font-weight: 600;">Better sleep</dt><dd style="margin: 4px 0 0; color: #5E5A53;">Many guests tell us they sleep noticeably better afterwards.</dd></div>
-        <div><dt style="font-weight: 600;">Muscle recovery</dt><dd style="margin: 4px 0 0; color: #5E5A53;">Warmth brings blood flow to tired muscles.</dd></div>
-      </dl>
-      <a class="btn" href="https://beitsisu.com/services/infrared-saunas/" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; margin-top: 24px; font-size: 16px; font-weight: 500; color: #1C1A17;">About the infrared sauna <span class="arrow" aria-hidden="true">→</span></a>
-    </div>
-  </article>
-
-  <!-- 03 Red light -->
-  <article class="suite reveal" aria-labelledby="red-title" style="background: #7A2A1C; color: #F6F4F0;">
-    <div class="ph" style="height: 640px; max-height: 80vh; overflow: hidden;"><img src="/_blob/cf592db5f416a4c2f3fac3498c181118" alt="Red light therapy tower beside the infrared sauna" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
-    <div class="txt">
-      <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #F0D9D1;">03 — Included in every suite</p>
-      <h3 id="red-title" style="margin: 8px 0 24px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(36px, 4vw, 56px); line-height: 1.05;">Red light therapy</h3>
-      <dl style="margin: 0; display: flex; flex-direction: column; gap: 16px;">
-        <div><dt style="font-weight: 600;">Skin</dt><dd style="margin: 4px 0 0; color: #F0D9D1;">Supports clearer, brighter-looking skin.</dd></div>
-        <div><dt style="font-weight: 600;">Recovery</dt><dd style="margin: 4px 0 0; color: #F0D9D1;">Many use it to ease muscle soreness after training.</dd></div>
-        <div><dt style="font-weight: 600;">A pause between rounds</dt><dd style="margin: 4px 0 0; color: #F0D9D1;">Sit facing the tower while your body resets.</dd></div>
-      </dl>
-      <a class="btn" href="https://beitsisu.com/services/red-light-therapy/" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; margin-top: 24px; font-size: 16px; font-weight: 500; color: #F6F4F0;">About red light therapy <span class="arrow" aria-hidden="true">→</span></a>
-    </div>
-  </article>
 </section>
 
 <!-- ============ HOW A SESSION WORKS (charcoal) ============ -->
-<section class="sec" aria-labelledby="session-title" style="background: #191715; color: #EEEDEB; border-top: 0;">
+<section class="sec" aria-labelledby="session-title" style="background: #191715; color: #EEEDEB;">
   <div class="wrap">
-    <div class="g12 reveal" style="padding-bottom: 64px;">
-      <p class="s3" style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #B9B4AB;">How a session works</p>
-      <h2 id="session-title" class="s8" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(40px, 5vw, 72px); line-height: 1.02;">Arrive, go quiet, <em>alternate</em>.</h2>
+    <div class="g12 reveal" style="padding-bottom: 40px;">
+      <p class="s3" style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #B9B4AB;">How a session works</p>
+      <h2 id="session-title" class="s8" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(36px, 4.2vw, 60px); line-height: 1.02;">Arrive, go quiet, <em>alternate</em>.</h2>
     </div>
     <ol class="steps reveal" style="list-style: none; margin: 0; padding: 0;">
-      <li style="border-top: 1px solid rgba(238,237,235,.2); padding-top: 24px;">
-        <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #B9B4AB;">01 · Arrive</p>
-        <h3 style="margin: 8px 0 8px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 32px; line-height: 1.1;">Free valet</h3>
-        <p style="margin: 0; color: #CFCAC2;">Drive up to the Arjaan by Rotana in Dubai Media City. Valet parking is free.</p>
+      <li style="border-top: 1px solid rgba(238,237,235,.2); padding-top: 20px;">
+        <p style="margin: 0; font-size: 14px; color: #B9B4AB;">01 · Arrive</p>
+        <h3 style="margin: 6px 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 28px; line-height: 1.1;">Free valet</h3>
+        <p style="margin: 0; color: #CFCAC2;">Drive up to the Arjaan by Rotana. Valet is free.</p>
       </li>
-      <li style="border-top: 1px solid rgba(238,237,235,.2); padding-top: 24px;">
-        <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #B9B4AB;">02 · Your suite</p>
-        <h3 style="margin: 8px 0 8px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 32px; line-height: 1.1;">Yours alone</h3>
-        <p style="margin: 0; color: #CFCAC2;">A private room for you, or you and a friend. Put your own playlist on the speaker.</p>
+      <li style="border-top: 1px solid rgba(238,237,235,.2); padding-top: 20px;">
+        <p style="margin: 0; font-size: 14px; color: #B9B4AB;">02 · Your suite</p>
+        <h3 style="margin: 6px 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 28px; line-height: 1.1;">Yours alone</h3>
+        <p style="margin: 0; color: #CFCAC2;">Just you, or you and a friend. Your own playlist.</p>
       </li>
-      <li style="border-top: 1px solid rgba(238,237,235,.2); padding-top: 24px;">
-        <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #B9B4AB;"><span style="color: #E2755E;">03 · Heat</span> ↔ <span style="color: #8FB3C0;">cold</span></p>
-        <h3 style="margin: 8px 0 8px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 32px; line-height: 1.1;">Rounds</h3>
-        <p style="margin: 0; color: #CFCAC2;">About 10 minutes in the sauna, 30–60 seconds in the plunge. Repeat 3–4 times.</p>
+      <li style="border-top: 1px solid rgba(238,237,235,.2); padding-top: 20px;">
+        <p style="margin: 0; font-size: 14px; color: #B9B4AB;"><span style="color: #E2755E;">03 · Heat</span> ↔ <span style="color: #8FB3C0;">cold</span></p>
+        <h3 style="margin: 6px 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 28px; line-height: 1.1;">Rounds</h3>
+        <p style="margin: 0; color: #CFCAC2;">~10 min sauna, 30–60 sec plunge. Repeat 3–4 times.</p>
       </li>
-      <li style="border-top: 1px solid rgba(238,237,235,.2); padding-top: 24px;">
-        <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #B9B4AB;">04 · 30 or 60 min</p>
-        <h3 style="margin: 8px 0 8px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 32px; line-height: 1.1;">Shower and go</h3>
-        <p style="margin: 0; color: #CFCAC2;">Your own shower, a towel and Gymskin products. Just bring a swimsuit.</p>
+      <li style="border-top: 1px solid rgba(238,237,235,.2); padding-top: 20px;">
+        <p style="margin: 0; font-size: 14px; color: #B9B4AB;">04 · 30 or 60 min</p>
+        <h3 style="margin: 6px 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 28px; line-height: 1.1;">Shower and go</h3>
+        <p style="margin: 0; color: #CFCAC2;">Own shower, towel, Gymskin. Bring a swimsuit.</p>
       </li>
     </ol>
-    <div style="margin-top: 64px; height: 520px; max-height: 70vh; overflow: hidden;" class="reveal">
-      <img src="/_blob/3312a9104f09ef2f53b522a353949ce6" alt="A guest walking from the red-lit infrared sauna towards the shower and cold plunge" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-    </div>
   </div>
 </section>
 
 <!-- ============ PRICES ============ -->
-<section id="prices" class="sec" aria-labelledby="prices-title" style="background: #F6F4F0; border-top: 0;">
+<section id="prices" class="sec" aria-labelledby="prices-title" style="background: #F6F4F0;">
   <div class="wrap">
-    <div class="g12 reveal" style="padding-bottom: 64px;">
-      <p class="s3" style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">Prices</p>
-      <h2 id="prices-title" class="s8" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(40px, 5vw, 72px); line-height: 1.02;">Every session includes all three.</h2>
+    <div class="g12 reveal" style="padding-bottom: 32px;">
+      <p class="s3" style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">Prices</p>
+      <h2 id="prices-title" class="s8" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(36px, 4.2vw, 60px); line-height: 1.02;">Every session includes all three.</h2>
     </div>
-
-    <div class="g12 reveal">
+    <div class="g12 reveal" style="font-variant-numeric: tabular-nums;">
       <div class="s6">
-        <h3 style="margin: 0 0 16px; font-size: 20px; font-weight: 600;">Contrast therapy <span style="font-weight: 400; color: #5E5A53;">— sauna, plunge, red light</span></h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 17px;">
-          <thead><tr style="text-align: left; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; color: #5E5A53;"><th scope="col" style="padding: 8px 0; font-weight: 400;">Guests</th><th scope="col" style="padding: 8px 0; font-weight: 400;">30 min</th><th scope="col" style="padding: 8px 0; font-weight: 400;">60 min</th></tr></thead>
-          <tbody style="font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums;">
-            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="padding: 16px 0; text-align: left; font-family: 'Hanken Grotesk', sans-serif; font-weight: 500;">1 person</th><td style="padding: 16px 0;">AED 160</td><td style="padding: 16px 0;">AED 220</td></tr>
-            <tr style="border-top: 1px solid rgba(28,26,23,.14); border-bottom: 1px solid rgba(28,26,23,.14);"><th scope="row" style="padding: 16px 0; text-align: left; font-family: 'Hanken Grotesk', sans-serif; font-weight: 500;">2 people</th><td style="padding: 16px 0;">AED 200</td><td style="padding: 16px 0;">AED 260</td></tr>
+        <h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 600;">Contrast therapy</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead><tr style="text-align: left; font-size: 13px; color: #5E5A53;"><th scope="col" style="padding: 6px 0; font-weight: 400;">Guests</th><th scope="col" style="padding: 6px 0; font-weight: 400;">30 min</th><th scope="col" style="padding: 6px 0; font-weight: 400;">60 min</th></tr></thead>
+          <tbody>
+            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="padding: 12px 0; text-align: left; font-weight: 500;">1 person</th><td style="padding: 12px 0;">AED 160</td><td style="padding: 12px 0;">AED 220</td></tr>
+            <tr style="border-top: 1px solid rgba(28,26,23,.14); border-bottom: 1px solid rgba(28,26,23,.14);"><th scope="row" style="padding: 12px 0; text-align: left; font-weight: 500;">2 people</th><td style="padding: 12px 0;">AED 200</td><td style="padding: 12px 0;">AED 260</td></tr>
           </tbody>
         </table>
       </div>
       <div class="s6">
-        <h3 style="margin: 0 0 16px; font-size: 20px; font-weight: 600;">Cold plunge only</h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 17px;">
-          <thead><tr style="text-align: left; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; color: #5E5A53;"><th scope="col" style="padding: 8px 0; font-weight: 400;">Guests</th><th scope="col" style="padding: 8px 0; font-weight: 400;">15 min</th><th scope="col" style="padding: 8px 0; font-weight: 400;">30 min</th></tr></thead>
-          <tbody style="font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums;">
-            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="padding: 16px 0; text-align: left; font-family: 'Hanken Grotesk', sans-serif; font-weight: 500;">1 person</th><td style="padding: 16px 0;">AED 85</td><td style="padding: 16px 0;">AED 120</td></tr>
-            <tr style="border-top: 1px solid rgba(28,26,23,.14); border-bottom: 1px solid rgba(28,26,23,.14);"><th scope="row" style="padding: 16px 0; text-align: left; font-family: 'Hanken Grotesk', sans-serif; font-weight: 500;">2 people</th><td style="padding: 16px 0;">—</td><td style="padding: 16px 0;">AED 160</td></tr>
+        <h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 600;">Cold plunge only</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead><tr style="text-align: left; font-size: 13px; color: #5E5A53;"><th scope="col" style="padding: 6px 0; font-weight: 400;">Guests</th><th scope="col" style="padding: 6px 0; font-weight: 400;">15 min</th><th scope="col" style="padding: 6px 0; font-weight: 400;">30 min</th></tr></thead>
+          <tbody>
+            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="padding: 12px 0; text-align: left; font-weight: 500;">1 person</th><td style="padding: 12px 0;">AED 85</td><td style="padding: 12px 0;">AED 120</td></tr>
+            <tr style="border-top: 1px solid rgba(28,26,23,.14); border-bottom: 1px solid rgba(28,26,23,.14);"><th scope="row" style="padding: 12px 0; text-align: left; font-weight: 500;">2 people</th><td style="padding: 12px 0;">—</td><td style="padding: 12px 0;">AED 160</td></tr>
           </tbody>
         </table>
       </div>
     </div>
-
-    <div class="reveal" style="margin-top: 40px; padding: 32px; background: #B3361F; color: #F6F4F0; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 40px;">
-      <p style="margin: 0; font-family: 'Instrument Serif', serif; font-size: 32px; line-height: 1.1;">First visit? <em>Intro Offer</em></p>
-      <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 15px;">3 × 60 min · AED 350 · valid 3 months · 1 person</p>
+    <div class="cols3 reveal" style="margin-top: 40px; font-variant-numeric: tabular-nums;">
+      <div style="border-top: 1px solid rgba(28,26,23,.3); padding-top: 16px;">
+        <p style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">Silver membership</p>
+        <p style="margin: 4px 0 0;">4 × 60 min a month · <strong style="font-weight: 600;">AED 599</strong></p>
+      </div>
+      <div style="border-top: 1px solid rgba(28,26,23,.3); padding-top: 16px;">
+        <p style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #8A5A36;">Gold membership</p>
+        <p style="margin: 4px 0 0;">8 × 60 min a month · <strong style="font-weight: 600;">AED 1,149</strong></p>
+      </div>
+      <div style="border-top: 2px solid #1C1A17; padding-top: 15px;">
+        <p style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #1C1A17;">Black membership</p>
+        <p style="margin: 4px 0 0;">Unlimited 60 min, a friend free · <strong style="font-weight: 600;">AED 1,899</strong></p>
+      </div>
+    </div>
+    <p class="reveal" style="margin: 16px 0 0; font-size: 15px; color: #5E5A53;"><strong style="color: #1C1A17; font-weight: 600;">How members book:</strong> [Explain how members book after joining — please confirm.] <a href="https://beitsisu.com/#memberships">Join a membership</a></p>
+    <div class="reveal" style="margin-top: 32px; padding: 24px 28px; background: #B3361F; color: #F6F4F0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px;">
+      <p style="margin: 0; font-family: 'Instrument Serif', serif; font-size: 30px; line-height: 1.1;">First visit? <em>Intro Offer</em></p>
+      <p style="margin: 0; font-size: 15px; font-variant-numeric: tabular-nums;">3 × 60 min · AED 350 · valid 3 months · 1 person</p>
       <a class="btn" href="https://beitsisu.com/book-appointment/" style="margin-left: auto; display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; background: #F6F4F0; color: #1C1A17; text-decoration: none; font-size: 16px; font-weight: 500; border-radius: 2px;">Book the Intro Offer <span class="arrow" aria-hidden="true">→</span></a>
     </div>
-
-    <h3 class="reveal" style="margin: 104px 0 24px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(32px, 3.4vw, 48px); line-height: 1.05;">Memberships</h3>
-    <div class="cols3 reveal">
-      <div style="border-top: 1px solid rgba(28,26,23,.3); padding-top: 24px;">
-        <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">Silver</p>
-        <p style="margin: 8px 0 4px; font-size: 20px; font-weight: 500;">4 × 60-minute sessions a month</p>
-        <p style="margin: 0 0 24px; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 22px;">AED 599<span style="font-size: 14px; color: #5E5A53;"> / month</span></p>
-        <a class="btn" href="https://beitsisu.com/#memberships" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; font-size: 16px; font-weight: 500; color: #1C1A17;">Join Silver <span class="arrow" aria-hidden="true">→</span></a>
-      </div>
-      <div style="border-top: 1px solid rgba(28,26,23,.3); padding-top: 24px;">
-        <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #8A5A36;">Gold</p>
-        <p style="margin: 8px 0 4px; font-size: 20px; font-weight: 500;">8 × 60-minute sessions a month</p>
-        <p style="margin: 0 0 24px; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 22px;">AED 1,149<span style="font-size: 14px; color: #5E5A53;"> / month</span></p>
-        <a class="btn" href="https://beitsisu.com/#memberships" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; font-size: 16px; font-weight: 500; color: #1C1A17;">Join Gold <span class="arrow" aria-hidden="true">→</span></a>
-      </div>
-      <div style="border-top: 2px solid #1C1A17; padding-top: 23px;">
-        <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #1C1A17;">Black</p>
-        <p style="margin: 8px 0 4px; font-size: 20px; font-weight: 500;">Unlimited 60-minute sessions — bring a friend free</p>
-        <p style="margin: 0 0 24px; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 22px;">AED 1,899<span style="font-size: 14px; color: #5E5A53;"> / month</span></p>
-        <a class="btn" href="https://beitsisu.com/#memberships" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; font-size: 16px; font-weight: 500; color: #1C1A17;">Join Black <span class="arrow" aria-hidden="true">→</span></a>
-      </div>
-    </div>
-    <p class="reveal" style="margin: 40px 0 0; max-width: 720px; color: #5E5A53;"><strong style="color: #1C1A17; font-weight: 600;">How members book:</strong> [Explain how members book after joining — e.g. "you'll receive a member code to book your sessions online". Please confirm.]</p>
   </div>
 </section>
 
 <!-- ============ REVIEWS ============ -->
-<section class="sec" aria-labelledby="reviews-title" style="background: #3E5B66; color: #F6F4F0; border-top: 0;">
+<section class="sec" aria-labelledby="reviews-title" style="background: #3E5B66; color: #F6F4F0;">
   <div class="wrap">
     <div class="g12">
-      <h2 id="reviews-title" class="s3" style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-weight: 400; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #D5DEE1;">Guests say</h2>
+      <h2 id="reviews-title" class="s3" style="margin: 0; font-weight: 400; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #D5DEE1;">Guests say</h2>
       <div class="s8">
         <div style="display: grid;" aria-live="polite">
           <sc-for list="{{reviews}}" as="r" hint-placeholder-count="1">
             <figure class="xfade" aria-hidden="{{r.hidden}}" style="grid-area: 1 / 1; margin: 0; opacity: {{r.opacity}}; visibility: {{r.visibility}};">
-              <blockquote style="margin: 0; font-family: 'Instrument Serif', serif; font-size: clamp(30px, 3.4vw, 48px); line-height: 1.15;">“{{r.text}}”</blockquote>
-              <figcaption style="margin-top: 24px; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #D5DEE1;">— {{r.name}}</figcaption>
+              <blockquote style="margin: 0; font-family: 'Instrument Serif', serif; font-size: clamp(26px, 2.8vw, 40px); line-height: 1.18;">“{{r.text}}”</blockquote>
+              <figcaption style="margin-top: 16px; font-size: 14px; color: #D5DEE1;">— {{r.name}}</figcaption>
             </figure>
           </sc-for>
         </div>
-        <div style="display: flex; align-items: center; gap: 12px; margin-top: 40px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 24px;">
           <button type="button" aria-label="Previous review" onClick="{{prev}}" style="min-width: 48px; min-height: 48px; background: transparent; border: 1px solid rgba(246,244,240,.55); border-radius: 2px; color: #F6F4F0; cursor: pointer; font-size: 18px;">←</button>
           <button type="button" aria-label="Next review" onClick="{{next}}" style="min-width: 48px; min-height: 48px; background: transparent; border: 1px solid rgba(246,244,240,.55); border-radius: 2px; color: #F6F4F0; cursor: pointer; font-size: 18px;">→</button>
-          <p style="margin: 0 0 0 12px; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #D5DEE1;">{{counter}}</p>
+          <p style="margin: 0 0 0 12px; font-size: 14px; color: #D5DEE1; font-variant-numeric: tabular-nums;">{{counter}}</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============ ICE BATH RENTAL STRIP ============ -->
-<section class="sec" aria-labelledby="rental-title" style="padding: 0;">
-  <div class="suite flip reveal" style="background: #DCE5E8;">
-    <div class="ph" style="height: 420px; overflow: hidden;"><img src="/_blob/a4c57ba22827cffc66534f9661eb60b6" alt="A wooden cold plunge barrel ready for an ice bath" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
+<!-- ============ ICE BATH RENTAL (slim) ============ -->
+<section aria-labelledby="rental-title" style="background: #DCE5E8;">
+  <div class="split reveal">
+    <div style="height: 300px; overflow: hidden;"><img src="/_blob/a4c57ba22827cffc66534f9661eb60b6" alt="A wooden cold plunge barrel ready for an ice bath" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
     <div class="txt">
-      <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: #3E5B66;">Delivered · set up · collected</p>
-      <h2 id="rental-title" style="margin: 8px 0 16px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(36px, 4vw, 56px); line-height: 1.05;">Bring the cold to you</h2>
-      <p style="margin: 0; color: #5E5A53; max-width: 460px;">Portable ice baths for homes, events and teams anywhere in Dubai. Indoor or outdoor, with a chiller or ice.</p>
-      <a class="btn" href="https://beitsisu.com/ice-bath-rental-dubai/" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; margin-top: 16px; font-size: 16px; font-weight: 500; color: #1C1A17;">Ice bath rental <span class="arrow" aria-hidden="true">→</span></a>
+      <p style="margin: 0; font-size: 14px; font-weight: 500; color: #3E5B66;">Delivered · set up · collected</p>
+      <h2 id="rental-title" style="margin: 6px 0 8px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(32px, 3.4vw, 48px); line-height: 1.05;">Bring the cold to you</h2>
+      <p style="margin: 0; color: #5E5A53; max-width: 480px;">Portable ice baths for homes, events and teams across Dubai. Indoor or outdoor, with a chiller or ice.</p>
+      <a class="btn" href="https://beitsisu.com/ice-bath-rental-dubai/" style="display: inline-flex; align-items: center; gap: 8px; min-height: 48px; margin-top: 8px; font-size: 16px; font-weight: 500; color: #1C1A17;">Ice bath rental <span class="arrow" aria-hidden="true">→</span></a>
     </div>
   </div>
 </section>
 
 <!-- ============ JOURNAL ============ -->
-<section id="journal" class="sec" aria-labelledby="journal-title" style="background: #E7DCCD; border-top: 0;">
+<section id="journal" class="sec" aria-labelledby="journal-title" style="background: #E7DCCD;">
   <div class="wrap">
-    <div class="g12 reveal" style="padding-bottom: 40px; align-items: end;">
-      <h2 id="journal-title" class="s8" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(40px, 5vw, 72px); line-height: 1.02;">Journal</h2>
+    <div class="g12 reveal" style="padding-bottom: 32px; align-items: end;">
+      <h2 id="journal-title" class="s8" style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(36px, 4.2vw, 60px); line-height: 1.02;">Journal</h2>
       <a class="btn s4" href="https://beitsisu.com/blog/" style="justify-self: start; display: inline-flex; align-items: center; gap: 8px; min-height: 48px; font-size: 16px; font-weight: 500; color: #1C1A17;">All articles <span class="arrow" aria-hidden="true">→</span></a>
     </div>
     <div class="cols3 reveal">
-      <article>
-        <a href="https://beitsisu.com/sauna-in-dubai-guide/" style="color: inherit; text-decoration: none; display: block;">
-          <div style="aspect-ratio: 4 / 5; overflow: hidden;"><img src="/_blob/e51801472de60ccc84d545e2fa7ad40c" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
-          <p style="margin: 16px 0 8px; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; color: #5E5A53;">Guide · 6 min read</p>
-          <h3 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 30px; line-height: 1.1;">Looking for a sauna in Dubai? How to choose the right one</h3>
-        </a>
-      </article>
-      <article>
-        <a href="https://beitsisu.com/what-is-contrast-therapy/" style="color: inherit; text-decoration: none; display: block;">
-          <div style="aspect-ratio: 4 / 5; overflow: hidden;"><img src="/_blob/3312a9104f09ef2f53b522a353949ce6" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
-          <p style="margin: 16px 0 8px; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; color: #5E5A53;">Guide · 6 min read</p>
-          <h3 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 30px; line-height: 1.1;">What is contrast therapy? A simple guide to hot and cold recovery</h3>
-        </a>
-      </article>
-      <article>
-        <a href="https://beitsisu.com/infrared-sauna-vs-traditional-sauna/" style="color: inherit; text-decoration: none; display: block;">
-          <div style="aspect-ratio: 4 / 5; overflow: hidden;"><img src="/_blob/01ab5c57eb50a0a78c509233ee35e505" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
-          <p style="margin: 16px 0 8px; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; color: #5E5A53;">Explainer · 6 min read</p>
-          <h3 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 30px; line-height: 1.1;">Infrared sauna vs traditional sauna: what's the difference?</h3>
-        </a>
-      </article>
+      <article><a href="https://beitsisu.com/sauna-in-dubai-guide/" style="color: inherit; text-decoration: none; display: block;">
+        <div style="aspect-ratio: 3 / 2; overflow: hidden;"><img src="/_blob/e51801472de60ccc84d545e2fa7ad40c" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
+        <h3 style="margin: 12px 0 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 26px; line-height: 1.12;">Looking for a sauna in Dubai? How to choose the right one</h3>
+      </a></article>
+      <article><a href="https://beitsisu.com/what-is-contrast-therapy/" style="color: inherit; text-decoration: none; display: block;">
+        <div style="aspect-ratio: 3 / 2; overflow: hidden;"><img src="/_blob/3312a9104f09ef2f53b522a353949ce6" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
+        <h3 style="margin: 12px 0 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 26px; line-height: 1.12;">What is contrast therapy? A simple guide to hot and cold recovery</h3>
+      </a></article>
+      <article><a href="https://beitsisu.com/infrared-sauna-vs-traditional-sauna/" style="color: inherit; text-decoration: none; display: block;">
+        <div style="aspect-ratio: 3 / 2; overflow: hidden;"><img src="/_blob/01ab5c57eb50a0a78c509233ee35e505" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>
+        <h3 style="margin: 12px 0 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 26px; line-height: 1.12;">Infrared sauna vs traditional sauna: what's the difference?</h3>
+      </a></article>
     </div>
   </div>
 </section>
@@ -367,31 +334,28 @@ a{color:#8A5A36}a:hover{color:#1C1A17}
   <div class="wrap">
     <div class="g12 reveal">
       <div class="s5">
-        <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">Visit</p>
-        <h2 id="visit-title" style="margin: 16px 0 24px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(40px, 5vw, 72px); line-height: 1.02;">Arjaan by Rotana, Dubai Media City</h2>
-        <p style="margin: 0 0 24px; color: #5E5A53;">Minutes from Dubai Marina, JBR and Palm Jumeirah. Drive up to the hotel lobby — <strong style="color: #1C1A17; font-weight: 600;">valet parking is free</strong>; ask us to stamp your ticket.</p>
-        <table style="width: 100%; border-collapse: collapse; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 15px;">
-          <caption style="text-align: left; padding-bottom: 8px; font-family: 'Hanken Grotesk', sans-serif; font-weight: 600; font-size: 17px;">Opening hours</caption>
+        <p style="margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #5E5A53;">Visit</p>
+        <h2 id="visit-title" style="margin: 12px 0 16px; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: clamp(32px, 3.6vw, 52px); line-height: 1.04;">Arjaan by Rotana, Dubai Media City</h2>
+        <p style="margin: 0 0 16px; color: #5E5A53;">Minutes from Dubai Marina, JBR and Palm Jumeirah. <strong style="color: #1C1A17; font-weight: 600;">Free valet</strong> — ask us to stamp your ticket.</p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums;">
+          <caption style="text-align: left; padding-bottom: 6px; font-weight: 600; font-size: 16px;">Opening hours</caption>
           <tbody>
-            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 10px 0; font-weight: 400;">Monday</th><td style="padding: 10px 0; text-align: right;">9:30 – 20:00</td></tr>
-            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 10px 0; font-weight: 400;">Tuesday</th><td style="padding: 10px 0; text-align: right;">9:30 – 20:00</td></tr>
-            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 10px 0; font-weight: 400;">Wednesday</th><td style="padding: 10px 0; text-align: right;">6:30 – 20:00</td></tr>
-            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 10px 0; font-weight: 400;">Thursday</th><td style="padding: 10px 0; text-align: right;">6:30 – 20:00</td></tr>
-            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 10px 0; font-weight: 400;">Friday</th><td style="padding: 10px 0; text-align: right;">6:30 – 20:00</td></tr>
-            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 10px 0; font-weight: 400;">Saturday</th><td style="padding: 10px 0; text-align: right;">6:30 – 21:00</td></tr>
-            <tr style="border-top: 1px solid rgba(28,26,23,.14); border-bottom: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 10px 0; font-weight: 400;">Sunday</th><td style="padding: 10px 0; text-align: right;">7:30 – 21:00</td></tr>
+            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 8px 0; font-weight: 400;">Mon – Tue</th><td style="padding: 8px 0; text-align: right;">9:30 – 20:00</td></tr>
+            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 8px 0; font-weight: 400;">Wed – Fri</th><td style="padding: 8px 0; text-align: right;">6:30 – 20:00</td></tr>
+            <tr style="border-top: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 8px 0; font-weight: 400;">Saturday</th><td style="padding: 8px 0; text-align: right;">6:30 – 21:00</td></tr>
+            <tr style="border-top: 1px solid rgba(28,26,23,.14); border-bottom: 1px solid rgba(28,26,23,.14);"><th scope="row" style="text-align: left; padding: 8px 0; font-weight: 400;">Sunday</th><td style="padding: 8px 0; text-align: right;">7:30 – 21:00</td></tr>
           </tbody>
         </table>
-        <p style="margin: 8px 0 24px; font-size: 14px; color: #5E5A53;">Hours may change on public holidays.</p>
+        <p style="margin: 6px 0 20px; font-size: 14px; color: #5E5A53;">Hours may change on public holidays.</p>
         <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-          <a class="btn" href="https://wa.me/971585963805" style="display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; background: #1C1A17; color: #F6F4F0; text-decoration: none; font-size: 16px; font-weight: 500; border-radius: 2px;">WhatsApp +971 58 596 3805 <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn" href="https://wa.me/971585963805" style="display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; background: #1C1A17; color: #F6F4F0; text-decoration: none; font-size: 16px; font-weight: 500; border-radius: 2px;">WhatsApp us <span class="arrow" aria-hidden="true">→</span></a>
           <a class="btn" href="mailto:hello@beitsisu.com" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border: 1px solid #1C1A17; color: #1C1A17; text-decoration: none; font-size: 16px; font-weight: 500; border-radius: 2px; box-sizing: border-box;">hello@beitsisu.com</a>
         </div>
       </div>
-      <div class="s6 st8" style="grid-column-end: span 5;">
-        <div role="img" aria-label="Map placeholder: Arjaan by Rotana, Dubai Media City" style="height: 100%; min-height: 420px; background: #E3E1DD; border: 1px solid rgba(28,26,23,.14); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; box-sizing: border-box;">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8A5A36" stroke-width="1.6" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
-          <p style="margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; color: #5E5A53;">[Google Map of Arjaan by Rotana — embedded on the live site]</p>
+      <div class="s5 st8">
+        <div role="img" aria-label="Map placeholder: Arjaan by Rotana, Dubai Media City" style="height: 100%; min-height: 320px; background: #DCE5E8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; box-sizing: border-box;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3E5B66" stroke-width="1.6" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>
+          <p style="margin: 0; font-size: 14px; color: #5E5A53;">[Google Map — embedded on the live site]</p>
           <a href="https://maps.google.com/?q=Beit+Sisu+Arjaan+by+Rotana+Dubai+Media+City" style="min-height: 48px; display: inline-flex; align-items: center;">Open in Google Maps</a>
         </div>
       </div>
@@ -402,27 +366,24 @@ a{color:#8A5A36}a:hover{color:#1C1A17}
 
 <!-- ============ FOOTER ============ -->
 <footer style="background: #191715; color: #EEEDEB;">
-  <div class="wrap" style="padding-top: 64px; padding-bottom: 40px;">
+  <div class="wrap" style="padding-top: 48px; padding-bottom: 32px;">
     <div class="g12">
-      <div class="s4"><img src="/_blob/023fa20d7a6d099fd98b4b85feffd0cc" alt="BEIT SISU" style="height: 64px; width: auto; display: block;"></div>
-      <nav class="s4" aria-label="Footer" style="display: flex; flex-direction: column; gap: 4px;">
-        <a href="https://beitsisu.com/about-us/" style="color: #EEEDEB; min-height: 32px;">About us</a>
-        <a href="https://beitsisu.com/event-partnership-enquiries/" style="color: #EEEDEB; min-height: 32px;">Collaborations</a>
-        <a href="https://beitsisu.com/frequently-asked-questions/" style="color: #EEEDEB; min-height: 32px;">FAQs</a>
-        <a href="https://beitsisu.com/contact-us/" style="color: #EEEDEB; min-height: 32px;">Contact</a>
+      <div class="s4"><img src="/_blob/023fa20d7a6d099fd98b4b85feffd0cc" alt="BEIT SISU" style="height: 56px; width: auto; display: block;"></div>
+      <nav class="s4" aria-label="Footer" style="display: flex; flex-wrap: wrap; gap: 4px 20px;">
+        <a href="https://beitsisu.com/about-us/" style="color: #EEEDEB;">About us</a>
+        <a href="https://beitsisu.com/event-partnership-enquiries/" style="color: #EEEDEB;">Collaborations</a>
+        <a href="https://beitsisu.com/frequently-asked-questions/" style="color: #EEEDEB;">FAQs</a>
+        <a href="https://beitsisu.com/contact-us/" style="color: #EEEDEB;">Contact</a>
       </nav>
-      <div class="s4">
-        <p style="margin: 0 0 8px; font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; color: #B9B4AB;">Follow</p>
-        <a href="https://www.instagram.com/beitsisu/" style="color: #EEEDEB;">Instagram @beitsisu →</a>
-      </div>
+      <div class="s4"><a href="https://www.instagram.com/beitsisu/" style="color: #EEEDEB;">Instagram @beitsisu →</a></div>
     </div>
-    <p style="margin: 64px 0 0; padding-top: 24px; border-top: 1px solid rgba(238,237,235,.2); font-family: 'Hanken Grotesk', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; color: #B9B4AB;">© 2026 BEIT SISU · Arjaan by Rotana, Dubai Media City</p>
+    <p style="margin: 40px 0 0; padding-top: 20px; border-top: 1px solid rgba(238,237,235,.2); font-size: 13px; color: #B9B4AB;">© 2026 BEIT SISU · Arjaan by Rotana, Dubai Media City</p>
   </div>
 </footer>
 
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"menuStartsOpen":{"editor":"boolean","default":false,"section":"Preview"},"$preview":{"width":1440,"height":8800}}'>
+<script type="text/x-dc" data-dc-script data-props='{"menuStartsOpen":{"editor":"boolean","default":false,"section":"Preview"},"$preview":{"width":1440,"height":5600}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -430,7 +391,7 @@ class Component extends DCLogic {
   }
   renderVals() {
     const list = [
-      { name: 'Ali Shaker', text: 'Fantastic first cold plunge experience. I really loved the facility vibe and the privacy it offers. I was able to play my own playlist on the speaker throughout my session. What a great way to start the day.' },
+      { name: 'Ali Shaker', text: 'Fantastic first cold plunge experience. I really loved the facility vibe and the privacy it offers. What a great way to start the day.' },
       { name: 'Jillian Clegg', text: 'By far the best cold plunge in Dubai. The combo of infrared and cold did wonders for recovery and felt amazing the next day.' },
       { name: 'Rihana Basel Arrar', text: 'We came in as a family of 4. It was wonderful to share the experience with our loved ones in private. We all left feeling calm, cool and collected!' },
       { name: 'Dan Leach', text: 'A beautiful, private space with friendly staff that can guide you through the experience. I have made this my regular, weekly retreat.' },

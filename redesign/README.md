@@ -49,3 +49,17 @@ Solid tints, still no gradients:
 | Ice bath rental | pale plunge #DCE5E8 | as before |
 
 All text pairs are at least 5:1 contrast.
+
+## 18 Nov: shorter homepage + top bar (owner request)
+- **New slim charcoal top bar:** "First visit? Intro Offer — 3 × 60 min for AED 350. Book now". Laptops also show "Arjaan by Rotana, Dubai Media City · Free valet · WhatsApp".
+- **Shortened from about 8,800 px to about 5,600 px** at laptop width:
+  - "Inside the suite" is now one row of three tinted columns (photo, temperature, 3 short benefits, link) instead of three full-width rows.
+  - The big photo under "How a session works" is removed.
+  - The hero photo is 46vh, max 560 px; it was 62vh, max 760 px.
+  - The manifesto is one short paragraph.
+  - Memberships are three compact lines.
+  - Reviews are smaller.
+  - The ice bath rental strip is 300 px tall.
+  - Journal photos are landscape (3:2).
+  - Section spacing is 72 px on laptop and 48 px on phone; it was 104 and 64.
+- Opening hours are grouped (Mon–Tue / Wed–Fri / Sat / Sun).
