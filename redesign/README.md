@@ -34,3 +34,18 @@
 1. Build it as an update to the `beit-sisu` theme on a **staging copy**, never on the live site. Keep every page address, the Yoast settings, BookingPress and tracking.
 2. Test booking, phone, iPad, speed and forms on staging.
 3. Switch the live site over, then watch Search Console and Site Kit for a few weeks.
+
+## 18 Nov: more colour (owner: "too plain")
+Solid tints, still no gradients:
+
+| Area | Background | Text |
+|---|---|---|
+| Manifesto and Journal | sand #E7DCCD | as before |
+| Cold plunge | pale plunge #DCE5E8 | as before |
+| Infrared | pale ember #F1DDD5 | as before |
+| Red light | deep ember #7A2A1C | paper #F6F4F0 and #F0D9D1 |
+| Intro Offer band | solid ember #B3361F | paper text, paper button |
+| Reviews | plunge #3E5B66 | paper text, #D5DEE1 secondary |
+| Ice bath rental | pale plunge #DCE5E8 | as before |
+
+All text pairs are at least 5:1 contrast.
