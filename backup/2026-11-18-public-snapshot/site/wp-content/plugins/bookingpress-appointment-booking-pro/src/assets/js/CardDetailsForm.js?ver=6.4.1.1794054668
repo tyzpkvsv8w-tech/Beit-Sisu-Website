@@ -1,0 +1,307 @@
+/**
+ * CardDetailsForm — Payment card details input section for Vue 3 booking form.
+ *
+ * Mounts into the `summary-step:above-actions` slot.
+ * Dynamically shows/hides based on selected payment method.
+ *
+ * Payment addons register their gateways that require card fields via:
+ *   bookingpress_card_payment_gateways filter
+ *
+ * Pattern: Dynamic visibility based on payment method selection (like legacy)
+ */
+
+import 'bookingpress-form-v3-loader';
+import { createApp, computed, watch } from 'vue';
+import { BookingPressUI } from 'bookingpress-ui';
+
+// --- Helper functions ---
+
+/**
+ * Format card number: strip non-digits, add spaces every 4 chars.
+ * E.g., "4532015112830366" → "4532 0151 1283 0366"
+ */
+
+
+function formatCardNumber(val) {
+  let cleaned = (val || '').replace(/\s/g, '');
+  cleaned = cleaned.replace(/\D/g, '');
+  return cleaned.replace(/(\d{4})/g, '$1 ').trim();
+}
+
+/**
+ * Clean CVV: strip non-digits.
+ */
+function cleanCVV(val) {
+  return (val || '').replace(/\D/g, '');
+}
+
+/**
+ * Month options: ['01', '02', ..., '12']
+ */
+function getMonthOptions() {
+  return Array.from({ length: 12 }, (_, i) => ({
+    month: String(i + 1).padStart(2, '0'),
+  }));
+}
+
+/**
+ * Year options: current year + next 20 years
+ */
+function getYearOptions() {
+  const now = new Date().getFullYear();
+  return Array.from({ length: 20 }, (_, i) => ({
+    year: String(now + i),
+  }));
+}
+
+function getCardPaymentGateways() {
+  const hooks = window.wp && window.wp.hooks;
+  if (!hooks || typeof hooks.applyFilters !== 'function') {
+    return [];
+  }
+  const gateways = hooks.applyFilters( 'bookingpress_card_payment_gateways', [] );  
+  console.log("gateways " + gateways);
+  console.log(gateways);
+  return Array.isArray(gateways) ? gateways : [];
+}
+
+/**
+ * Check if the given payment method requires card input fields.
+ */
+function isCardPaymentMethod(paymentMethod) {
+  const gateways = getCardPaymentGateways();
+  return gateways.includes(String(paymentMethod));
+}
+
+// --- Card Details Component ---
+
+const CardDetailsForm = {
+  name: 'CardDetailsForm',
+  props: {
+    state: { type: Object, required: true },
+  },
+  setup(props) {
+    const state = props.state;
+    const config = computed(() => state.config || {});
+    const strings = computed(() => state.strings || {});
+    const fd = computed(() => state.appointment_step_form_data || {});
+
+    /**
+     * Visibility: show when selected payment method is in the allowed list.
+     * Dynamically updates whenever the payment method selection changes.
+     */
+    const isDisplayCardOption = computed(() => {
+      const selectedMethod = String(fd.value.selected_payment_method || '');
+      console.log("selectedMethod " + selectedMethod);
+      if (!selectedMethod) return false;
+      return isCardPaymentMethod(selectedMethod);
+    });
+
+    // String labels with fallbacks
+    const cardDetailsText = computed(() => 
+      strings.value.card_details_text || 'Card Details'
+    );
+    const cardNameText = computed(() => 
+      strings.value.card_name_text || 'Cardholder Name'
+    );
+    const cardNumberText = computed(() => 
+      strings.value.card_number_text || 'Card Number'
+    );
+    const expireMonthText = computed(() => 
+      strings.value.expire_month_text || 'Expiry Month'
+    );
+    const expireYearText = computed(() => 
+      strings.value.expire_year_text || 'Expiry Year'
+    );
+    const cvvText = computed(() => 
+      strings.value.cvv_text || 'CVV'
+    );
+
+    const months = computed(() => getMonthOptions());
+    const years = computed(() => getYearOptions());
+
+    /**
+     * Format card number on input.
+     */
+    function inputFormat() {
+      if (!fd.value) return;
+      fd.value.card_number = formatCardNumber(fd.value.card_number || '');
+    }
+
+    /**
+     * Clean CVV on input.
+     */
+    function blr() {
+      if (!fd.value) return;
+      fd.value.cvv = cleanCVV(fd.value.cvv || '');
+    }
+
+    /**
+     * Reset card fields when switching away from a card-requiring gateway.
+     * When the user selects a different payment method that doesn't require
+     * card fields, clear any previously entered card data.
+     */
+    watch(
+        () => fd.value.selected_payment_method,
+        (newMethod, oldMethod) => {
+          
+        if (oldMethod && !isCardPaymentMethod(newMethod)) {
+          // Switched to non-card method, clear card data
+          fd.value.card_holder_name = '';
+          fd.value.card_number = '';
+          fd.value.expire_month = '';
+          fd.value.expire_year = '';
+          fd.value.cvv = '';
+        }
+      }
+    );
+
+    return {
+      state,
+      fd,
+      isDisplayCardOption,
+      cardDetailsText,
+      cardNameText,
+      cardNumberText,
+      expireMonthText,
+      expireYearText,
+      cvvText,
+      months,
+      years,
+      inputFormat,
+      blr,
+    };
+  },
+  template: `
+    <div class="bpa-front-module--pm-card-detail-form" v-if="isDisplayCardOption">
+      <div class="bpa-front-cdf__title" :aria-label="cardDetailsText">{{ cardDetailsText }}</div>
+      <!-- Cardholder Name -->
+      <bp-ui-row>
+        <bp-ui-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
+          <bp-ui-input
+            :placeholder="cardNameText"
+            class="bpa-front-form-control"
+            v-model="fd.card_holder_name"
+            :aria-label="cardNameText"
+          ></bp-ui-input>
+        </bp-ui-col>
+      </bp-ui-row>
+
+      <!-- Card Number -->
+      <bp-ui-row>
+        <bp-ui-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
+          <bp-ui-input
+            :placeholder="cardNumberText"
+            class="bpa-front-form-control"
+            @input="inputFormat()"
+            v-model="fd.card_number"
+            maxlength="19"
+            type="text"
+            id="cardNumber"
+            :aria-label="cardNumberText"
+          ></bp-ui-input>
+        </bp-ui-col>
+      </bp-ui-row>
+
+      <!-- Expiry (Month/Year) & CVV -->
+      <bp-ui-row :gutter="16">
+        <bp-ui-col :xs="24" :sm="24" :md="24" :lg="20" :xl="20">
+          <bp-ui-row :gutter="12">
+            <!-- Expire Month -->
+            <bp-ui-col :xs="24" :sm="24" :md="24" :lg="12" :xl="12">
+              <bp-ui-select
+                class="bpa-front-form-control"
+                popper-class="bpa-custom-dropdown bpa-card-details"
+                :placeholder="expireMonthText"
+                v-model="fd.expire_month"
+                :aria-label="expireMonthText"
+              >
+                <bp-ui-option
+                  v-for="item in months"
+                  :key="item.month"
+                  :label="item.month"
+                  :aria-label="item.month"
+                  :value="item.month"
+                ></bp-ui-option>
+              </bp-ui-select>
+            </bp-ui-col>
+
+            <!-- Expire Year -->
+            <bp-ui-col :xs="24" :sm="24" :md="24" :lg="12" :xl="12">
+              <bp-ui-select
+                class="bpa-front-form-control"
+                popper-class="bpa-custom-dropdown bpa-card-details"
+                :placeholder="expireYearText"
+                v-model="fd.expire_year"
+                :aria-label="expireYearText"
+              >
+                <bp-ui-option
+                  v-for="item in years"
+                  :key="item.year"
+                  :label="item.year"
+                  :aria-label="item.year"
+                  :value="item.year"
+                ></bp-ui-option>
+              </bp-ui-select>
+            </bp-ui-col>
+          </bp-ui-row>
+        </bp-ui-col>
+
+        <!-- CVV -->
+        <bp-ui-col :xs="24" :sm="24" :md="24" :lg="4" :xl="4">
+          <bp-ui-input
+            :placeholder="cvvText"
+            class="bpa-front-form-control"
+            v-model="fd.cvv"
+            maxlength="4"
+            type="text"
+            id="cvvInput"
+            @input="blr()"
+            :aria-label="cvvText"
+          ></bp-ui-input>
+        </bp-ui-col>
+      </bp-ui-row>
+    </div>
+  `,
+};
+
+// --- Module wiring ---
+
+(function () {
+  if (typeof window === 'undefined') return;
+
+  const BP = window.BookingPressFormV3;
+  if (!BP || typeof BP.renderInSlot !== 'function') {
+    console.warn('[bp-v3] CardDetailsForm: BookingPressFormV3 registry unavailable');
+    return;
+  }
+
+  /**
+   * Mount the CardDetailsForm component into the summary-step:above-actions slot.
+   * Re-mounts whenever the Summary step is re-entered.
+   */
+  BP.renderInSlot('*', 'summary-step:above-actions', function (ctx) {
+    const node = ctx && ctx.node;
+    const instanceId = ctx && ctx.instanceId;
+    if (!node || !instanceId) return;
+    if (node.__bpCardDetailsFormMounted) return;
+
+    const handle = BP.instances && BP.instances[instanceId];
+    if (!handle || !handle.state) return;
+
+    node.__bpCardDetailsFormMounted = true;
+    
+    try {
+      const app = createApp(CardDetailsForm, {
+        state: handle.state,
+      });
+      app.use(BookingPressUI);
+      app.mount(node);
+    } catch (e) {
+      node.__bpCardDetailsFormMounted = false;
+      console.error('[bp-v3] CardDetailsForm: mount failed', e);
+    }
+  });
+})();
+
+export {};

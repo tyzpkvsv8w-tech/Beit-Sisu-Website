@@ -1,0 +1,507 @@
+/**
+ * booking-form-vue3-deposit.js — Pro "Deposit" for the Vue 3 booking form.
+ *
+ * WHAT IT DOES
+ * ------------
+ * Mounts the legacy deposit module into the Lite `summary-step:after-total` slot.
+ * When a service is deposit-eligible and an online (non on-site) gateway is
+ * picked, the module shows — in "Allow full" mode with Deposit / Full Payment
+ * radios (default Full), or in "Deposit Only" mode with the deposit forced — and
+ * renders the legacy "Deposit (Paying Now)" + "Remaining Amount" breakdown (or
+ * "Total Amount" when Full Payment is picked). While the module is visible the
+ * Lite Summary hides its own "Total Amount" row (via `state.summaryDepositActive`)
+ * so the module owns that area, exactly like the legacy form.
+ *
+ *   1. CHARGE — a generic `bookingpress_form_v3_payable_amount` filter returns the
+ *      deposit when a deposit is chosen + eligible + the gateway is not on-site,
+ *      so the Lite submit / PayPal / Stripe paths all charge the deposit and the
+ *      server (which applies the identical PHP filter) records the full price +
+ *      remaining and anti-tampers against the same number.
+ *   2. DISPLAY — the breakdown is computed client-side from the selected service's
+ *      deposit config (`state.pro_deposit_services`) against the effective
+ *      service/staff price; no REST/AJAX.
+ *
+ * WHY IT LIVES IN PRO
+ * -------------------
+ * Lite owns only the generic seams (the summary slot + FILTER_PAYABLE_AMOUNT +
+ * the total-row flag). All deposit-specific UI + behaviour lives here; when the
+ * module is inactive the server never sets `config.bookingpress_deposit_enabled`
+ * and never enqueues this file.
+ *
+ * DELIVERY
+ * --------
+ * Enqueued as a script module by `DepositFeature` (deps: the Lite loader + `vue`).
+ */
+
+import 'bookingpress-form-v3-loader';
+import { createApp, computed, watch } from 'vue';
+
+import { BookingPressUI } from 'bookingpress-ui';
+
+const METHOD_DEPOSIT = 'deposit_or_full_price';
+const METHOD_FULL    = 'allow_customer_to_pay_full_amount';
+
+// --- Shared helpers ---------------------------------------------------------
+
+/** Per-service deposit config {type, amount} (defaults to a not-eligible 100%). */
+function bpaServiceDeposit(state, serviceId) {
+  const map = (state && state.pro_deposit_services) || {};
+  const cfg = map[String(serviceId)] || null;
+  if (!cfg) return { type: 'percentage', amount: 100 };
+  const type = (String(cfg.type) === 'fixed') ? 'fixed' : 'percentage';
+  const amount = (cfg.amount === '' || cfg.amount == null) ? 100 : (Number(cfg.amount) || 0);
+  return { type, amount };
+}
+
+/** The plain catalogue price of a service — the seed of every effective-price pass. */
+function bpaServiceBasePrice(state, serviceId) {
+  const sid = parseInt(serviceId || 0, 10);
+  if (!sid) return 0;
+  const svc = (Array.isArray(state.services) ? state.services : []).find(
+    (s) => parseInt(s.serviceId, 10) === sid
+  );
+  return svc ? (Number(svc.servicePrice) || 0) : 0;
+}
+
+/** The full order total for the selected service (effective service/staff price). */
+function bpaFullTotal(state, instanceId) {
+  const fd = state.appointment_step_form_data || {};
+  const sid = parseInt(fd.selected_service || 0, 10);
+  if (!sid) return 0;
+  const base = bpaServiceBasePrice(state, sid);
+  const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+  if (hooks && typeof hooks.applyFilters === 'function') {
+    const out = hooks.applyFilters('bookingpress_form_v3_effective_price', base, {
+      state,
+      instanceId,
+      serviceId: sid,
+      context: 'deposit_base',
+    });
+    const n = Number(out);
+    if (!isNaN(n) && isFinite(n)) return n;
+  }
+  return base;
+}
+
+/** Round to the configured price decimals (matches the server). */
+function bpaRound(state, amount) {
+  const d = parseInt((state.config && state.config.priceDecimals), 10);
+  const dec = isNaN(d) ? 2 : d;
+  const f = Math.pow(10, dec);
+  return Math.round((Number(amount) || 0) * f) / f;
+}
+
+/**
+ * The deposit calculation — the client mirror of DepositFeature::bpa_compute().
+ * Returns visibility + the deposit / remaining for the current selection.
+ */
+function bpaCompute(state, instanceId) {
+  const fd = state.appointment_step_form_data || {};
+  const enabled = !!(state.config && state.config.bookingpress_deposit_enabled);
+  const full = bpaFullTotal(state, instanceId);
+  const sid = parseInt(fd.selected_service || 0, 10);
+  const cfg = bpaServiceDeposit(state, sid);
+  const gateway = String(fd.selected_payment_method || '');
+  const mode = String((state.config && state.config.depositAllowCustomerToPay) || METHOD_FULL);
+
+  // The total the percentage is sized on. GENERIC seam, the client mirror of the
+  // PHP `bookingpress_form_v3_deposit_sizing_base` filter: an add-on amount that
+  // is paid with the remaining (not the deposit) is taken out here, while `full`
+  // still splits into deposit + remaining. Inert without a callback.
+  let sizingBase = full;
+  {
+    const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+    if (hooks && typeof hooks.applyFilters === 'function') {
+      const out = Number(hooks.applyFilters('bookingpress_form_v3_deposit_sizing_base', full, {
+        state, instanceId, serviceId: sid,
+      }));
+      if (!isNaN(out) && isFinite(out)) sizingBase = out;
+    }
+  }
+
+  // The total the deposit SPLITS (what is actually owed, after the coupon).
+  // `full` is the deposit base, which the Coupon skips, but the server
+  // (DepositFeature::bpa_compute) tests eligibility against the post-coupon
+  // payable. Testing it against `full` lets a deposit that meets or exceeds
+  // the amount owed through (e.g. a large coupon plus an add-on amount the
+  // coupon does not cover), so the client sends the deposit while the server
+  // charges the total: "Server total x does not match client y".
+  // A multi-item Cart owns its own deposit roll-up and is left as it was.
+  // The pass is seeded with the plain service price, NOT `full`: the chain holds
+  // replacing callbacks (Staff price) and additive ones (Extras, Multiple
+  // Quantity, Multi Service, Travel Fee), so re-running it on an already-priced
+  // total either drops amounts or counts them twice.
+  let splitTotal = full;
+  if (!state.summaryCartActive) {
+    const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+    if (hooks && typeof hooks.applyFilters === 'function') {
+      const out = Number(hooks.applyFilters('bookingpress_form_v3_effective_price', bpaServiceBasePrice(state, sid), {
+        state, instanceId, serviceId: sid, context: 'deposit_full',
+      }));
+      if (!isNaN(out) && isFinite(out)) splitTotal = bpaRound(state, out);
+    }
+  }
+
+  let eligible = false;
+  let deposit = full;
+  if (enabled && splitTotal > 0) {
+    if (cfg.type === 'percentage') {
+      if (cfg.amount >= 0 && cfg.amount < 100) {
+        deposit = bpaRound(state, sizingBase * (cfg.amount / 100));
+        eligible = deposit >= 0 && deposit < splitTotal;
+      }
+    } else if (cfg.type === 'fixed') {
+      if (cfg.amount >= 0  && cfg.amount < splitTotal) {
+        deposit = bpaRound(state, cfg.amount);
+        eligible = deposit >= 0 && deposit < splitTotal;
+      }
+    }
+  }
+
+  const onSite = (gateway === 'on-site' || gateway === '');
+  let moduleVisible = enabled && eligible && !onSite;
+
+  // GENERIC additive gate: another add-on may suppress the deposit entirely for
+  // the current selection (e.g. a redeemed Gift Card requires the remaining
+  // balance to be paid in full upfront). Inert without a callback — the deposit
+  // shows exactly as before. Returning false hides the module + makes the payable
+  // filter pass through (no deposit) + clears state.summaryDepositActive.
+  {
+    const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+    if (hooks && typeof hooks.applyFilters === 'function') {
+      // `full` (the post-coupon total the deposit splits) and `deposit` match the
+      // server's DepositFeature::bpa_compute() context for the same filter.
+      moduleVisible = !!hooks.applyFilters('bookingpress_form_v3_deposit_active', moduleVisible, {
+        state, instanceId, full: splitTotal, deposit,
+      });
+    }
+  }
+
+  // "Deposit Only" forces the deposit; "Allow full" honours the radio.
+  const chosen = (mode === METHOD_DEPOSIT)
+    || (String(fd.bookingpress_deposit_payment_method || '') === METHOD_DEPOSIT);
+
+  const applies = moduleVisible && chosen;
+
+  // The remaining/due. GENERIC seam: an add-on (Tax) may add to the remaining
+  // (e.g. exclusive tax lands entirely in the due, never the deposit charge).
+  // Inert without a callback — the due is `full - deposit` exactly as before.
+  let due = applies ? bpaRound(state, full - deposit) : 0;
+  if (applies) {
+    const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+    if (hooks && typeof hooks.applyFilters === 'function') {
+      const out = hooks.applyFilters('bookingpress_form_v3_deposit_due', due, {
+        state, instanceId, full, deposit, applies,
+      });
+      const n = Number(out);
+      if (!isNaN(n) && isFinite(n)) due = bpaRound(state, n);
+    }
+  }
+
+  return {
+    enabled,
+    eligible,
+    moduleVisible,
+    chosen,
+    applies,
+    mode,
+    type: cfg.type,
+    value: cfg.amount,
+    full,
+    deposit: applies ? deposit : full,
+    due,
+  };
+}
+
+// --- Deposit module component (legacy `.bpa-fm--bs__deposit-payment-module`) --
+
+const DepositBox = {
+  name: 'ProDepositBox',
+  props: {
+    state: { type: Object, required: true },
+    instanceId: { type: String, required: true },
+  },
+  setup(props) {
+    const state = props.state;
+    const instanceId = props.instanceId;
+    const strings = computed(() => state.strings || {});
+    const fd = state.appointment_step_form_data;
+
+    const calc = computed(() => bpaCompute(state, instanceId));
+
+    // Hidden when a multi-appointment Cart drives the order — the cart renders
+    // its own ORDER-level deposit UI (paying-now / remaining over all items),
+    // so the per-service box (which only sees the last working service) must not
+    // also show. Inert without the cart (flag undefined → shows as before).
+    const visible = computed(() => calc.value.moduleVisible && !state.summaryCartActive && fd.is_clubbed_service !== true);
+    
+    // Radios only in "Allow full" mode (Deposit Only forces the deposit).
+    const showRadios = computed(() => calc.value.mode === METHOD_FULL);
+    const depositChosen = computed(() => calc.value.chosen);
+    const isPercentage = computed(() => calc.value.type === 'percentage');
+
+    const depositMethod = computed({
+      get() {
+        return String(fd.bookingpress_deposit_payment_method || METHOD_FULL);
+      },
+      set(v) { fd.bookingpress_deposit_payment_method = String(v); },
+    });
+
+    function formatMoney(amount) {
+      const BP = (typeof window !== 'undefined') ? window.BookingPressFormV3 : null;
+      const amt = parseFloat(amount) || 0;
+      if (BP && typeof BP.formatPrice === 'function') return BP.formatPrice(state.config || {}, amt);
+      return String(amt);
+    }
+
+    // "Paying Now" = what the gateway actually charges: the deposit plus any amount
+    // a later payable callback adds on top of it (e.g. a Tip @9999). Lite's
+    // payableNow() runs the same chain as the submit / gateway price, so the row
+    // never disagrees with the charge. The Remaining stays the booking's due.
+    const depositLabel = computed(() => {
+      let amount = calc.value.deposit;
+      const BP = (typeof window !== 'undefined') ? window.BookingPressFormV3 : null;
+      if (calc.value.applies && BP && typeof BP.payableNow === 'function') {
+        const now = Number(BP.payableNow(state));
+        if (!isNaN(now) && isFinite(now)) amount = bpaRound(state, now);
+      }
+      return formatMoney(amount);
+    });
+    const dueLabel = computed(() => formatMoney(calc.value.due));
+
+    // Subtotal row (legacy parity). The released form shows ONE Subtotal row when
+    //   is_tax_activated || is_coupon_activated || (deposit && !is_clubbed_service)
+    // In V3 that row is fragmented across the Pro modules: the Coupon box owns it
+    // whenever Coupon is enabled, and the exclusive Tax box owns it whenever Tax
+    // drives the total. The Deposit-only path had no owner, so the row went
+    // missing (the deposit module renders only the Paying-Now / Remaining lines).
+    // Contribute it here for the deposit branch, mirroring the legacy gate:
+    //   - deposit module visible (already excludes cart / clubbed via `visible`
+    //     + the clubbed guard below), AND
+    //   - the service is NOT clubbed (multi-service) — legacy `!is_clubbed_service`, AND
+    //   - Coupon is NOT enabled — when it is, the Coupon box already renders the
+    //     Subtotal, so we must not print a second one.
+    // The subtotal is the full order total (effective service/staff + extras +
+    // coupon, pre-tax) — i.e. `calc.value.full`, matching the Coupon box's
+    // pre-coupon/effective base and the legacy `selected_service_price`.
+    const couponEnabled = computed(() =>
+      !!(state.config && state.config.bookingpress_coupon_enabled)
+    );
+    const isClubbed = computed(() => fd.is_clubbed_service === true);
+    // The Tax box (summary-step:tax slot, above) renders the Subtotal (+ Tax)
+    // rows whenever tax applies — `state.summaryTaxBoxActive`. Ours must then
+    // stand down (legacy shows exactly ONE Subtotal).
+    const showSubtotal = computed(() =>
+      visible.value && !couponEnabled.value && !isClubbed.value && !state.summaryTaxBoxActive
+    );
+    const subtotalText = computed(() => strings.value.subtotal_text || 'Subtotal');
+    const subtotalLabel = computed(() => formatMoney(calc.value.full));
+    // Full-payment "Total Amount Payable" = the amount actually charged now, i.e.
+    // the order total run through the generic `bookingpress_form_v3_payable_amount`
+    // chain — NOT the raw `full`. This is what makes payable-stage reductions that
+    // land AFTER the deposit filter show up in the total, e.g. the Advanced Discount
+    // "Online Payment Discount" (subtracted @25 for an online gateway + full payment).
+    // Without this the row stays at the pre-discount price even though the gateway
+    // charges the discounted amount. bpaCompute must NOT run this chain (it is called
+    // BY the @10 deposit filter — would recurse), so it is computed here in the view.
+    const fullLabel = computed(() => {
+      const full = calc.value.full;
+      const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+      if (!hooks || typeof hooks.applyFilters !== 'function') return formatMoney(full);
+
+      const fd  = state.appointment_step_form_data || {};
+      const sid = parseInt(fd.selected_service || 0, 10);
+
+      // TWO passes, because `full` is the deposit base and the two reductions
+      // it is missing live on different chains.
+      //
+      // 1. effective_price under the `deposit_full` context — the full order
+      //    total with every price-chain reduction applied (Offer Discount,
+      //    Coupon). `full` is the DEPOSIT BASE, which is not the same thing:
+      //    the Coupon skips `deposit_base` because it must not shrink the
+      //    deposit, and it has to reappear here.
+      //    The context exists so a callback can tell the display pass from the
+      //    deposit-base pass; today nothing needs to branch on it, but running
+      //    the chain unlabelled is what made the previous bug possible.
+      // 2. payable_amount — the Online Payment Discount, which lives on the
+      //    payable chain (@25) and so is invisible to pass 1. The Deposit's
+      //    own @10 callback is a pass-through here because full payment is
+      //    selected, which is the only state this label renders in.
+      //
+      // The old code ran effective_price WITHOUT a context and never ran the
+      // payable chain at all — the comment above already described the
+      // intended behaviour; the implementation named the wrong filter.
+      //    Seeded with the plain service price, not `full`, so every callback
+      //    on the chain runs exactly once (see the split total in bpaCompute).
+      let amount = full;
+
+      const afterPrice = hooks.applyFilters('bookingpress_form_v3_effective_price', bpaServiceBasePrice(state, sid), {
+        state, instanceId, serviceId: sid, context: 'deposit_full',
+      });
+      if (!isNaN(Number(afterPrice)) && isFinite(Number(afterPrice))) amount = Number(afterPrice);
+
+      const afterPayable = hooks.applyFilters('bookingpress_form_v3_payable_amount', amount, {
+        state, instanceId, serviceId: sid,
+      });
+      if (!isNaN(Number(afterPayable)) && isFinite(Number(afterPayable))) amount = Number(afterPayable);
+
+
+      return formatMoney(bpaRound(state, amount));
+    });
+    const percentValue = computed(() => calc.value.value);
+
+    return {
+      state,
+      strings, visible, showRadios, depositChosen, isPercentage,
+      depositMethod, depositLabel, dueLabel, fullLabel, percentValue,
+      showSubtotal, subtotalText, subtotalLabel,
+      METHOD_DEPOSIT, METHOD_FULL,
+    };
+  },
+  template: `
+    <!-- Deposit renders ONLY the paying-now / remaining breakdown (sequence
+         position #11, owning the total area via state.summaryDepositActive which
+         hides the Lite Total row #12). The single Subtotal row (#4) is owned by
+         the Lite Summary. -->
+    <div class="bpa-fm--bs__deposit-payment-module" v-if="visible">
+      <div class="bpa-bs__dpm-title" v-if="showRadios" :aria-label="strings.deposit_heading_title">{{ strings.deposit_heading_title }}</div>
+      <div class="bpa-dpm__type-selection" v-if="showRadios">
+        <label class="bpa-front-form-control--radio bpa-dpm__radio bpa_focusable" :class="{ '__bpa-is-checked': depositMethod === METHOD_DEPOSIT }">
+          <input type="radio" :value="METHOD_DEPOSIT" v-model="depositMethod">
+          <span class="bpa-dpm__radio-dot"></span>
+          <span class="bpa-dpm__radio-label">{{ strings.deposit_title }}</span>
+        </label>
+        <label class="bpa-front-form-control--radio bpa-dpm__radio bpa_focusable" :class="{ '__bpa-is-checked': depositMethod === METHOD_FULL }">
+          <input type="radio" :value="METHOD_FULL" v-model="depositMethod">
+          <span class="bpa-dpm__radio-dot"></span>
+          <span class="bpa-dpm__radio-label">{{ strings.full_payment_title }}</span>
+        </label>
+      </div>
+
+      <div class="bpa-dpm__item" v-if="depositChosen">
+        <div class="bpa-dpm-item__label --bpa-is-label-inline" :aria-label="strings.deposit_paying_amount_title">{{ strings.deposit_paying_amount_title }}</div>
+        <div class="bpa-dpm-item__label" v-if="!isPercentage" :aria-label="depositLabel">{{ depositLabel }}</div>
+        <div class="bpa-dpm-item__label" v-else :aria-label="percentValue + '% (' + depositLabel + ')'">{{ percentValue }}% ( {{ depositLabel }} )</div>
+      </div>
+
+      <div class="bpa-dpm__item --bpa-is-dpm-total-item">
+        <!-- Inclusive-tax "(Inc. GST)" suffix — a module that extracts tax from
+             the total publishes state.summaryTotalTaxLabel (legacy shows it on
+             the Remaining / Total label). Empty (span omitted) otherwise. -->
+        <div class="bpa-dpm-item__total-label" v-if="depositChosen" :aria-label="strings.deposit_remaining_amount_title">{{ strings.deposit_remaining_amount_title }} <span v-if="state.summaryTotalTaxLabel" class="bpa-fm-tr__tax-included-label" :aria-label="state.summaryTotalTaxLabel">{{ state.summaryTotalTaxLabel }}</span></div>
+        <div class="bpa-dpm-item__total-label" v-else :aria-label="strings.total_amount_label">{{ strings.total_amount_label }} <span v-if="state.summaryTotalTaxLabel" class="bpa-fm-tr__tax-included-label" :aria-label="state.summaryTotalTaxLabel">{{ state.summaryTotalTaxLabel }}</span></div>
+        <div class="bpa-dpm-item__total-label --bpa-is-total-price" v-if="depositChosen" :aria-label="dueLabel">{{ dueLabel }}</div>
+        <div class="bpa-dpm-item__total-label --bpa-is-total-price" v-else :aria-label="fullLabel">{{ fullLabel }}</div>
+      </div>
+    </div>
+  `,
+};
+
+// --- Module wiring -----------------------------------------------------------
+
+(function () {
+  if (typeof window === 'undefined') return;
+
+  const BP = window.BookingPressFormV3;
+  if (!BP || typeof BP.renderInSlot !== 'function') {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] deposit: BookingPressFormV3 registry unavailable');
+    return;
+  }
+
+  // The amount payable now = the deposit when a deposit is chosen + eligible +
+  // the gateway is not on-site, else the full total unchanged. Registered once
+  // across instances. The callback reads the reactive form data, so the submit /
+  // PayPal / Stripe price hints recompute when the radio or gateway changes.
+  const hooks = window.wp && window.wp.hooks;
+  if (hooks && typeof hooks.addFilter === 'function' && !BP.__proDepositFilterAdded) {
+    BP.__proDepositFilterAdded = true;
+    hooks.addFilter(
+      'bookingpress_form_v3_payable_amount',
+      'bookingpress-pro/deposit',
+      function (amount, ctx) {
+        const state = ctx && ctx.state;
+        if (!state || !(state.config && state.config.bookingpress_deposit_enabled)) return amount;
+        const calc = bpaCompute(state, ctx && ctx.instanceId);
+        return calc.applies ? calc.deposit : amount;
+      }
+    );
+  } else if (!hooks) {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] deposit: wp.hooks unavailable — payable filter not registered');
+  }
+
+  // Per-instance wiring: keep `state.summaryDepositActive` in sync so the Lite
+  // Summary hides its own total row whenever the deposit module is visible
+  // (legacy parity — the module then owns the total area). Runs even while the
+  // Summary step is not mounted.
+  function bpaWireInstance(ctx) {
+    const instanceId = ctx && ctx.instanceId;
+    const handle = (instanceId && BP.instances) ? BP.instances[instanceId] : null;
+    if (!handle || !handle.state) return;
+    const state = handle.state;
+    if (!state.config || !state.config.bookingpress_deposit_enabled) return;
+    if (handle.__bpDepositWired) return;
+    handle.__bpDepositWired = true;
+
+    const fd = state.appointment_step_form_data;
+
+    // Default the chosen method to the global mode when unset (server seeds it;
+    // defensive for any flow that cleared it).
+    if (!fd.bookingpress_deposit_payment_method) {
+      fd.bookingpress_deposit_payment_method = String(state.config.depositAllowCustomerToPay || METHOD_FULL);
+    }
+
+    watch(
+      // Track the computed visibility itself rather than enumerating the inputs
+      // that feed it. Vue collects whatever reactive state bpaCompute() reads, so
+      // ANY add-on that moves the order total - coupon, extras, quantity, gift
+      // card, staff price - re-syncs this flag without having to be listed here.
+      //
+      // The enumerated list missed the coupon fields: applying a coupon can make
+      // a FIXED deposit exceed the discounted total, which correctly hides the
+      // module, but the stale flag kept the Lite Total row hidden too - leaving
+      // the Summary showing neither a Deposit row nor a Total row.
+      function () {
+        return bpaCompute(state, instanceId).moduleVisible;
+      },
+      function (bpaVisible) {
+        state.summaryDepositActive = bpaVisible;
+      },
+      { immediate: true }
+    );
+  }
+
+  BP.renderInSlot('*', 'root:before-steps', bpaWireInstance);
+  if (typeof BP.registerAddon === 'function') {
+    BP.registerAddon('bookingpress-pro/deposit', bpaWireInstance);
+  }
+  if (BP.instances) {
+    Object.keys(BP.instances).forEach(function (iid) { bpaWireInstance({ instanceId: iid }); });
+  }
+
+  // Mount the deposit module into the Summary step (re-mounts per Summary entry).
+  BP.renderInSlot('*', 'summary-step:after-total', function (ctx) {
+    const node = ctx && ctx.node;
+    const instanceId = ctx && ctx.instanceId;
+    if (!node || !instanceId) return;
+    if (node.__bpDepositMounted) return;
+
+    const handle = BP.instances && BP.instances[instanceId];
+    if (!handle || !handle.state) return;
+    if (!handle.state.config || !handle.state.config.bookingpress_deposit_enabled) return;
+
+    node.__bpDepositMounted = true;
+    try {
+      const app = createApp(DepositBox, { state: handle.state, instanceId: instanceId });
+      app.use(BookingPressUI);
+      app.mount(node);
+    } catch (e) {
+      node.__bpDepositMounted = false;
+      // eslint-disable-next-line no-console
+      console.error('[bp-v3][pro] deposit: box mount failed', e);
+    }
+  });
+})();
+
+export {};

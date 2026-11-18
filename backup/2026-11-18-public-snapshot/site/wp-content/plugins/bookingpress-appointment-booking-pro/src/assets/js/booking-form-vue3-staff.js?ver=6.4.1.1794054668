@@ -1,0 +1,1511 @@
+/**
+ * booking-form-vue3-staff.js — Pro "Staff Member" step for the Vue 3 booking form.
+ *
+ * WHAT IT DOES
+ * ------------
+ * Mounts the Staff Member step into the Lite `step:staff` slot (the generic
+ * extra-step mount point App.js renders for any Pro-injected step). It lists the
+ * staff members assigned to the SELECTED service — read from `state.pro_staff`
+ * (server-embedded by {@see \BookingPressPro\Vue3\StaffMemberFeature}, no REST /
+ * AJAX) and filtered client-side by `selected_service` — using the legacy
+ * front-end card design (the `.bpa-front-sm-*` markup, styled by the isolated
+ * `booking-form-vue3-staff.css`).
+ *
+ * Picking a staff stores `selected_staff_member_id` on the shared reactive state
+ * and auto-advances (mirroring the Service step). Because the staff step carries
+ * a `gate_field` in its descriptor, Lite's `canEnterStep()` already blocks the
+ * following steps until a staff is chosen — so no Lite change is needed for the
+ * gate. Changing the service clears the staff selection (Pro-owned reset; the
+ * Lite Service step already clears the date/time).
+ *
+ * WHY IT LIVES IN PRO
+ * -------------------
+ * Lite owns only the generic step shell: it renders the sidebar entry + the
+ * `step:staff` slot from the data-driven `state.steps`, and evaluates the
+ * descriptor's `entry_gates` / `gate_field`. All staff-specific UI + behaviour
+ * lives here. When the module is inactive the step is never injected and this
+ * file is never enqueued, so a Lite-only / module-off render loads none of it.
+ *
+ * DELIVERY
+ * --------
+ * Enqueued as a script module by `StaffMemberFeature` (deps: the Lite loader +
+ * `vue`). The side-effect import of the loader guarantees `window.BookingPressFormV3`
+ * (+ instances + `renderInSlot`) exist before this runs.
+ */
+
+import 'bookingpress-form-v3-loader';
+import { createApp, computed, ref, watch, onMounted, nextTick } from 'vue';
+
+import { BookingPressUI } from 'bookingpress-ui';
+
+// Reactive revision of the `bookingpress_form_v3_*` filter registry. When Staff
+// is the FIRST step, this module mounts the step during its own evaluation —
+// BEFORE sibling add-on modules (e.g. Ratings & Review) have run their
+// `addFilter` calls. Seam computeds would then cache the empty default forever
+// (applyFilters reads nothing reactive). `bpStaffHook` reads this ref, and
+// wp.hooks fires `hookAdded` / `hookRemoved` on every registration, so a late
+// add-on re-evaluates every seam computed.
+const bpStaffHooksRevision = ref(0);
+(function () {
+  const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+  if (!hooks || typeof hooks.addAction !== 'function') return;
+  const bump = (hookName) => {
+    if (typeof hookName === 'string' && hookName.indexOf('bookingpress_form_v3_') === 0) {
+      bpStaffHooksRevision.value++;
+    }
+  };
+  hooks.addAction('hookAdded', 'bookingpress-pro/form-v3-staff-revision', bump);
+  hooks.addAction('hookRemoved', 'bookingpress-pro/form-v3-staff-revision', bump);
+})();
+
+// --- Inline SVGs (legacy front-end parity) --------------------------------
+
+/** Default avatar painted when a staff member has no uploaded photo. */
+const ICON_STAFF_AVATAR =
+  '<svg viewBox="0 0 252 210" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect width="252" height="210" rx="12" fill="#CFD6E5" fill-opacity="0.5"/>' +
+    '<g clip-path="url(#bp_staff_clip)">' +
+      '<path d="M125.43 103.536C130.724 103.536 135.308 101.637 139.054 97.8911C142.8 94.1454 144.699 89.5623 144.699 84.2675C144.699 78.9746 142.8 74.3908 139.054 70.6439C135.307 66.8988 130.724 65 125.43 65C120.135 65 115.552 66.8988 111.806 70.6445C108.061 74.3902 106.161 78.9739 106.161 84.2675C106.161 89.5623 108.061 94.146 111.807 97.8917C115.553 101.637 120.137 103.536 125.43 103.536Z"/>' +
+      '<path d="M159.145 126.516C159.037 124.957 158.819 123.257 158.497 121.461C158.172 119.652 157.754 117.942 157.254 116.379C156.737 114.763 156.034 113.168 155.164 111.639C154.262 110.052 153.203 108.67 152.014 107.533C150.771 106.343 149.248 105.387 147.488 104.689C145.734 103.995 143.79 103.644 141.71 103.644C140.894 103.644 140.104 103.979 138.579 104.972C137.64 105.584 136.542 106.292 135.316 107.075C134.268 107.743 132.849 108.368 131.095 108.935C129.384 109.488 127.647 109.769 125.933 109.769C124.218 109.769 122.482 109.488 120.769 108.935C119.018 108.369 117.598 107.743 116.551 107.076C115.337 106.3 114.239 105.592 113.286 104.971C111.762 103.978 110.972 103.643 110.155 103.643C108.075 103.643 106.132 103.995 104.378 104.69C102.619 105.386 101.096 106.343 99.8519 107.533C98.6636 108.671 97.6034 110.052 96.7025 111.639C95.834 113.168 95.1309 114.762 94.6133 116.379C94.1134 117.942 93.6953 119.652 93.3706 121.461C93.049 123.254 92.8304 124.955 92.7224 126.518C92.6162 128.048 92.5625 129.637 92.5625 131.242C92.5625 135.418 93.89 138.799 96.5078 141.292C99.0933 143.752 102.514 145 106.674 145H145.195C149.355 145 152.775 143.753 155.361 141.292C157.979 138.8 159.307 135.419 159.307 131.241C159.306 129.629 159.252 128.039 159.145 126.516Z"/>' +
+    '</g>' +
+    '<defs><clipPath id="bp_staff_clip"><rect width="80" height="80" transform="translate(86 65)"/></clipPath></defs>' +
+  '</svg>';
+
+/** Filled check on the "Selected" state of the staff card button. */
+const ICON_CHECK =
+  '<svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M8.33333 0C3.73333 0 0 3.73333 0 8.33333C0 12.9333 3.73333 16.6667 8.33333 16.6667C12.9333 16.6667 16.6667 12.9333 16.6667 8.33333C16.6667 3.73333 12.9333 0 8.33333 0ZM6.075 11.9083L3.08333 8.91667C2.75833 8.59167 2.75833 8.06667 3.08333 7.74167C3.40833 7.41667 3.93333 7.41667 4.25833 7.74167L6.66667 10.1417L12.4 4.40833C12.725 4.08333 13.25 4.08333 13.575 4.40833C13.9 4.73333 13.9 5.25833 13.575 5.58333L7.25 11.9083C6.93333 12.2333 6.4 12.2333 6.075 11.9083Z"/>' +
+  '</svg>';
+
+const ICON_ARROW_RIGHT =
+  '<svg xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 24 24" viewBox="0 0 24 24">' +
+    '<rect fill="none" height="24" width="24"/>' +
+    '<path d="M14.29,5.71L14.29,5.71c-0.39,0.39-0.39,1.02,0,1.41L18.17,11H3c-0.55,0-1,0.45-1,1v0c0,0.55,0.45,1,1,1h15.18l-3.88,3.88 c-0.39,0.39-0.39,1.02,0,1.41l0,0c0.39,0.39,1.02,0.39,1.41,0l5.59-5.59c0.39-0.39,0.39-1.02,0-1.41L15.7,5.71 C15.32,5.32,14.68,5.32,14.29,5.71z"/>' +
+  '</svg>';
+
+const ICON_ARROW_LEFT =
+  '<svg xmlns="http://www.w3.org/2000/svg" enable-background="new 0 0 24 24" viewBox="0 0 24 24">' +
+    '<rect fill="none" height="24" width="24"/>' +
+    '<path d="M9.71,18.29L9.71,18.29c0.39-0.39,0.39-1.02,0-1.41L5.83,13H21c0.55,0,1-0.45,1-1v0c0-0.55-0.45-1-1-1H5.83l3.88-3.88 c0.39-0.39,0.39-1.02,0-1.41l0,0c-0.39-0.39-1.02-0.39-1.41,0L2.71,11.3c-0.39,0.39-0.39,1.02,0,1.41l5.59,5.59 C8.68,18.68,9.32,18.68,9.71,18.29z"/>' +
+  '</svg>';
+
+const ICON_ERROR =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c.55 0 1 .45 1 1v4c0 .55-.45 1-1 1s-1-.45-1-1V8c0-.55.45-1 1-1zm-.01-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm1-3h-2v-2h2v2z"/></svg>';
+
+/** Envelope icon shown before the staff email (legacy front-end parity). */
+const ICON_EMAIL =
+  '<svg width="16" height="14" viewBox="0 0 16 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.95 0.600342C12.0163 0.600342 12.9968 0.865512 13.7136 1.52808C14.4387 2.19851 14.7996 3.18793 14.7996 4.4353V8.9646C14.7996 10.212 14.4387 11.2014 13.7136 11.8718C12.9968 12.5344 12.0163 12.7996 10.95 12.7996H4.44995C3.38362 12.7996 2.40305 12.5344 1.68628 11.8718C0.961155 11.2014 0.600342 10.212 0.600342 8.9646V4.4353C0.600342 3.18793 0.961155 2.19851 1.68628 1.52808C2.40305 0.865512 3.38362 0.600342 4.44995 0.600342H10.95Z" stroke="#535D71" stroke-width="1.2" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.7 4.69995L8.42251 7.43375C7.99692 7.78869 7.403 7.78869 6.97741 7.43375L3.69995 4.69995" stroke="#535D71" stroke-width="1.2" stroke-linecap="round"/></svg>';
+
+/** Phone icon shown before the staff phone number (legacy front-end parity). */
+const ICON_PHONE =
+  '<svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.04663 0.600342C4.59941 0.60046 5.09163 0.93485 5.29077 1.44409L5.3269 1.54761L5.33081 1.56421L5.33472 1.57983L5.99194 4.31909L5.99292 4.32104C6.06493 4.62645 5.97683 4.96031 5.74097 5.19019L5.73999 5.18921L4.95581 5.95581C5.1141 6.28455 5.29706 6.60442 5.50073 6.90796H5.49976C5.76305 7.29688 6.06606 7.66222 6.39917 7.9978C6.73564 8.3323 7.10313 8.63664 7.4939 8.90112C7.79835 9.10537 8.11735 9.2871 8.44409 9.44214L9.35034 8.51929C9.58662 8.27773 9.93523 8.18586 10.2615 8.28101H10.2625L12.8855 9.04468L12.907 9.05151L12.9275 9.05835C13.4498 9.25263 13.7994 9.75462 13.7996 10.3132V12.8845C13.7993 13.39 13.3907 13.7993 12.8845 13.7996H11.6208C8.67858 13.7995 5.90881 12.652 3.82788 10.571C1.74725 8.49021 0.600425 5.72119 0.600342 2.77905V1.51538C0.600556 1.00954 1.00941 0.600561 1.51538 0.600342H4.04663Z" stroke="#535D71" stroke-width="1.2"/></svg>';
+
+/** Generic person icon for the "Any Staff" card (legacy front-end parity). */
+const ICON_ANY_STAFF =
+  '<svg width="74" height="74" viewBox="0 0 74 74" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M36.9995 73.999C57.4338 73.999 73.999 57.4338 73.999 36.9995C73.999 16.5652 57.4338 0 36.9995 0C16.5652 0 0 16.5652 0 36.9995C0 57.4338 16.5652 73.999 36.9995 73.999Z"/>' +
+    '<path d="M36.9996 33.1535C41.6922 33.1535 45.4963 29.3494 45.4963 24.6568C45.4963 19.9643 41.6922 16.1602 36.9996 16.1602C32.307 16.1602 28.5029 19.9643 28.5029 24.6568C28.5029 29.3494 32.307 33.1535 36.9996 33.1535Z" fill="white"/>' +
+    '<path d="M49.8919 56.3804C53.9733 56.3804 56.6507 52.1381 54.9279 48.4362C51.7861 41.682 44.9408 36.998 36.9996 36.998C29.0585 36.998 22.2147 41.6805 19.0713 48.4362C17.3502 52.1381 20.026 56.3804 24.1074 56.3804H49.8919Z" fill="white"/>' +
+  '</svg>';
+
+// --- Any-Staff assignment (shared by the staff step UI AND the hidden runner) ---
+//
+// These are module-level so they work BOTH inside the staff-step mini-app (when
+// the step is shown) AND from the per-instance "form-mounted" runner used when
+// the staff step is HIDDEN (no mini-app mounts). They take the instance's
+// reactive `state` + its `useTimeslots` handle + the `instanceId`.
+
+/** POST to a Pro REST route with the instance's nonces (like the Lite api client). */
+async function bpaApiPost(state, instanceId, route, body) {
+  const rest = state.rest || {};
+  const nonces = state.nonces || {};
+  const root = String(rest.root || '').replace(/\/+$/, '');
+  const payload = Object.assign({}, body || {}, {
+    bp_v3_nonce: nonces.formNonce,
+    bp_v3_instance_token: nonces.instanceToken,
+    instanceId: instanceId,
+  });
+  const res = await fetch(root + '/' + route, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonces.wpRestNonce },
+    body: JSON.stringify(payload),
+  });
+  let json = null;
+  try { json = await res.json(); } catch (e) { json = null; }
+  return { ok: !!(json && json.ok), data: json && json.data, error: json && json.error };
+}
+
+/** Active staff ids assigned to the selected service and, when set, location. */
+function bpaStaffIdsForService(state, serviceId) {
+  const targetSid = parseInt(serviceId || 0, 10);
+  const out = {};
+  // Gather all active staff members assigned to this service
+  (Array.isArray(state.pro_staff) ? state.pro_staff : []).forEach((s) => {
+    if (s && Array.isArray(s.serviceIds) && s.serviceIds.some((id) => parseInt(id, 10) === targetSid)) {
+      out[parseInt(s.id, 10)] = true;
+    }
+  });
+
+  // Resolve selected location from "form state" or "URL"
+  const fd = (state && state.appointment_step_form_data) || {};
+  const locationId = String(
+    fd.selected_location ||
+    fd.bookingpress_location_id ||
+    (typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('loc_id') || new URLSearchParams(window.location.search).get('location_id') || '') : '')
+  );
+  const map = (state && state.config && state.config.service_location_staff_map) || {};
+  if (!locationId || !Object.keys(map).length) return out;
+
+  const byLocation = map[String(targetSid)] || {};
+  const exact = byLocation[locationId];
+  if (!Array.isArray(exact)) return {};
+
+  const allowedAtLocation = {};
+  exact.forEach((id) => {
+    const staffId = parseInt(id, 10);
+    if (staffId > 0) allowedAtLocation[staffId] = true;
+  });
+
+  const narrowed = {};
+  Object.keys(out).forEach((id) => {
+    if (allowedAtLocation[id]) narrowed[id] = true;
+  });
+  return narrowed;
+}
+
+/** Staff ids that remain eligible for capacity display on the selected service. */
+function bpaCapacityEligibleStaffIds(state, serviceId) {
+  const sid = parseInt(serviceId || 0, 10);
+  if (sid <= 0) return [];
+
+  let ids = Object.keys(bpaStaffIdsForService(state, sid))
+    .map((id) => parseInt(id, 10))
+    .filter((id) => id > 0);
+
+  const fd = (state && state.appointment_step_form_data) || {};
+  const requestedPersons = parseInt(fd.bookingpress_selected_bring_members || 0, 10);
+  if (requestedPersons > 1) {
+    ids = ids.filter((staffId) => {
+      const staff = (Array.isArray(state && state.pro_staff) ? state.pro_staff : [])
+        .find((s) => parseInt(s && s.id, 10) === staffId);
+      if (!staff || !staff.serviceCapacities || typeof staff.serviceCapacities[String(sid)] === 'undefined') {
+        return true;
+      }
+      const cap = parseInt(staff.serviceCapacities[String(sid)], 10);
+      return cap >= requestedPersons;
+    });
+  }
+
+  return ids;
+}
+
+/** Whether one step is placed after another in the current form sequence. */
+function bpaIsStepAfter(state, stepId, anchorStepId) {
+  const steps = (state && Array.isArray(state.steps)) ? state.steps : [];
+  const step = steps.find((s) => s && s.id === stepId);
+  const anchor = steps.find((s) => s && s.id === anchorStepId);
+  if (!step || !anchor) return false;
+  return Number(step.order) > Number(anchor.order);
+}
+
+/** Whether the Service step sits after Date & Time in the current form sequence. */
+function bpaServiceAfterDatetimeShared(state) {
+  return bpaIsStepAfter(state, 'service', 'datetime');
+}
+
+/** Whether the Staff step sits after Date & Time in the current form sequence. */
+function bpaStaffAfterDatetimeShared(state) {
+  return bpaIsStepAfter(state, 'staff', 'datetime');
+}
+
+/** Whether a hidden-staff flow is effectively concrete for capacity display. */
+function bpaHiddenSingleStaffCapacityVisible(state) {
+  
+  if (!state || !state.config ) return false;
+  if (bpaServiceAfterDatetimeShared(state) || bpaStaffAfterDatetimeShared(state)) return false;
+
+  const fd = state.appointment_step_form_data || {};
+  const serviceId = parseInt(fd.selected_service || 0, 10);
+  if (serviceId > 0) {
+    return bpaCapacityEligibleStaffIds(state, serviceId).length === 1;
+  }
+
+  const all = {};
+  (Array.isArray(state.pro_staff) ? state.pro_staff : []).forEach((staff) => {
+    const staffId = parseInt(staff && staff.id, 10);
+    if (staffId > 0) all[staffId] = true;
+  });
+  return Object.keys(all).length === 1;
+}
+
+/** Admin/default capacity-visibility preference before any staff-flow overrides. */
+function bpaBaseShowSlotCapacity(state) {
+  const cfg = (state && state.config) || {};
+  if (typeof cfg.showSlotCapacityBase !== 'undefined') {
+    return !!cfg.showSlotCapacityBase;
+  }
+  return !!cfg.showSlotCapacity;
+}
+
+/** Resolve whether the Date & Time step should currently show capacity info. */
+function bpaResolveShowSlotCapacity(state) {
+  const cfg = (state && state.config) || {};
+  const fd = (state && state.appointment_step_form_data) || {};
+  const base = bpaBaseShowSlotCapacity(state);
+
+  if (!base) return false;
+
+  // Staff-after-datetime / serviceless grids own their own forced-hide rules.
+  if (bpaServiceAfterDatetimeShared(state) || bpaStaffAfterDatetimeShared(state)) {
+    return !!cfg.showSlotCapacity;
+  }
+
+  if (!fd.is_any_staff_selected) {
+    return true;
+  }
+
+  return bpaHiddenSingleStaffCapacityVisible(state);
+}
+
+function bpaSyncShowSlotCapacity(state) {
+  if (!state || !state.config) return;
+  state.config.showSlotCapacity = bpaResolveShowSlotCapacity(state);
+}
+
+// Resolve a concrete staff for the chosen (service + slot) when "Any Staff" is
+// active. Runs once BOTH a service AND a timeslot are chosen. The candidate set
+// is the slot's server-stamped `available_staff` narrowed to the staff assigned
+// to the chosen service (a no-op when the slot was already stamped per-service;
+// the real narrowing for the serviceless / aggregate all-staff stamp).
+//   - 0 candidates → leave the sentinel '0' (no staff to assign).
+//   - EXACTLY 1    → assign it INSTANTLY, NO REST call (rule applies to all combos).
+//   - >1           → POST to the assignment endpoint (applies the auto-assign rule).
+// The resolved id is written into `selected_staff_member_id` so the server
+// price/total/anti-tamper + persistence read the real staff.
+async function bpaAssignAnyStaff(state, timeslots, instanceId) {
+  const fd = state.appointment_step_form_data;
+  if (!fd.is_any_staff_selected) {  return; }
+  const serviceId = parseInt(fd.selected_service || 0, 10);
+  const start = String(fd.selected_start_time || '');
+  const date = String(fd.selected_actual_date || fd.selected_date || '');
+  const isDayService = bpaIsDayServiceId(state, serviceId);
+  
+  if (!serviceId || (!isDayService && !start) || (isDayService && !date)) {
+    fd.selected_staff_member_id = '0';
+    return;
+  }
+
+  const rows = isDayService
+    ? ((timeslots && timeslots.currentDayRows && timeslots.currentDayRows.value) || [])
+    : ((timeslots && timeslots.currentSlots && timeslots.currentSlots.value) || []);
+  const row = isDayService
+    ? rows.find((s) => s && s.is_day_service)
+    : rows.find((s) => s && String(s.start_time) === start);
+  const rowStaff = (row && Array.isArray(row.available_staff))
+    ? row.available_staff.map((id) => parseInt(id, 10)).filter((n) => n > 0)
+    : [];
+  const allowed = bpaStaffIdsForService(state, serviceId);
+  const available = rowStaff.filter((id) => allowed[id]);
+  if (!available.length) { return; }
+  if (available.length === 1) {
+    // Single available staff → assign instantly, no REST call.
+    fd.selected_staff_member_id = String(available[0]);
+    return;
+  }
+
+  try {
+    const resp = await bpaApiPost(state, instanceId, 'staff/assign-any', {
+      service_id: serviceId,
+      selected_date: date,
+      selected_start_time: start,
+      selected_location: String(fd.selected_location || fd.bookingpress_location_id || ''),
+      available_staff: available,
+    });
+    const assigned = resp && resp.ok && resp.data ? parseInt(resp.data.staff_id, 10) : 0;
+    fd.selected_staff_member_id = String(assigned > 0 ? assigned : available[0]);
+  } catch (e) {
+    // Network error → fall back to the first available staff so the booking
+    // still resolves a valid (assigned) staff.
+    fd.selected_staff_member_id = String(available[0]);
+  }
+}
+
+/** Service duration in minutes from a wired service row. */
+function bpaServiceDurationMinutes(svc) {
+  const val = parseInt(svc && svc.serviceDurationVal, 10) || 0;
+  const unit = String((svc && svc.serviceDurationUnit) || 'm');
+  if (unit === 'h') return val * 60;
+  if (unit === 'd') return val * 60 * 24;
+  return val;
+}
+
+function bpaIsDayServiceId(state, serviceId) {
+  const sid = parseInt(serviceId || 0, 10);
+  if (!sid || !state || !Array.isArray(state.services)) return false;
+  const svc = state.services.find((s) => parseInt(s && s.serviceId, 10) === sid);
+  return !!(svc && String(svc.serviceDurationUnit || '') === 'd');
+}
+
+function bpaClearDateTimeSelection(state) {
+  const fd = state && state.appointment_step_form_data;
+  if (!fd) return;
+  fd.selected_date = '';
+  fd.selected_end_date = '';
+  fd.selected_start_time = '';
+  fd.selected_end_time = '';
+  fd.selected_actual_date = '';
+}
+
+// Service-after-datetime: the slot was picked off a SERVICELESS grid (its stored
+// end time is start + the global slot length, a placeholder). Once a service is
+// chosen, recompute the end from THAT service's real duration so the stored end
+// (and the Summary) show the true appointment length. Module-level so both the
+// staff-step mini-app AND the hidden runner use it.
+function bpaRecomputeEndTime(state, serviceId) {
+  const fd = state.appointment_step_form_data;
+  const start = String(fd.selected_start_time || '');
+  const date = String(fd.selected_date || '');
+  if (!serviceId || !start || !date) return;
+  const svc = (Array.isArray(state.services) ? state.services : [])
+    .find((s) => parseInt(s.serviceId, 10) === serviceId);
+  if (!svc) return;
+  const mins = bpaServiceDurationMinutes(svc);
+  if (mins <= 0) return;
+  const parts = start.split(':');
+  const startMin = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+  const endTotal = startMin + mins;
+  const dayOverflow = Math.floor(endTotal / 1440);
+  const endMinOfDay = ((endTotal % 1440) + 1440) % 1440;
+  const pad = (n) => (n < 10 ? '0' + n : String(n));
+  fd.selected_end_time = pad(Math.floor(endMinOfDay / 60)) + ':' + pad(endMinOfDay % 60);
+  if (dayOverflow > 0) {
+    const d = new Date(date + 'T00:00:00');
+    d.setDate(d.getDate() + dayOverflow);
+    fd.selected_end_date = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  } else {
+    fd.selected_end_date = date;
+  }
+}
+
+const StaffStep = {
+  name: 'ProStaffStep',
+  props: {
+    state: { type: Object, required: true },
+    nav: { type: Object, required: true },
+    bus: { type: Object, default: null },
+    instanceId: { type: String, required: true },
+    // The Lite useTimeslots composable for this instance — its `currentSlots`
+    // exposes the loaded slots for the selected date, each carrying the
+    // server-stamped `available_staff` array (staff-after-datetime sequences).
+    timeslots: { type: Object, default: null },
+  },
+  setup(props) {
+    const state = props.state;
+    const nav = props.nav;
+    const timeslots = props.timeslots;
+
+    // Generic, DEFAULT-INERT extension seam for add-ons (e.g. Multi-Staff): a
+    // thin wrapper over wp.hooks `applyFilters`. The instance context
+    // (`{ state, instanceId }`) is always passed as the LAST argument. With no
+    // add-on callback registered every call returns its input unchanged, so the
+    // Staff step renders and behaves EXACTLY as before (a Lite-only / Pro-only
+    // install never registers these filters).
+    const bpStaffHook = (name, value, ...rest) => {
+      // Tracked dependency: re-run calling computeds when add-ons register late.
+      void bpStaffHooksRevision.value;
+      const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+      if (hooks && typeof hooks.applyFilters === 'function') {
+        return hooks.applyFilters(name, value, ...rest, { state, instanceId: props.instanceId });
+      }
+      return value;
+    };
+
+    const selectedService = computed(() =>
+      parseInt(state.appointment_step_form_data.selected_service || 0, 10)
+    );
+
+    const selectedStaffId = computed({
+      get() { return String(state.appointment_step_form_data.selected_staff_member_id || ''); },
+      set(v) { state.appointment_step_form_data.selected_staff_member_id = String(v || ''); },
+    });
+
+    const allStaff = computed(() => (Array.isArray(state.pro_staff) ? state.pro_staff : []));
+
+    // Whether the Staff step sits BEFORE the Service step in the (possibly
+    // Pro-reordered) Booking Form Sequence. When true the staff list cannot
+    // depend on a selected service (none is chosen yet) — picking a staff then
+    // narrows the Service step instead (see the visible-services filter below).
+    const staffBeforeService = computed(() => {
+      const steps = Array.isArray(state.steps) ? state.steps : [];
+      const staffSt = steps.find((s) => s && s.id === 'staff');
+      const serviceSt = steps.find((s) => s && s.id === 'service');
+      if (!staffSt || !serviceSt) return false;
+      return Number(staffSt.order) < Number(serviceSt.order);
+    });
+
+    // Set of service ids that are actually bookable right now. `state.services`
+    // is already filtered server-side by status, the service start/expiration
+    // window and staff assignment (PHP FILTER_SERVICES) — so a staff counts as
+    // "available" only when it has at least one ACTIVE assigned service.
+    const bookableServiceIds = computed(() => {
+      const out = {};
+      (Array.isArray(state.services) ? state.services : []).forEach((s) => {
+        const id = parseInt((s && s.serviceId) || 0, 10);
+        if (id > 0) out[id] = true;
+      });
+      return out;
+    });
+
+    // Whether the Staff step sits AFTER the Date & Time step in the schema.
+    // When true the service + date + time are all chosen BEFORE staff, so the
+    // staff list is additionally narrowed to the staff who can actually serve
+    // the selected slot — read from each slot's server-stamped `available_staff`
+    // (see StaffAvailabilityFeature), instead of letting a staff who is off /
+    // fully booked at that slot fail only at submit time.
+    const staffAfterDatetime = computed(() => {
+      const steps = Array.isArray(state.steps) ? state.steps : [];
+      const staffSt = steps.find((s) => s && s.id === 'staff');
+      const dtSt = steps.find((s) => s && s.id === 'datetime');
+      if (!staffSt || !dtSt) return false;
+      return Number(staffSt.order) > Number(dtSt.order);
+    });
+
+    const selectedStartTime = computed(() => String(state.appointment_step_form_data.selected_start_time || ''));
+
+    // A day service is picked by DATE only (no start time), so the "slot" whose
+    // `available_staff` narrows the list is the date's day-service marker row.
+    const selectedDate = computed(() => String(state.appointment_step_form_data.selected_date || ''));
+    const isDayServiceSelected = computed(() => bpaIsDayServiceId(state, selectedService.value));
+
+    // Staff-after-datetime: the available staff for the SELECTED slot, read
+    // straight from the loaded timeslot data (the server stamps an
+    // `available_staff` array on each slot row — see StaffAvailabilityFeature).
+    // No REST/AJAX: it's a pure lookup of the already-loaded slots, so the staff
+    // list updates the instant a slot is picked. Returns:
+    //   null   → not applicable (staff not after datetime / no slot picked) or
+    //            the slot carries no `available_staff` (fail-open → show all);
+    //   object → map of available staff id → true (may be empty = none available).
+    
+    // Fixed staff availability filtering to prevent unselected staff from briefly appearing when timeslots refresh
+    const lastKnownSlotAvailableStaff = ref(null);
+
+    watch([selectedStartTime, selectedDate], () => {
+      const picked = isDayServiceSelected.value ? selectedDate.value : selectedStartTime.value;
+      if (!picked) {
+        lastKnownSlotAvailableStaff.value = null;
+      }
+    });
+
+    const selectedSlotAvailableStaff = computed(() => {
+      if (!staffAfterDatetime.value) return null;
+      const isDay = isDayServiceSelected.value;
+      // Day service → keyed by the selected date; timed service → by start time.
+      const picked = isDay ? selectedDate.value : selectedStartTime.value;
+      if (!picked) {
+        lastKnownSlotAvailableStaff.value = null;
+        return null;
+      }
+      const slots = isDay
+        ? ((timeslots && timeslots.currentDayRows && timeslots.currentDayRows.value) || [])
+        : ((timeslots && timeslots.currentSlots && timeslots.currentSlots.value) || []);
+      const slot = isDay
+        ? slots.find((s) => s && s.is_day_service)
+        : slots.find((s) => s && String(s.start_time) === picked);
+      if (slot && Array.isArray(slot.available_staff)) {
+        const map = {};
+        slot.available_staff.forEach((id) => { map[parseInt(id, 10)] = true; });
+        lastKnownSlotAvailableStaff.value = map;
+        return map;
+      }
+      // If timeslots are temporarily empty during background re-fetching, fallback to the last known map
+      if (lastKnownSlotAvailableStaff.value && (!slots || slots.length === 0)) {
+        return lastKnownSlotAvailableStaff.value;
+      }
+      return null;
+    });
+
+    // Whether the Service step sits AFTER the Date & Time step (and, with the
+    // staff module, always implies staff is BEFORE datetime). In that case the
+    // date/time are chosen first off a SERVICELESS grid (window from the staff's
+    // / general shift, global slot length, start time only), the SERVICE shift
+    // management is completely ignored, and ALL of the staff's services stay
+    // visible — they are NOT hidden based on per-service availability at the
+    // chosen slot. Drives the serviceless-grid request flag + the end-time
+    // recompute below. See {@see ServiceAvailabilityFeature}.
+    const serviceAfterDatetime = computed(() => {
+      const steps = Array.isArray(state.steps) ? state.steps : [];
+      const svcSt = steps.find((s) => s && s.id === 'service');
+      const dtSt = steps.find((s) => s && s.id === 'datetime');
+      if (!svcSt || !dtSt) return false;
+      return Number(svcSt.order) > Number(dtSt.order);
+    });
+
+
+    const publicStaff = computed(() =>
+      allStaff.value.filter((st) => {
+       const v = st?.staffmember_visibility;
+        const isPublic = v === 'public';
+        return isPublic;
+      })
+    );
+    // The staff to list:
+    //  - staff-first sequence → every active staff with >=1 bookable service
+    //    (independent of any service selection — the staff drives the service);
+    //  - staff-after-datetime → staff assigned to the service AND able to serve
+    //    the selected slot (from the slot's server-stamped `available_staff`);
+    //  - service-first (default) → only the staff assigned to the chosen
+    //    service (returns [] until a service is picked).
+    const staffForService = computed(() => {
+      if (staffBeforeService.value) {
+        const bookable = bookableServiceIds.value;
+        return allStaff.value.filter(
+          (st) => st && Array.isArray(st.serviceIds)
+            && st.serviceIds.some((id) => bookable[parseInt(id, 10)])
+        );
+      }
+      const sid = selectedService.value;
+      if (!sid) return [];
+      const allowedIds = bpaStaffIdsForService(state, sid);
+      let list = publicStaff.value.filter(
+        (st) => st && Array.isArray(st.serviceIds) && st.serviceIds.some((id) => parseInt(id, 10) === sid) && !!allowedIds[parseInt(st.id, 10)]
+      );
+      if (staffAfterDatetime.value) {
+        const map = selectedSlotAvailableStaff.value;
+        if (map) list = list.filter((st) => !!map[parseInt(st.id, 10)]);
+        // map === null → fail-open: leave the assigned list unfiltered.
+      }
+      
+      // Filter out staff members who cannot support the chosen capacity size
+      const requestedPersons = parseInt(state.appointment_step_form_data.bookingpress_selected_bring_members || 0, 10);
+      if (requestedPersons > 1) {
+        list = list.filter((st) => {
+          if (!st || !st.serviceCapacities || typeof st.serviceCapacities[String(sid)] === 'undefined') {
+            return true; 
+          }
+          const cap = parseInt(st.serviceCapacities[String(sid)], 10);
+          return cap >= requestedPersons;
+        });
+      }
+
+      return list;
+    });
+
+    // --- Client-side staff search (Pro "Enable Searchbox" → Staff step) ------
+    //
+    // The search NEVER hits the server: `staffForService` is already fully
+    // loaded from `state.pro_staff`, so we just narrow it reactively by the
+    // typed keyword. `config.staffShowSearch` (set by StaffMemberFeature) gates
+    // whether the input renders at all. Match logic mirrors the legacy Vue 2
+    // `bpa_search_staff`: case-insensitive substring on the first OR last name.
+    const searchKeyword = ref('');
+    const staffShowSearch = computed(() => !!config.value.staffShowSearch);
+    const staffSearchPlaceholder = computed(
+      () => strings.value.staff_search_placeholder || 'Search Staff Member'
+    );
+
+    const visibleStaff = computed(() => {
+      // Recompute signal for add-on staff-list filters whose inputs (e.g. a
+      // selected location) live outside this computed's natural dependencies —
+      // parity with the Service step's `serviceListFilterTick`.
+      // eslint-disable-next-line no-unused-expressions
+      state.staffListFilterTick;
+      const _loc = String(
+        (state.appointment_step_form_data && (state.appointment_step_form_data.selected_location || state.appointment_step_form_data.bookingpress_location_id)) ||
+        (typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('loc_id') || new URLSearchParams(window.location.search).get('location_id') || '') : '')
+      );
+
+      let list = staffForService.value;
+      const kw = String(searchKeyword.value || '').trim().toLowerCase();
+      if (kw) {
+        list = list.filter((st) => {
+          const first = String((st && st.firstName) || '').toLowerCase();
+          const last = String((st && st.lastName) || '').toLowerCase();
+          return first.indexOf(kw) !== -1 || last.indexOf(kw) !== -1;
+        });
+      }
+      const staffOrdering = config.value.staffmember_order;
+
+        if (String(staffOrdering) === '2') {
+          list = [...list].sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+        }
+
+      // Generic, reusable extension seam: add-ons may further narrow the visible
+      // staff through the `bookingpress_form_v3_visible_staff` JS filter (the
+      // staff analog of `bookingpress_form_v3_visible_services`). Lite/Pro ship
+      // no callback, so by default this returns the list unchanged.
+      const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+      if (hooks && typeof hooks.applyFilters === 'function') {
+        const out = hooks.applyFilters('bookingpress_form_v3_visible_staff', list, {
+          state,
+          instanceId: state.instanceId,
+        });
+        if (Array.isArray(out)) list = out;
+      }
+      return list;
+    });
+
+    // Signal the Lite Service step to recompute its visible-services list (the
+    // staff-service filter below reads the selected staff, which lives outside
+    // that computed's natural dependencies in some flows).
+    function bumpServiceListTick() {
+      try {
+        state.serviceListFilterTick = (state.serviceListFilterTick || 0) + 1;
+      } catch (e) { /* defensive — ignore */ }
+    }
+
+    // Service-first: changing the service resets the staff choice (the staff
+    // depends on the service; the Lite Service step already clears date/time,
+    // this owns the staff half of that reset). In a staff-first sequence the
+    // dependency is REVERSED — the staff drives the service — so selecting a
+    // service must NOT clear the staff (that would drop the gate the following
+    // steps rely on), so this reset is skipped there.
+    watch(selectedService, (now, prev) => {
+      if (now === prev || staffBeforeService.value) return;
+      selectedStaffId.value = '';
+      searchKeyword.value = '';
+      state.appointment_step_form_data.is_any_staff_selected = false;
+    });
+
+    // Staff-first: when the visitor MANUALLY changes the staff, the Service step
+    // narrows to that staff's services. Drop a now-invalid selected service (+ its
+    // date/time) the new staff isn't assigned to, and signal the Service step to
+    // recompute. SKIP entirely for "Any Staff": there `selected_staff_member_id`
+    // is written by the auto-assignment (a RESULT of the service/slot the visitor
+    // already chose), not a manual staff pick — running this reset would wrongly
+    // wipe the chosen service/date/time and break navigation.
+    watch(selectedStaffId, (now, prev) => {
+      if (now === prev || !staffBeforeService.value || isAnyStaffSelected.value) return;
+      const sid = parseInt(state.appointment_step_form_data.selected_service || 0, 10);
+      if (sid > 0) {
+        const sm = allStaff.value.find((s) => parseInt(s.id, 10) === parseInt(now, 10));
+        const stillValid = sm && Array.isArray(sm.serviceIds) && sm.serviceIds.indexOf(sid) !== -1;
+        if (!stillValid) {
+          state.appointment_step_form_data.selected_service = '';
+          state.appointment_step_form_data.selected_category = '';
+          state.appointment_step_form_data.selected_date = '';
+          state.appointment_step_form_data.selected_start_time = '';
+          state.appointment_step_form_data.selected_end_time = '';
+        }
+      }
+      // Service-after-datetime: the date/time were chosen off the PREVIOUS staff's
+      // serviceless grid; a different staff has a different grid, so clear the
+      // slot (it reloads for the new staff when datetime is re-entered).
+      if (serviceAfterDatetime.value || bpaIsDayServiceId(state, sid)) {
+        bpaClearDateTimeSelection(state);
+        if (timeslots && typeof timeslots.invalidateForService === 'function' && sid > 0) {
+          timeslots.invalidateForService(sid);
+        }
+      }
+      bumpServiceListTick();
+    });
+
+    // If the previously-selected staff is no longer valid for the visible list
+    // (e.g. data changed, or it's not available at the newly chosen slot), clear
+    // it so the gate stays honest.
+    watch(staffForService, (list) => {
+      if (isAnyStaffSelected.value) return; // the '0' sentinel isn't in the list — keep it.
+      const cur = selectedStaffId.value;
+      if (cur && !list.some((st) => String(st.id) === cur)) {
+        selectedStaffId.value = '';
+      }
+    });
+
+    // Service-after-datetime: recompute the end time from the picked service's
+    // real duration (the serviceless slot stored a global-step placeholder).
+    // Uses the module-level helper (shared with the hidden runner).
+    watch(selectedService, (sid) => {
+      if (!serviceAfterDatetime.value) return;
+      bpaRecomputeEndTime(state, parseInt(sid, 10));
+    });
+
+    const config = computed(() => state.config || {});
+    // Customize → Booking Form display toggles (set by StaffMemberFeature).
+    const staffShowBio = computed(() => !!config.value.staffShowBio);
+    // 1 = phone + email, 2 = email only, 3 = phone only, 4 = none.
+    const staffInfoRule = computed(() => {
+      const r = parseInt(config.value.staffInfoRule, 10);
+      return r >= 1 && r <= 4 ? r : 1;
+    });
+    const showEmail = computed(() => staffInfoRule.value === 1 || staffInfoRule.value === 2);
+    const showPhone = computed(() => staffInfoRule.value === 1 || staffInfoRule.value === 3);
+
+    const strings = computed(() => state.strings || {});
+    const headingTitle = computed(() => (strings.value.staff_heading !== undefined && strings.value.staff_heading !== null) ? strings.value.staff_heading : 'Select Staff Member');
+    const selectText = computed(() => (strings.value.staff_select_text !== undefined && strings.value.staff_select_text !== null) ? strings.value.staff_select_text : 'Select');
+    const selectedText = computed(() => (strings.value.staff_selected_text !== undefined && strings.value.staff_selected_text !== null) ? strings.value.staff_selected_text : 'Selected');
+    const noStaffText = computed(() => (strings.value.no_staff_available !== undefined && strings.value.no_staff_available !== null) ? strings.value.no_staff_available : 'There is no staff member available for booking');
+    const noStaffSelectedText = computed(() => (strings.value.no_staff_selected_error !== undefined && strings.value.no_staff_selected_error !== null) ? strings.value.no_staff_selected_error : 'Please select a staff member');
+    const gobackText = computed(() => (strings.value.goback_button !== undefined && strings.value.goback_button !== null) ? strings.value.goback_button : 'Go Back');
+    const nextText = computed(() => (strings.value.next_button !== undefined && strings.value.next_button !== null) ? strings.value.next_button : 'Next');
+
+    // Optional notice rendered below the heading (generic seam). Empty by default
+    // (inert); an add-on (e.g. Multi-Staff) can return an instructional banner via
+    // the `bookingpress_form_v3_staff_notice` filter. Computed, so it tracks the
+    // reactive state the callback reads (e.g. the selected service).
+    const staffNotice = computed(() => String(bpStaffHook('bookingpress_form_v3_staff_notice', '') || ''));
+    // Notice layout seam: `banner` (default) renders a full-width notice below the
+    // heading; `multistaff` renders the legacy Multi-Staff counter inline in the
+    // heading row (title left, "X of Y selected" right).
+    const staffNoticeLayout = computed(() => String(bpStaffHook('bookingpress_form_v3_staff_notice_layout', 'banner') || 'banner'));
+
+    // Per-card extension seams — the Vue 3 analog of the legacy staff-card
+    // do_action insertion points (used by the Ratings & Review add-on):
+    //   details  → legacy `bookingpress_front_staffmember_details_outside`
+    //              (inside `.bpa-front-sm-card__body`, after the name)
+    //   external → legacy `bookingpress_front_staffmember_external_details_outside`
+    //              (direct child of `.bpa-front-sm-card`, before the inner body)
+    //   inner    → legacy `bookingpress_front_staffmember_inner_details_outside`
+    //              (inside `.bpa-front-sm-card__inner-body-wrapper`, after the name)
+    // Each filter receives an EMPTY array; add-ons append (markRaw'd) Vue
+    // component definitions which are rendered per card with `staff`, `state`
+    // and `instance-id` props. Inert by default — with no callback registered
+    // the arrays stay empty and the card markup is byte-identical.
+    const staffCardComponentSeam = (name) => {
+      const out = bpStaffHook(name, []);
+      return Array.isArray(out) ? out : [];
+    };
+    const staffCardDetailsComponents = computed(() => staffCardComponentSeam('bookingpress_form_v3_staff_card_details_components'));
+    const staffCardExternalComponents = computed(() => staffCardComponentSeam('bookingpress_form_v3_staff_card_external_components'));
+    const staffCardInnerComponents = computed(() => staffCardComponentSeam('bookingpress_form_v3_staff_card_inner_components'));
+
+    // "Any Staff" option (Staff Members → Settings; set by StaffMemberFeature).
+    // When enabled, an "Any Staff" card renders FIRST in the list (legacy parity);
+    // picking it leaves the specific staff open. `is_any_staff_selected` is the
+    // shared flag; the gate field `selected_staff_member_id` is set to the sentinel
+    // '0' so the staff step's gate passes and the booking is marked "any staff".
+    const anyStaffEnabled = computed(() => !!config.value.staffAnyEnabled);
+    const anyStaffTitle = computed(() => strings.value.staff_any_title || 'Any Staff');
+    const isAnyStaffSelected = computed(() => !!state.appointment_step_form_data.is_any_staff_selected);
+
+    // Capacity visibility follows the admin toggle by default, but Any Staff
+    // hides it unless the hidden-staff flow has already collapsed to one
+    // effective staff for the selected service.
+    watch(
+      () => [
+        state.appointment_step_form_data.is_any_staff_selected,
+        state.appointment_step_form_data.selected_service,
+        state.appointment_step_form_data.selected_location,
+        state.appointment_step_form_data.bookingpress_location_id,
+        state.appointment_step_form_data.bookingpress_selected_bring_members,
+      ],
+      () => { bpaSyncShowSlotCapacity(state); },
+      { immediate: true }
+    );
+
+    // --- Any Staff: resolve a concrete staff once service + slot are chosen -----
+    // The assignment logic lives at module level (`bpaAssignAnyStaff`) so the
+    // exact same resolver is used by this step UI AND by the hidden-staff runner.
+    // Resolve the any-staff member whenever the inputs to the assignment change
+    // (only while Any Staff is active). The trigger differs per sequence, and the
+    // single watcher covers all of them because it re-runs on ANY of the three:
+    //  - service BEFORE datetime, staff before datetime (`service → staff → datetime`):
+    //    fires on the SLOT pick (service already set, Any Staff already on).
+    //  - service AFTER datetime (`staff → datetime → service`): fires on the
+    //    SERVICE pick (slot already chosen off the serviceless grid).
+    //  - staff AFTER datetime (`service → datetime → staff`): service + slot are
+    //    already chosen, so it fires on the ANY-STAFF CLICK (the flag flips true).
+    // bpaAssignAnyStaff itself only acts once service + slot are both set, so the
+    // early triggers are harmless no-ops. A specific-staff pick flips the flag
+    // false → the guard skips, so picking a specific staff fires NO assignment/REST.
+    watch(
+      () => [
+        state.appointment_step_form_data.selected_start_time,
+        state.appointment_step_form_data.selected_date,
+        state.appointment_step_form_data.selected_service,
+        state.appointment_step_form_data.is_any_staff_selected,
+      ],
+      () => { if (isAnyStaffSelected.value) bpaAssignAnyStaff(state, timeslots, props.instanceId); }
+    );
+
+    function staffStep() {
+      const steps = Array.isArray(state.steps) ? state.steps : [];
+      return steps.find((s) => s.id === 'staff') || null;
+    }
+
+    // "Next: <label>" of the step that follows staff (data-driven off the schema).
+    const nextStepName = computed(() => {
+      const steps = Array.isArray(state.steps) ? state.steps : [];
+      const cur = staffStep();
+      if (!cur || !cur.next_step) return '';
+      const nx = steps.find((s) => s.id === cur.next_step);
+      return (nx && nx.tab_name) || '';
+    });
+
+    const hasPrev = computed(() => {
+      const cur = staffStep();
+      return !!(cur && cur.previous_step);
+    });
+
+    // Validation toast (mirrors ServiceStep).
+    const errorMsg = ref('');
+    let errorTimer = 0;
+    function setError(msg) {
+      errorMsg.value = String(msg || '');
+      if (errorTimer) clearTimeout(errorTimer);
+      if (errorMsg.value) errorTimer = setTimeout(() => { errorMsg.value = ''; errorTimer = 0; }, 5000);
+    }
+    function clearError() {
+      if (errorTimer) clearTimeout(errorTimer);
+      errorTimer = 0;
+      errorMsg.value = '';
+    }
+
+    // A real staff is "selected" only when it matches AND Any Staff is not chosen.
+    // An add-on may override the selected state per card (e.g. Multi-Staff returns
+    // membership in `clubbed_staff`); inert by default (returns the default).
+    function isSelected(st) {
+      const def = !isAnyStaffSelected.value && String(st.id) === selectedStaffId.value;
+      return !!bpStaffHook('bookingpress_form_v3_staff_card_selected', def, st);
+    }
+    function staffName(st) { return ((st.firstName || '') + ' ' + (st.lastName || '')).trim(); }
+
+    // Legacy parity: a USER-driven staff change invalidates a previously chosen
+    // date/slot (a different staff has different availability), so a stale
+    // selection can never leave the Date & Time step stuck on "no timeslot
+    // available". Guards: never in the staff-after-datetime sequence (there the
+    // chosen slot drives the staff list), never for day services (they keep the
+    // date and re-assign), and only when a date/slot was actually chosen.
+    // Called ONLY from the click handlers — programmatic writes (any-staff
+    // auto-assign, cart edit reload) must not wipe a loaded selection.
+    function bpaResetDatetimeOnStaffChange(prevId, prevAny) {
+      if (staffAfterDatetime.value) return;
+      const fd = state.appointment_step_form_data;
+      const nowId = String(fd.selected_staff_member_id || '');
+      const nowAny = !!fd.is_any_staff_selected;
+      if (String(prevId || '') === nowId && !!prevAny === nowAny) return;
+      if (bpaIsDayServiceId(state, parseInt(fd.selected_service || 0, 10))) return;
+      if (!fd.selected_date && !fd.selected_start_time) return;
+      bpaClearDateTimeSelection(state);
+    }
+
+    function selectStaff(st) {
+      // Add-on click override (e.g. Multi-Staff toggles `clubbed_staff`): when the
+      // filter returns true the add-on fully handled the click, so the default
+      // single-staff selection is skipped. Inert by default (returns false).
+      if (true === bpStaffHook('bookingpress_form_v3_staff_select', false, st)) {
+        clearError();
+        return;
+      }
+
+      const bpaPrevStaffId = selectedStaffId.value;
+      const bpaPrevAnyStaff = isAnyStaffSelected.value;
+
+      // Picking a specific staff clears any prior "Any Staff" choice.
+      state.appointment_step_form_data.is_any_staff_selected = false;
+
+      // Select only - do NOT auto-advance.
+      // Remove staff if the it's already set ( toggle behavior )
+
+      if( '' !== selectedStaffId.value && String(st.id) === selectedStaffId.value ) {
+        selectedStaffId.value = '';
+        bpaResetDatetimeOnStaffChange(bpaPrevStaffId, bpaPrevAnyStaff);
+        clearError();
+        return;
+      }
+
+      // Select only — do NOT auto-advance. Unlike the Service step, picking a
+      // staff member keeps the user on the Staff step; they move on with the
+      // explicit "Next" button.
+      selectedStaffId.value = String(st.id);
+      bpaResetDatetimeOnStaffChange(bpaPrevStaffId, bpaPrevAnyStaff);
+      clearError();
+    }
+
+    // Pick / toggle the "Any Staff" card. Stores the legacy sentinel staff id 0
+    // (as the string '0' so the gate field is non-empty) + the any-staff flag; a
+    // concrete staff is resolved later (booking side). No auto-advance, matching
+    // the specific-staff cards.
+    function selectAnyStaff() {
+      const fd = state.appointment_step_form_data;
+      const bpaPrevStaffId = selectedStaffId.value;
+      const bpaPrevAnyStaff = isAnyStaffSelected.value;
+      if (isAnyStaffSelected.value) {
+        fd.is_any_staff_selected = false;
+        selectedStaffId.value = '';
+        bpaResetDatetimeOnStaffChange(bpaPrevStaffId, bpaPrevAnyStaff);
+        clearError();
+        return;
+      }
+      fd.is_any_staff_selected = true;
+      // Sentinel until a timeslot is picked → then the assignment writes the
+      // resolved staff id here.
+      fd.selected_staff_member_id = '0';
+      bpaResetDatetimeOnStaffChange(bpaPrevStaffId, bpaPrevAnyStaff);
+      const serviceId = parseInt(fd.selected_service || 0, 10);
+      if (bpaIsDayServiceId(state, serviceId) && timeslots && typeof timeslots.invalidateForService === 'function') {
+        const selectedDate = String(fd.selected_date || '');
+        timeslots.invalidateForService(serviceId);
+        if (selectedDate && typeof timeslots.fetchForDate === 'function') {
+          timeslots.fetchForDate(selectedDate).then(() => {
+            bpaAssignAnyStaff(state, timeslots, props.instanceId);
+          });
+        }
+      }
+      searchKeyword.value = '';
+      clearError();
+    }
+
+    function next() {
+      // Add-on readiness override (e.g. Multi-Staff gates on exactly N clubbed
+      // staff). When `handled` is true the add-on owns the decision: block with
+      // its message when `ok` is false, else advance. Inert by default
+      // (`handled:false` → the existing single-staff/any-staff check below runs).
+      const adv = bpStaffHook('bookingpress_form_v3_staff_advance', { handled: false, ok: true, message: '' });
+      if (adv && adv.handled) {
+        if (!adv.ok) {
+          setError(adv.message || strings.value.no_staff_selected_error || noStaffText.value);
+          return;
+        }
+        clearError();
+        nav.goNext();
+        return;
+      }
+
+      if (!selectedStaffId.value && !isAnyStaffSelected.value) {
+        if (visibleStaff.value.length > 0) {
+          setError(noStaffSelectedText.value);
+        } else {
+          setError(noStaffText.value);
+        }
+        return;
+      }
+      clearError();
+      nav.goNext();
+    }
+
+    function prev() {
+      clearError();
+      nav.goPrev();
+    }
+
+    const expandedStaffIds = ref([]);
+    const toggleExpand = (id) => {
+      const idx = expandedStaffIds.value.indexOf(id);
+      if (idx > -1) {
+        expandedStaffIds.value.splice(idx, 1);
+      } else {
+        expandedStaffIds.value.push(id);
+      }
+    };
+    const isExpanded = (id) => expandedStaffIds.value.includes(id);
+
+    const staffInnerBody = ref([]);
+    const overflowedStaffIds = ref([]);
+    const checkOverflow = () => {
+      nextTick(() => {
+        const elements = staffInnerBody.value || [];
+        const overflowed = [];
+        elements.forEach((el) => {
+          if (!el) return;
+          if (el.scrollHeight > 115) {
+            const id = el.getAttribute('data-id');
+            if (id) {
+              overflowed.push(String(id));
+            }
+          }
+        });
+        overflowedStaffIds.value = overflowed;
+      });
+    };
+
+    onMounted(() => {
+      checkOverflow();
+      window.addEventListener('resize', checkOverflow);
+    });
+
+    watch(visibleStaff, () => {
+      checkOverflow();
+    });
+
+    const hasOverflow = (id) => overflowedStaffIds.value.includes(String(id));
+
+    return {
+      headingTitle, selectText, selectedText, noStaffText, noStaffSelectedText, gobackText, nextText, staffNotice, staffNoticeLayout,
+      staffCardDetailsComponents, staffCardExternalComponents, staffCardInnerComponents,
+      staffForService, visibleStaff, staffShowSearch, staffSearchPlaceholder, searchKeyword,
+      selectedStaffId, nextStepName, hasPrev, errorMsg,
+      staffShowBio, showEmail, showPhone,
+      anyStaffEnabled, anyStaffTitle, isAnyStaffSelected, selectAnyStaff,
+      isSelected, staffName, selectStaff, next, prev,
+      isExpanded, toggleExpand, staffInnerBody, hasOverflow,
+      ICON_STAFF_AVATAR, ICON_CHECK, ICON_ARROW_RIGHT, ICON_ARROW_LEFT, ICON_ERROR,
+      ICON_EMAIL, ICON_PHONE, ICON_ANY_STAFF,
+    };
+  },
+  template: `
+    <div class="bpa-front-default-card">
+      <div v-if="errorMsg" class="bpa-front-toast-notification --bpa-error" :aria-label="errorMsg" role="alert">
+        <div class="bpa-front-tn-body">
+          <span v-html="ICON_ERROR"></span>
+          <p>{{ errorMsg }}</p>
+        </div>
+      </div>
+
+      <div class="bpa-front-dc--body">
+        <!-- Client-side staff search (Pro "Enable Searchbox"). Narrows the
+             already-loaded staff list by name as you type — no REST / AJAX.
+             Only rendered when there is at least one staff for the service. -->
+        <div
+          v-if="staffShowSearch && staffForService.length > 0"
+          class="bpa_search_service_data_cls"
+          role="search"
+        >
+          <input
+            type="text"
+            class="bpa-front-form-control bpa_search_cls bpa_focusable"
+            v-model="searchKeyword"
+            :placeholder="staffSearchPlaceholder"
+            :aria-label="staffSearchPlaceholder"
+          >
+        </div>
+
+        <div class="bpa-front-module-container bpa-front-module--staff">
+          <template v-if="staffNoticeLayout === 'multistaff'">
+            <div class="bpa-front-module-multi-staff-heading">
+              <div class="bpa-front-module-heading" :aria-label="headingTitle">{{ headingTitle }}</div>
+              <div v-if="staffNotice" class="bpa-front-multi-staff-message" v-html="staffNotice"></div>
+            </div>
+          </template>
+          <template v-else>
+            <div class="bpa-front-module-heading" :aria-label="headingTitle">{{ headingTitle }}</div>
+            <!-- Optional add-on notice (e.g. instructional banner); empty/inert by default. -->
+            <div v-if="staffNotice" class="bpa-front-staff-step-notice" v-html="staffNotice"></div>
+          </template>
+
+          <div v-if="visibleStaff.length === 0 && !anyStaffEnabled" class="bpa-front-empty">{{ noStaffText }}</div>
+
+          <div
+            v-else-if="anyStaffEnabled || visibleStaff.length > 0"
+            class="bpa-front-module--staff-item-row"
+            :class="{ 'bpa-front-module--multi-staff-item-row': staffNoticeLayout === 'multistaff' }"
+            role="list"
+          >
+            <!-- "Any Staff" card — rendered FIRST when the option is enabled
+                 (legacy parity). Not filtered by the search box. -->
+            <div
+              v-if="anyStaffEnabled"
+              class="bpa-front-sm--col --bpa-sm-any-staff-col --bpa-sm-is-any-staff-col"
+              :class="{ '__bpa-is-selected': isAnyStaffSelected }"
+              @click="selectAnyStaff()"
+            >
+              <div
+                class="bpa-front-sm-card bpa_focusable"
+                :class="{ '__bpa-is-active': isAnyStaffSelected }"
+                tabindex="-1"
+                role="listitem"
+                @keydown.enter="selectAnyStaff()"
+                @keydown.space.prevent="selectAnyStaff()"
+              >
+                <div class="bpa-front-sm-card__left">
+                  <span v-html="ICON_ANY_STAFF"></span>
+                </div>
+                <div class="bpa-front-sm-card__body">
+                  <div class="bpa-front-sm-card__body--name">
+                    <span :aria-label="anyStaffTitle">{{ anyStaffTitle }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              v-for="st in visibleStaff"
+              :key="st.id"
+              class="bpa-front-sm--col"
+              :class="{ '__bpa-is-selected': isSelected(st) }"
+              :data-id="st.id"
+            >
+              <div
+                class="bpa-front-sm-card bpa_focusable"
+                :class="{ '__bpa-is-active': isSelected(st) }"
+                tabindex="-1"
+                role="listitem"
+                @click="selectStaff(st)"
+                @keydown.enter="selectStaff(st)"
+                @keydown.space.prevent="selectStaff(st)"
+              >
+                <div class="bpa-front-sm-card__left" v-if="st.avatarUrl">
+                  <img class="bpa-front-sm__avatar" :src="st.avatarUrl" :alt="staffName(st)">
+                </div>
+                <div class="bpa-front-sm-card__left" v-else>
+                  <div class="bpa-front-sm__default-avatar" v-html="ICON_STAFF_AVATAR"></div>
+                </div>
+                <div class="bpa-front-sm-card__body">
+                  <div class="bpa-front-sm-card__body--name">
+                    <span>{{ st.firstName }} {{ st.lastName }}</span>
+                  </div>
+                  <!-- Add-on seam: legacy bookingpress_front_staffmember_details_outside -->
+                  <component
+                    v-for="(cmp, ci) in staffCardDetailsComponents"
+                    :is="cmp"
+                    :key="'bpa-sm-ext-details-' + ci"
+                    :staff="st"
+                    :state="state"
+                    :instance-id="instanceId"
+                  ></component>
+                </div>
+                <!-- Add-on seam: legacy bookingpress_front_staffmember_external_details_outside -->
+                <component
+                  v-for="(cmp, ci) in staffCardExternalComponents"
+                  :is="cmp"
+                  :key="'bpa-sm-ext-external-' + ci"
+                  :staff="st"
+                  :state="state"
+                  :instance-id="instanceId"
+                ></component>
+                <div class="bpa-front-sm-card__inner-body">
+                  <div class="bpa-front-sm-card__inner-body-wrapper" :class="{ '--is-expanded': isExpanded(st.id) }" ref="staffInnerBody" :data-id="st.id">
+                    <div class="bpa-front-sm-card__inner-body--name">
+                      <span>{{ st.firstName }} {{ st.lastName }}</span>
+                    </div>
+                    <!-- Add-on seam: legacy bookingpress_front_staffmember_inner_details_outside -->
+                    <component
+                      v-for="(cmp, ci) in staffCardInnerComponents"
+                      :is="cmp"
+                      :key="'bpa-sm-ext-inner-' + ci"
+                      :staff="st"
+                      :state="state"
+                      :instance-id="instanceId"
+                    ></component>
+                    <div class="bpa-front-sm-card__inner-body--bio" v-if="staffShowBio && st.bio">
+                      <span v-html="st.bio"></span>
+                    </div>
+                    <div class="bpa-front-sm-card__inner-body-item" v-if="showEmail && st.email">
+                      <span class="bpa-front-sm-card__inner-body-item-wrapper bpa-front-sm-card__inner-item-icon"><span v-html="ICON_EMAIL"></span> {{ st.email }}</span>
+                    </div>
+                    <div class="bpa-front-sm-card__inner-body-item" v-if="showPhone && st.phone">
+                      <span class="bpa-front-sm-card__inner-body-item-wrapper bpa-front-sm-card__inner-item-icon"><span v-html="ICON_PHONE"></span> {{ st.phone }}</span>
+                    </div>
+                  </div>
+                  <div class="bpa-front-sm-card-sm__body-expand-collapse-wrapper" v-if="hasOverflow(st.id)">
+                    <span @click.stop="toggleExpand(st.id)" v-if="isExpanded(st.id)">Show less</span>
+                    <span @click.stop="toggleExpand(st.id)" v-else>Show more</span>
+                  </div>
+                  <div class="bpa-front-sm-card__inner-footer">
+                    <bp-ui-button
+                      type="button"
+                      class="bpa-front-sm-card__inner-button bpa_focusable"
+                      :class="{ 'bpa-sm-card__active': isSelected(st) }"
+                    >
+                      <span>{{ isSelected(st) ? selectedText : selectText }}</span>
+                      ${ICON_CHECK}
+                    </bp-ui-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bpa-front-dc--footer">
+        <div class="bpa-front-tabs--foot">
+          <button
+            v-if="hasPrev"
+            type="button"
+            class="bpa-front-btn bpa-front-btn__medium bpa-front-btn--borderless bpa_focusable"
+            :aria-label="gobackText"
+            @click="prev()"
+          >
+            <span v-html="ICON_ARROW_LEFT"></span>&nbsp;{{ gobackText }}
+          </button>
+          <button
+            type="button"
+            class="bpa-front-btn bpa-front-btn__medium bpa-front-btn--primary bpa_focusable"
+            :aria-label="nextText + ' ' + nextStepName"
+            @click="next()"
+          >
+            {{ nextText }}&nbsp;<strong>{{ nextStepName }}</strong>
+            <span v-html="ICON_ARROW_RIGHT"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  `,
+};
+
+(function () {
+  if (typeof window === 'undefined') return;
+
+  const BP = window.BookingPressFormV3;
+  if (!BP || typeof BP.renderInSlot !== 'function') {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] staff: BookingPressFormV3 registry unavailable');
+    return;
+  }
+
+  // --- Capacity + pricing seams (registered once across all instances) -----
+  //
+  // Resolve the selected staff id from a form-state object.
+  function bpaSelectedStaffId(state) {
+    return parseInt((state && state.appointment_step_form_data
+      && state.appointment_step_form_data.selected_staff_member_id) || 0, 10) || 0;
+  }
+
+  // Whether the Staff step sits before the Service step in the schema.
+  function bpaStaffBeforeService(state) {
+    var steps = (state && Array.isArray(state.steps)) ? state.steps : [];
+    var staffSt = steps.find(function (s) { return s && s.id === 'staff'; });
+    var serviceSt = steps.find(function (s) { return s && s.id === 'service'; });
+    if (!staffSt || !serviceSt) return false;
+    return Number(staffSt.order) < Number(serviceSt.order);
+  }
+
+  // Whether the Service step sits AFTER the Date & Time step (serviceless grid).
+  function bpaServiceAfterDatetime(state) {
+    var steps = (state && Array.isArray(state.steps)) ? state.steps : [];
+    var serviceSt = steps.find(function (s) { return s && s.id === 'service'; });
+    var dtSt = steps.find(function (s) { return s && s.id === 'datetime'; });
+    if (!serviceSt || !dtSt) return false;
+    return Number(serviceSt.order) > Number(dtSt.order);
+  }
+
+  // Whether the Staff step sits AFTER the Date & Time step in the schema.
+  function bpaStaffAfterDatetime(state) {
+    var steps = (state && Array.isArray(state.steps)) ? state.steps : [];
+    var staffSt = steps.find(function (s) { return s && s.id === 'staff'; });
+    var dtSt = steps.find(function (s) { return s && s.id === 'datetime'; });
+    if (!staffSt || !dtSt) return false;
+    return Number(staffSt.order) > Number(dtSt.order);
+  }
+
+  const hooks = window.wp && window.wp.hooks;
+  if (hooks && typeof hooks.addFilter === 'function' && !BP.__proStaffFiltersAdded) {
+    BP.__proStaffFiltersAdded = true;
+
+    // 1. Send the selected staff with every timeslot request (initial + month),
+    //    so the server resolves the staff's per-service capacity and counts only
+    //    that staff's bookings. The controller reads `selected_staff`.
+    hooks.addFilter(
+      'bookingpress_form_v3_timeslot_request',
+      'bookingpress-pro/staff-timeslot',
+      function (body, ctx) {
+        const state = ctx && ctx.state;
+        if (!body || typeof body !== 'object') return body;
+        const fd = (state && state.appointment_step_form_data) || {};
+        if (fd.is_any_staff_selected) {
+          // Any Staff: keep the grid SERVICE-level aggregated + tell the server to
+          // stamp each slot's `available_staff` (used for the post-slot assignment)
+          // and grey empty slots. Do NOT send selected_staff even though it now
+          // holds the assigned id after a slot pick — that id is only for the
+          // price / total / persistence, not the grid.
+          body.any_staff = '1';
+        } else {
+          // Specific staff: send it so the server resolves that staff's per-service
+          // capacity + counts only that staff's bookings.
+          const staffId = bpaSelectedStaffId(state);
+          if (staffId > 0) body.selected_staff = String(staffId);
+        }
+        // Service-after-datetime: mark this as the serviceless (carrier) grid so
+        // the server resolves the window from the staff/general shift (not the
+        // carrier service's own shift) and uses the global slot length.
+        if (bpaServiceAfterDatetime(state)) {
+          body.serviceless_grid = '1';
+        }
+        return body;
+      }
+    );
+
+    // 1b. Contribute the selected staff to the CLIENT month-cache key. The core
+    //     caches month payloads keyed by service id plus this signature (see
+    //     useTimeslots.timeslotCacheKey). The request above already threads the
+    //     staff to the server (and the server cache token is staff-aware), but
+    //     without a matching client signature every staff would SHARE one cached
+    //     grid per service: months prefetched/cached for one staff (or for the
+    //     service-level "Any Staff" grid) would be reused after switching staff,
+    //     so a staff with custom work hours would show another staff's — or the
+    //     general — hours on any already-cached month (the current month hides it
+    //     because it always refetches on staff change). Keying the cache by staff
+    //     mirrors the request grouping exactly: all "Any Staff" selections share
+    //     the service-level grid, each specific staff gets its own bucket, and no
+    //     staff selected falls back to the plain service-id key (unchanged).
+    hooks.addFilter(
+      'bookingpress_form_v3_timeslot_cache_signature',
+      'bookingpress-pro/staff-timeslot-cache',
+      function (signature, ctx) {
+        const state = ctx && ctx.state;
+        const fd = (state && state.appointment_step_form_data) || {};
+        if (fd.is_any_staff_selected) {
+          return signature ? signature + '|anystaff' : 'anystaff';
+        }
+        const staffId = bpaSelectedStaffId(state);
+        if (staffId > 0) {
+          return signature ? signature + '|staff:' + staffId : 'staff:' + staffId;
+        }
+        return signature;
+      }
+    );
+
+    // 2. Apply the selected staff's price for the service (Summary total + the
+    //    submit / PayPal payloads all run the base price through this filter).
+    hooks.addFilter(
+      'bookingpress_form_v3_effective_price',
+      'bookingpress-pro/staff-price',
+      function (price, ctx) {
+        const state = ctx && ctx.state;
+        // For Any Staff this reads the assigned staff (now in selected_staff_member_id).
+        const staffId = bpaSelectedStaffId(state);
+        if (staffId <= 0 || !state || !Array.isArray(state.pro_staff)) return price;
+        const serviceId = parseInt((ctx && ctx.serviceId) || 0, 10) || 0;
+        if (serviceId <= 0) return price;
+        const staff = state.pro_staff.find(function (s) { return parseInt(s.id, 10) === staffId; });
+        if (!staff || !staff.servicePrices) return price;
+        const sp = staff.servicePrices[String(serviceId)];
+        if (sp === undefined || sp === null || sp === '') return price;
+        const n = Number(sp);
+        return isNaN(n) ? price : n;
+      }
+    );
+
+    // 3. Staff-first sequence: once a staff is picked, the Service step shows
+    //    ONLY the services assigned to that staff. No-op for service-first
+    //    sequences (there the staff list is filtered by the selected service
+    //    instead) and until a staff is chosen. This narrows by staff ASSIGNMENT,
+    //    not by shift — services are NOT hidden by per-service availability at the
+    //    chosen slot, including when Service is placed after Date & Time (service
+    //    shift is ignored in that scenario). Composes with the service-search
+    //    filter — both just narrow the already-loaded list.
+    hooks.addFilter(
+      'bookingpress_form_v3_visible_services',
+      'bookingpress-pro/staff-service-filter',
+      function (services, ctx) {
+        var state = ctx && ctx.state;
+        if (!state || !Array.isArray(services) || !Array.isArray(state.pro_staff)) return services;
+        if (!bpaStaffBeforeService(state)) return services;
+        var staffId = bpaSelectedStaffId(state);
+        if (staffId <= 0) return services;
+        var sm = state.pro_staff.find(function (s) { return parseInt(s.id, 10) === staffId; });
+        if (!sm || !Array.isArray(sm.serviceIds)) return services;
+        var allowed = {};
+        sm.serviceIds.forEach(function (id) { allowed[parseInt(id, 10)] = true; });
+        return services.filter(function (svc) { return !!allowed[parseInt(svc && svc.serviceId, 10)]; });
+      }
+    );
+  } else if (!hooks) {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] staff: wp.hooks unavailable — capacity/price filters not registered');
+  }
+
+  // Mount the staff step into the generic `step:staff` slot for every instance.
+  // The slot persists for the form's lifetime, so this mounts once per instance
+  // (guarded), and the shared reactive state drives all updates thereafter.
+  BP.renderInSlot('*', 'step:staff', function (ctx) {
+    const node = ctx && ctx.node;
+    const instanceId = ctx && ctx.instanceId;
+    if (!node || !instanceId) return;
+    if (node.__bpStaffMounted) return;
+
+    const handle = BP.instances && BP.instances[instanceId];
+    if (!handle || !handle.state || !handle.nav) return;
+    // Only mount when the Pro staff payload is present for this instance
+    // (i.e. the feature is active and the form is not blocked).
+    if (!Array.isArray(handle.state.pro_staff)) return;
+
+    node.__bpStaffMounted = true;
+    try {
+      const app = createApp(StaffStep, {
+        state: handle.state,
+        nav: handle.nav,
+        bus: handle.bus,
+        instanceId: instanceId,
+        timeslots: handle.timeslots || null,
+      });
+      app.use(BookingPressUI); // For the internal bp-ui-button used in the card (parity with the legacy markup).
+      app.mount(node);
+    } catch (e) {
+      node.__bpStaffMounted = false;
+      // eslint-disable-next-line no-console
+      console.error('[bp-v3][pro] staff: mount failed', e);
+    }
+  });
+
+  // --- "Hide staff member step": auto Any-Staff with NO staff step UI ----------
+  //
+  // When the staff step is hidden (server sets `config.staffHidden`, seeds
+  // `is_any_staff_selected = true`, and does NOT insert the staff step), the staff
+  // mini-app never mounts — so this per-instance runner drives the SAME any-staff
+  // assignment: it resolves a concrete staff once the service + slot are chosen
+  // (single available → assigned directly with NO REST; >1 → the auto-assign-rule
+  // REST), writing the id into `selected_staff_member_id` so the server stores it.
+  // Inert unless the staff step is hidden (else the mini-app's own watcher handles
+  // it — they are mutually exclusive: hidden ⇒ no `step:staff` slot).
+  //
+  // The assignment is triggered by BOTH a reactive `watch` (slot/service change)
+  // AND the `bp-v3:after-select-service` bus event (the direct service-pick signal
+  // — the trigger for the serviceless "Service after Date & Time" hidden flow,
+  // where the slot is already chosen by then). Belt-and-suspenders so it fires
+  // even if one path is missed. NOTE: a `bp-v3:form-mounted` bus listener would
+  // be too late (the loader mounts + emits at module-eval, BEFORE this Pro module
+  // runs) — so the wiring below uses renderInSlot/registerAddon/direct-sweep,
+  // all of which process ALREADY-mounted instances.
+  function bpaWireHiddenAnyStaff(ctx) {
+    const instanceId = ctx && ctx.instanceId;
+    const handle = (instanceId && BP.instances) ? BP.instances[instanceId] : null;
+    
+    if (!handle || !handle.state) return;
+    const state = handle.state;
+    if (!state.config || !state.config.staffHidden) { return; }
+    if (handle.__bpAnyStaffHiddenWired) return;
+    handle.__bpAnyStaffHiddenWired = true;
+
+    // Auto "Any Staff" (server already seeded the flag; reaffirm defensively).
+    state.appointment_step_form_data.is_any_staff_selected = true;
+    const timeslots = handle.timeslots || null;
+
+    if (timeslots && typeof timeslots.fetchInitial === 'function') {
+      timeslots.fetchInitial(); // re-request now that any_staff + cache-signature filters are registered
+    }
+
+    function bpaRun() {
+      bpaSyncShowSlotCapacity(state);
+      bpaAssignAnyStaff(state, timeslots, instanceId);
+      // Serviceless (Service after Date & Time): also recompute the end time from
+      // the chosen service's duration — the mini-app (which normally does this) is
+      // absent when the staff step is hidden.
+      if (bpaServiceAfterDatetime(state)) {
+        bpaRecomputeEndTime(state, parseInt(state.appointment_step_form_data.selected_service || 0, 10));
+      }
+    }
+    watch(
+      function () {
+        return [
+          state.appointment_step_form_data.selected_start_time,
+          state.appointment_step_form_data.selected_date,
+          state.appointment_step_form_data.selected_service,
+          state.appointment_step_form_data.selected_location,
+          state.appointment_step_form_data.bookingpress_location_id,
+          state.appointment_step_form_data.bookingpress_selected_bring_members,
+        ];
+      },
+      bpaRun
+    );
+    // DIRECT event trigger too (robust regardless of the reactive watcher): the
+    // service pick is the assignment trigger for serviceless (Service after Date
+    // & Time) — by then the slot is already chosen. Slot re-picks are covered by
+    // the watcher above.
+    if (handle.bus && typeof handle.bus.on === 'function') {
+      handle.bus.on('bp-v3:after-select-service', bpaRun);
+    }
+    // Resolve immediately in case service + slot are already set (e.g. revisit).
+    bpaRun();
+  }
+  // Wire per-instance through MULTIPLE mechanisms so it fires no matter the module
+  // load order:
+  //  - renderInSlot on the always-present `root:before-steps` slot = the SAME
+  //    proven mechanism the staff mini-app uses (runs the factory for existing
+  //    AND future instances; the slot renders even when the staff step is hidden);
+  //  - registerAddon (existing + future);
+  //  - a direct sweep of already-mounted instances.
+  // The `__bpAnyStaffHiddenWired` guard makes the duplicate wiring a no-op.
+  if (typeof BP.renderInSlot === 'function') {
+    BP.renderInSlot('*', 'root:before-steps', bpaWireHiddenAnyStaff);
+  }
+  if (typeof BP.registerAddon === 'function') {
+    BP.registerAddon('bookingpress-pro/any-staff-hidden', bpaWireHiddenAnyStaff);
+  }
+  if (BP.instances) {
+    Object.keys(BP.instances).forEach(function (iid) { bpaWireHiddenAnyStaff({ instanceId: iid }); });
+  }
+})();
+
+export {};

@@ -1,0 +1,450 @@
+/**
+ * booking-form-vue3-stripe.js — the Stripe gateway client.
+ *
+ * WHAT IT DOES
+ * ------------
+ * Owns the client side of the two Stripe options (server side: StripeGateway.php):
+ *
+ *   - **Payment Elements** (`sca_popup`, default): mounts the Stripe Payment
+ *     Element into whatever slot the host offers. On submit it validates the
+ *     element, calls `payment-v3/prepare` (which stages AND creates the
+ *     PaymentIntent in one round trip), confirms the card with Stripe.js, then
+ *     calls `payment-v3/confirm` to verify and finalise.
+ *   - **Stripe Checkout** (`stripe_checkout`): `payment-v3/prepare` returns a
+ *     hosted session URL and the browser is redirected. Settlement is by webhook.
+ *
+ * IT KNOWS NOTHING ABOUT THE PAGE IT IS RUNNING ON
+ * ------------------------------------------------
+ * This module names no page. It subscribes to `BookingPressPayments.eachHost()`
+ * and wires itself to whatever registers — the Lite booking form today, the
+ * Complete Payment page, Gift Card and Package next. The host supplies the
+ * context id, the mount point, the payable amount, the submit interception and
+ * the success/failure reporting; see `payments/host-registry.js` for the
+ * contract.
+ *
+ * That is the whole point. The previous arrangement had one module per page per
+ * gateway — `booking-form-vue3-stripe.js` and `booking-complete-payment-v3-stripe.js`,
+ * the second a fork of the first with `if (state.form == "complete_payment")`
+ * branches through it. Four contexts x twenty gateways of that is the N x M
+ * problem this layer removed from PHP, surviving in JavaScript.
+ *
+ * WHY IT INTERCEPTS `before-submit` RATHER THAN REACTING TO `after-submit`
+ * -----------------------------------------------------------------------
+ * `payment-v3/prepare` stages the booking AND starts the payment. Letting the
+ * host stage first would create the entry twice. So this module cancels the
+ * host's submit — SILENTLY, meaning "taking over", not "aborting" — takes the
+ * payload it was about to send, and posts it to `prepare` instead. One round
+ * trip, and the gateway never learns what it is being paid for.
+ *
+ * DELIVERY
+ * --------
+ * Enqueued as a script module by StripeFeature. Its only dependency is the host
+ * registry — deliberately NOT any page's app, so the same file serves every
+ * host. The Stripe.js SDK (`window.Stripe`) is a classic script, which runs
+ * before this deferred module.
+ */
+
+import 'bookingpress-payments-host';
+
+(function () {
+  if (typeof window === 'undefined') return;
+
+  var BPP = window.BookingPressPayments;
+  if (!BPP || typeof BPP.eachHost !== 'function') {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][stripe] payment host registry unavailable — update BookingPress');
+    return;
+  }
+
+  var GATEWAY_ID = 'stripe';
+
+  // Per-HOST Stripe state, keyed `contextId:instanceId` — not by instance alone,
+  // because one page may host more than one context.
+  var stores = {};
+  function store(host) {
+    var key = host.contextId + ':' + host.instanceId;
+    if (!stores[key]) {
+      stores[key] = { stripe: null, elements: null, paymentElement: null, node: null, mountTarget: null, wired: false, loadError: '' };
+    }
+    return stores[key];
+  }
+
+  function config(host) {
+    return host.gatewayConfig(GATEWAY_ID) || null;
+  }
+
+  function isSelected(host) {
+    return String(host.selectedMethod()) === GATEWAY_ID;
+  }
+
+  /**
+   * The element amount, in MINOR units.
+   *
+   * The sealed server amount is what is actually charged; this only drives the
+   * element's display and its payment-method availability check — but it still
+   * has to be RIGHT, because Stripe refuses to mount below its per-currency
+   * minimum. Deriving it from the bare service price once mounted a JPY 45
+   * element for a JPY 75.06 booking and Stripe answered `amount_too_small`,
+   * leaving no card field at all.
+   *
+   * `host.payableNow()` is the host's own resolution of that number. NEVER
+   * re-derive it here (D25): every price-moving module — staff price override,
+   * Service Extras, Multiple Quantity, Coupon, Deposit, Tax, Tip — would have to
+   * be re-implemented in this file to keep up.
+   */
+  function elementAmount(host, cfg) {
+    var price = Number(host.payableNow()) || 0;
+    // `decimals` rather than the older zeroDecimal boolean: a flag cannot
+    // express BHD/JOD/KWD/OMR/TND, where x100 is 10x too small — another
+    // `amount_too_small` waiting to happen, since the KWD minimum is 150 minor
+    // units.
+    var decimals = cfg && typeof cfg.decimals === 'number' ? cfg.decimals : (cfg && cfg.zeroDecimal ? 0 : 2);
+    return Math.round(price * Math.pow(10, decimals));
+  }
+
+  // Write into the element's own error region, which is where a card error
+  // belongs — next to the field, not in the host's form-level error.
+  function setCardError(s, msg) {
+    if (!s || !s.node) return;
+    var region = s.node.querySelector('.card-errors');
+    if (region) region.textContent = String(msg || '');
+  }
+
+  // --- REST helper ---------------------------------------------------------
+
+  async function paymentPost(host, route, body) {
+    var root = String(host.paymentRoot() || '').replace(/\/+$/, '');
+    if (!root) {
+      return { status: 0, ok: false, error: { message: 'Payment routes are unavailable. Please update BookingPress.' } };
+    }
+
+    var nonces = host.nonces() || {};
+    var payload = Object.assign({}, body || {}, {
+      bp_v3_nonce: nonces.formNonce,
+      bp_v3_instance_token: nonces.instanceToken,
+      instanceId: host.instanceId,
+    });
+
+    var res = await fetch(root + '/' + route, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonces.wpRestNonce },
+      body: JSON.stringify(payload),
+    });
+
+    var json = null;
+    try { json = await res.json(); } catch (e) { json = { ok: false, error: { message: 'Server returned non-JSON.' } }; }
+    return { status: res.status, ok: !!(json && json.ok), data: json && json.data, error: json && json.error };
+  }
+
+  // --- Payment Element mount / unmount -------------------------------------
+
+  function mountElement(host) {
+    var s = store(host);
+    var cfg = config(host);
+    if (!cfg || cfg.paymentMethodType !== 'sca_popup' || !cfg.publishableKey) return;
+    if (typeof window.Stripe !== 'function') {
+      // eslint-disable-next-line no-console
+      console.warn('[bp-v3][stripe] Stripe.js SDK not loaded');
+      return;
+    }
+    if (!s.node || !s.node.isConnected) return;
+    // Already mounted — but ONLY if the element is still IN THE DOCUMENT.
+    //
+    // A host re-render can empty the slot node out from under us without
+    // handing us a new one. That leaves a live element OBJECT pointing at
+    // detached DOM: the card fields disappear, and because this guard used to
+    // return unconditionally, NOTHING could ever rebuild them. The failure
+    // surfaced far away, at submit, as Stripe's "We could not retrieve data
+    // from the specified Element. Please make sure the Element you are
+    // attempting to use is mounted and the ready event has been emitted."
+    //
+    // Why it only bit with a SINGLE gateway enabled: the selection is then
+    // pre-seeded server-side (`StateBuilder.php:256`) and needs no click, so we
+    // mount at the FIRST node the host hands over — early enough to be wiped by
+    // a later re-render of the Summary step. With several gateways the customer
+    // clicks one after the step has settled, so the element is created after
+    // the churn and survives. Same code, different timing.
+    //
+    // Checking the mount target rather than `s.paymentElement` is the point:
+    // the object outliving its DOM is precisely the state to detect.
+    if (s.paymentElement) {
+      if (s.mountTarget && s.mountTarget.isConnected) return;
+      // Stale: destroy the orphaned element, then fall through and rebuild.
+      unmountElement(host);
+    }
+
+    var amount = elementAmount(host, cfg);
+    if (!amount || amount < 1) return;
+
+    if (!s.stripe) s.stripe = window.Stripe(cfg.publishableKey);
+
+    // Build the card-details block (legacy parity: a "Card Details" subtitle
+    // from the customize settings, an error region, then the element mount).
+    var wrap = s.node.querySelector('.bookingpress-stripe-element');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'bpa-front-module--pm-card-detail-form bookingpress-stripe-element';
+
+      var title = document.createElement('div');
+      title.className = 'bpa-front-cdf__title';
+      title.textContent = cfg.cardDetailsText || 'Card Details';
+      title.setAttribute('aria-label', title.textContent);
+      wrap.appendChild(title);
+
+      var errs = document.createElement('div');
+      errs.className = 'card-errors';
+      errs.setAttribute('role', 'alert');
+      wrap.appendChild(errs);
+
+      var card = document.createElement('div');
+      card.className = 'bpa-stripe-front-card';
+      var elWrap = document.createElement('div');
+      elWrap.className = 'stripe_element_wrapper';
+      var mountTarget = document.createElement('div');
+      mountTarget.className = 'bookingpress-stripe-mount';
+      elWrap.appendChild(mountTarget);
+      card.appendChild(elWrap);
+      wrap.appendChild(card);
+
+      s.node.appendChild(wrap);
+    }
+    var target = wrap.querySelector('.bookingpress-stripe-mount');
+
+    try {
+      s.elements = s.stripe.elements({ mode: 'payment', amount: amount, currency: cfg.currency, paymentMethodTypes: ['card'] });
+      s.paymentElement = s.elements.create('payment');
+
+      // Stripe reports a load failure ASYNCHRONOUSLY, so the catch below never
+      // sees it. Unhandled, the element simply never appears: no card field, no
+      // message, a form that looks broken while the submit button stays live.
+      // `amount_too_small` is the one that actually bit — every currency has a
+      // minimum charge (about USD 0.50, JPY 50) and a small service or a deposit
+      // can legitimately land under it, so this is reachable even with a correct
+      // amount.
+      s.loadError = '';
+      s.paymentElement.on('loaderror', function (ev) {
+        s.loadError = (ev && ev.error && ev.error.message) || 'The card form could not be loaded.';
+        setCardError(s, s.loadError);
+      });
+      s.paymentElement.on('ready', function () {
+        s.loadError = '';
+        setCardError(s, '');
+      });
+
+      s.paymentElement.mount(target);
+      // Remembered so the guard above can tell a genuinely mounted element from
+      // one whose DOM has since been thrown away.
+      s.mountTarget = target;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[bp-v3][stripe] element mount failed', e);
+      s.paymentElement = null;
+      s.elements = null;
+    }
+  }
+
+  function unmountElement(host) {
+    var s = store(host);
+    if (s.paymentElement) {
+      try { s.paymentElement.unmount(); } catch (e) { /* noop */ }
+      s.paymentElement = null;
+      s.elements = null;
+      s.mountTarget = null;
+      s.loadError = '';
+    }
+    // Also remove the card-details wrapper so no empty card UI lingers once the
+    // gateway is deselected or the payable hits 0. mountElement() recreates it.
+    if (s.node) {
+      var wrap = s.node.querySelector('.bookingpress-stripe-element');
+      if (wrap && wrap.parentNode) { wrap.parentNode.removeChild(wrap); }
+    }
+  }
+
+  // --- The pay flow (replaces the host's own submit for Stripe) ------------
+
+  async function runStripePayment(host, payload) {
+    var cfg = config(host);
+    if (!cfg) return;
+
+    // Yield once so the host's synchronous cancel branch has finished before we
+    // take the UI over.
+    await Promise.resolve();
+    host.clearError();
+    host.setBusy(true);
+
+    var isCheckout = cfg.paymentMethodType === 'stripe_checkout';
+    var s = store(host);
+
+    // Payment Elements: validate the card BEFORE staging, so an invalid card
+    // never creates a pending booking. The deferred-intent flow requires
+    // elements.submit() ahead of confirmPayment() regardless.
+    if (!isCheckout) {
+      if (!s.stripe || !s.elements || !s.paymentElement) {
+        host.fail('Please enter your card details.');
+        return;
+      }
+      // The element exists but never loaded — elements.submit() would fail with
+      // something far less useful than Stripe's own reason.
+      if (s.loadError) {
+        host.fail(s.loadError);
+        return;
+      }
+      var submitRes = await s.elements.submit();
+      if (submitRes && submitRes.error) {
+        host.fail(submitRes.error.message);
+        return;
+      }
+    }
+
+    // Stage AND start the payment in one call. The server seals the amount here;
+    // nothing downstream can recompute it.
+    var prep = await paymentPost(host, 'prepare', {
+      context: host.contextId,
+      gateway: GATEWAY_ID,
+      payload: payload,
+    });
+    if (!prep.ok || !prep.data || !prep.data.prepare) {
+      host.fail((prep.error && prep.error.message) || 'Could not start the payment.');
+      return;
+    }
+
+    var reference = (prep.data.reference && prep.data.reference.reference) || '';
+    var token = prep.data.token || '';
+    var kind = prep.data.prepare.kind || '';
+    var data = prep.data.prepare.data || {};
+
+    // Nothing left to pay — a 100% coupon, a full gift card, a free service.
+    // The server already finalised; there is no Stripe round trip at all.
+    if (kind === 'settled') {
+      host.finish(prep.data.envelope || {});
+      return;
+    }
+
+    // Stripe Checkout — hand the browser to Stripe's hosted page.
+    if (kind === 'redirect') {
+      if (!data.url) {
+        host.fail('Could not start Stripe Checkout.');
+        return;
+      }
+      window.location.href = data.url;
+      return;
+    }
+
+    if (kind !== 'client_action' || !data.client_secret) {
+      host.fail('Unexpected payment response.');
+      return;
+    }
+
+    // Confirm the card with Stripe (handles 3DS via redirect if required).
+    var confirmResult = await s.stripe.confirmPayment({
+      elements: s.elements,
+      clientSecret: data.client_secret,
+      confirmParams: { return_url: window.location.href },
+      redirect: 'if_required',
+    });
+    if (confirmResult && confirmResult.error) {
+      host.fail(confirmResult.error.message);
+      return;
+    }
+    var pi = confirmResult && confirmResult.paymentIntent;
+    if (!pi || pi.status !== 'succeeded') {
+      host.fail('Payment was not completed.');
+      return;
+    }
+
+    // Verify server-side and finalise. The server re-fetches the intent from
+    // Stripe and compares against the sealed amount before writing anything.
+    var finalRes = await paymentPost(host, 'confirm', {
+      context: host.contextId,
+      gateway: GATEWAY_ID,
+      reference: reference,
+      token: token,
+      gateway_payload: { payment_intent_id: pi.id },
+    });
+    if (!finalRes.ok || !finalRes.data) {
+      host.fail((finalRes.error && finalRes.error.message) || 'Payment could not be confirmed.');
+      return;
+    }
+
+    host.finish(finalRes.data);
+  }
+
+  // --- Wire every host -----------------------------------------------------
+
+  BPP.eachHost(function (host) {
+    var s = store(host);
+    if (s.wired) return;
+    s.wired = true;
+
+    // The host calls this with a node whenever its payment region renders, and
+    // again with a NEW node if that region re-renders (a step change, say).
+    host.mount(function (node) {
+      s.node = node;
+      // A fresh node means any element we had is gone with the old DOM.
+      s.paymentElement = null;
+      s.elements = null;
+      if (isSelected(host)) mountElement(host);
+    });
+
+    host.onMethodChange(function () {
+      if (isSelected(host)) mountElement(host);
+      else unmountElement(host);
+    });
+
+    // Reactively hide the card fields whenever the amount payable NOW drops to
+    // 0 and restore them when it rises again. Generic across every zero-payable
+    // cause — coupon, gift card, package, a free service — because the host
+    // resolves the amount.
+    host.watchPayable(function () {
+      if (!isSelected(host)) return;
+      var amt = elementAmount(host, config(host));
+
+      if (!amt || amt < 1) {
+        unmountElement(host);
+        return;
+      }
+      if (s.loadError) {
+        // A previous mount failed — below Stripe's minimum, say. update() does
+        // not recover that, so rebuild now that the amount has moved.
+        unmountElement(host);
+        mountElement(host);
+      } else if (s.elements && s.paymentElement) {
+        // Already mounted. mountElement() returns early when an element exists,
+        // so without this update the element would keep the amount it was
+        // CREATED with — stale the moment a coupon, deposit or extra moves the
+        // total.
+        try { s.elements.update({ amount: amt }); } catch (e) { /* noop */ }
+      } else {
+        mountElement(host);
+      }
+    });
+
+    host.onBeforeSubmit(function (e) {
+      if (!isSelected(host)) return;
+
+      // Nothing to pay NOW — step aside entirely and let the host finalise
+      // inline (D26). Reachable because a host may hide its payment picker at
+      // payable 0 while still reporting a selected method: a service with the
+      // deposit configured to 0 leaves the payable at 0 with the full amount
+      // still owed. Taking over would also be WRONG, not merely awkward —
+      // prepare()'s zero short circuit finalises as PAID with paid_amount 0,
+      // which is right for a 100% coupon but not for a 0 deposit.
+      if (elementAmount(host, config(host)) < 1) return;
+
+      var payload = Object.assign({}, e.payload);
+
+      // Silent: we are taking the submission over, not aborting it. A plain
+      // cancel() would show "Submission was cancelled by an add-on" AND arm a
+      // 3s timer that blanks the error — which would wipe a genuine card
+      // decline, since Stripe usually answers well inside 3 seconds.
+      e.cancel({ silent: true });
+
+      runStripePayment(host, payload).catch(function (err) {
+        host.fail((err && err.message) || 'Payment failed.');
+      });
+    });
+  });
+})();
+
+export {};

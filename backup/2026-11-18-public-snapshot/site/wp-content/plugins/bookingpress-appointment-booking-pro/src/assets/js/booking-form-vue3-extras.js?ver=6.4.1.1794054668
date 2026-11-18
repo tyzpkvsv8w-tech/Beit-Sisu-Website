@@ -1,0 +1,943 @@
+/**
+ * booking-form-vue3-extras.js — Pro "Service Extras" for the Vue 3 booking form.
+ *
+ * WHAT IT DOES
+ * ------------
+ * Registers the legacy Service Extras list as a PANEL in the shared
+ * advance-options drawer host ({@see booking-form-vue3-advance-drawer.js}).
+ * When the visitor picks a service that has extras (read from
+ * `state.pro_service_extras`, embedded server-side by
+ * {@see \BookingPressPro\Vue3\ServiceExtrasFeature} — no REST / AJAX), the
+ * shared drawer slides up over the Service step, the auto-advance is HELD, and
+ * the host's single Continue / Cancel footer drives the flow:
+ *   - Continue — the host runs each panel's validator in order; this panel's
+ *     validator enforces the per-service min/max selectable-count rules (legacy
+ *     `bookingpress_extra_service_validation`); the shared error toast shows on
+ *     failure, navigation proceeds on pass;
+ *   - Cancel / click-outside — the host clears the service; this panel's
+ *     onCancel resets that service's extras (legacy `bookingpress_close_extra_drawer`).
+ *
+ * Selected extras feed three legacy-parity data flows:
+ *   1. TIMESLOTS — every timeslot request carries the legacy
+ *      `service_extra_details` JSON (the full selection map), so the server
+ *      builds the grid with `service duration + Σ(extra duration × qty)`
+ *      (FILTER_SLOT_DURATION on the PHP side). Changing a selection invalidates
+ *      the cached grids for the service.
+ *   2. PRICE — the effective price becomes
+ *      `service/staff price + Σ(extra price × qty)` via the generic
+ *      `bookingpress_form_v3_effective_price` filter at priority 20 (AFTER the
+ *      staff price override at 10 — legacy order), keeping the Summary total,
+ *      the submit payload and the PayPal payload in lockstep with the
+ *      server-side FILTER_SUMMARY_TOTAL math.
+ *   3. SUMMARY — the Summary step shows the legacy "<n> <Extras>" count with
+ *      the hover popover listing each selected extra, mounted into the
+ *      `summary-step:after-datetime` slot.
+ *
+ * WHY IT LIVES IN PRO
+ * -------------------
+ * Lite owns only the generic seams (slots, the advance-hold flag, the
+ * timeslot-request / effective-price filters). The shared drawer shell is owned
+ * by the Pro advance-drawer host; this module only contributes the extras panel
+ * + its data flows. When the module is inactive the server never embeds
+ * `pro_service_extras` and never enqueues this file.
+ *
+ * DELIVERY
+ * --------
+ * Enqueued as a script module by `ServiceExtrasFeature` (deps: the Lite loader,
+ * `vue`, the advance-drawer host). Styled by the isolated legacy extract
+ * `booking-form-vue3-extras.css`.
+ */
+
+import 'bookingpress-form-v3-loader';
+import 'bookingpress-pro-form-v3-advance-drawer';
+import { createApp, computed, ref, reactive } from 'vue';
+
+import { BookingPressUI } from 'bookingpress-ui';
+
+// --- Inline SVGs (legacy front-end parity) --------------------------------
+
+/** Clock icon next to an extra's duration (legacy template parity). */
+const ICON_CLOCK =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-.22-13h-.06c-.4 0-.72.32-.72.72v4.72c0 .35.18.68.49.86l4.15 2.49c.34.2.78.1.98-.24.21-.34.1-.79-.25-.99l-3.87-2.3V7.72c0-.4-.32-.72-.72-.72z"/></svg>';
+
+/** Plus icon on the "View More" link (legacy template parity). */
+const ICON_PLUS =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M18 13h-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5H6c-.55 0-1-.45-1-1s.45-1 1-1h5V6c0-.55.45-1 1-1s1 .45 1 1v5h5c.55 0 1 .45 1 1s-.45 1-1 1z"/></svg>';
+
+/** Minus icon on the "View Less" link (legacy template parity). */
+const ICON_MINUS =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M18 13H6c-.55 0-1-.45-1-1s.45-1 1-1h12c.55 0 1 .45 1 1s-.45 1-1 1z"/></svg>';
+
+/** Chevron-down — expand icon + "Load More" link (legacy template parity). */
+const ICON_EXPAND =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M24 24H0V0h24v24z" fill="none" opacity=".87"/><path d="M15.88 9.29L12 13.17 8.12 9.29c-.39-.39-1.02-.39-1.41 0-.39.39-.39 1.02 0 1.41l4.59 4.59c.39.39 1.02.39 1.41 0l4.59-4.59c.39-.39.39-1.02 0-1.41-.39-.38-1.03-.39-1.42 0z"/></svg>';
+
+/** Chevron-up — "Load Less" link (legacy template parity). */
+const ICON_COLLAPSE =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M11.29 8.71L6.7 13.3c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0L12 10.83l3.88 3.88c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L12.7 8.71c-.38-.39-1.02-.39-1.41 0z"/></svg>';
+
+// --- Shared helpers (used by the panel, the summary block AND the filters) ---
+
+/** The per-service extras map embedded by ServiceExtrasFeature. */
+function bpaExtrasMap(state) {
+  return (state && state.pro_service_extras && typeof state.pro_service_extras === 'object')
+    ? state.pro_service_extras
+    : {};
+}
+
+/** Extras rows for one service ([] when none). */
+function bpaExtrasForService(state, serviceId) {
+  const entry = bpaExtrasMap(state)[String(serviceId)] || bpaExtrasMap(state)[parseInt(serviceId, 10)];
+  return (entry && Array.isArray(entry.extras)) ? entry.extras : [];
+}
+
+/** Min/max selectable-count rules for one service. */
+function bpaExtrasRules(state, serviceId) {
+  const entry = bpaExtrasMap(state)[String(serviceId)] || bpaExtrasMap(state)[parseInt(serviceId, 10)];
+  return {
+    min: entry ? parseInt(entry.min, 10) || 0 : 0,
+    max: entry && entry.max !== undefined && entry.max !== null ? entry.max : 'nolimit',
+  };
+}
+
+function bpaMultiServiceIds(state) {
+  const fd = state && state.appointment_step_form_data;
+  if (!fd || !state.config || !state.config.multiServiceEnabled) return [];
+  return (Array.isArray(fd.selected_services) ? fd.selected_services : [])
+    .map((id) => parseInt(id, 10))
+    .filter((id) => id > 0);
+}
+
+function bpaIsMultiService(state) {
+  return bpaMultiServiceIds(state).length >= 2;
+}
+
+const getSelectedExtras = (extras = {}) => {
+    return Object.fromEntries(
+        Object.entries(extras).filter(
+            ([, extra]) => extra?.bookingpress_is_selected === true
+        )
+    );
+};
+
+const getSelectedMultiServiceExtras = (services = {}) => {
+    return Object.fromEntries(
+        Object.entries(services)
+            .map(([serviceId, extras]) => [
+                serviceId,
+                getSelectedExtras(extras),
+            ])
+            .filter(([, extras]) => Object.keys(extras).length > 0)
+    );
+};
+
+/** Service that opened the drawer; Multi Service's `selected_service` is primary-only. */
+function bpaCurrentDrawerServiceId(state) {
+  const active = parseInt(state && state.proAdvanceDrawerServiceId || 0, 10);
+  if (active > 0) return active;
+  const fd = state && state.appointment_step_form_data;
+  return parseInt(fd && fd.selected_service || 0, 10);
+}
+
+/** The legacy selection map (`extraId → {bookingpress_is_selected, bookingpress_selected_qty, …}`). */
+function bpaSelectedDetails(state) {
+  const fd = state && state.appointment_step_form_data;
+  if (!fd) return {};
+  if (!fd.bookingpress_selected_extra_details || typeof fd.bookingpress_selected_extra_details !== 'object') {
+    fd.bookingpress_selected_extra_details = {};
+  }
+  return fd.bookingpress_selected_extra_details;
+}
+
+function bpaMultiSelectedDetails(state) {
+  const fd = state && state.appointment_step_form_data;
+  if (!fd) return {};
+  if (!fd.bookingpress_multi_service_extra_details || typeof fd.bookingpress_multi_service_extra_details !== 'object') {
+    fd.bookingpress_multi_service_extra_details = {};
+  }
+  return fd.bookingpress_multi_service_extra_details;
+}
+
+function bpaDetailsForService(state, serviceId) {
+  if (!bpaIsMultiService(state)) return bpaSelectedDetails(state);
+  const all = bpaMultiSelectedDetails(state);
+  const key = String(parseInt(serviceId, 10) || 0);
+  if (!all[key] || typeof all[key] !== 'object') all[key] = {};
+  return all[key];
+}
+
+/** Whether a selection-map entry counts as selected (legacy truthy forms). */
+function bpaIsSelected(detail) {
+  if (!detail) return false;
+  const v = detail.bookingpress_is_selected;
+  return v === true || v === 'true' || v === 1 || v === '1';
+}
+
+/** Count of selected extras for ONE service. */
+function bpaSelectedCount(state, serviceId) {
+  const details = bpaDetailsForService(state, serviceId);
+  let count = 0;
+  bpaExtrasForService(state, serviceId).forEach((extra) => {
+    const d = details[String(extra.bookingpress_extra_services_id)];
+    if (bpaIsSelected(d)) count++;
+  });
+  return count;
+}
+
+/** Reset one service's extras to the seeded defaults (legacy close-drawer reset). */
+function bpaResetExtrasForService(state, serviceId) {
+  const fd = state && state.appointment_step_form_data;
+  const flat = fd && fd.bookingpress_selected_extra_details;
+  const all = fd && fd.bookingpress_multi_service_extra_details;
+  const nested = all && all[String(parseInt(serviceId, 10) || 0)];
+  const reset = (details, extraId) => {
+    const d = details && details[String(extraId)];
+    if (!d) return;
+    d.bookingpress_is_selected = false;
+    d.bookingpress_selected_qty = 1;
+  };
+  bpaExtrasForService(state, serviceId).forEach((extra) => {
+    const extraId = extra.bookingpress_extra_services_id;
+    reset(flat, extraId);
+    reset(nested, extraId);
+  });
+}
+
+/** Sync the legacy mirror fields (`is_extra_service_exists` + selected count). */
+function bpaSyncExtrasMeta(state) {
+  const fd = state.appointment_step_form_data;
+  const ids = bpaIsMultiService(state)
+    ? bpaMultiServiceIds(state)
+    : [parseInt(fd.selected_service || 0, 10)].filter(Boolean);
+  fd.is_extra_service_exists = ids.some((sid) => bpaExtrasForService(state, sid).length > 0) ? '1' : '0';
+  fd.bookingpress_selected_extra_service_count = ids.reduce(
+    (count, sid) => count + bpaSelectedCount(state, sid),
+    0
+  );
+}
+
+/** Total extras price for one service: Σ(extra price × qty) over the selected rows. */
+function bpaExtrasTotal(state, serviceId) {
+  const details = bpaDetailsForService(state, serviceId);
+  let total = 0;
+  bpaExtrasForService(state, serviceId).forEach((extra) => {
+    const d = details[String(extra.bookingpress_extra_services_id)];
+    if (!bpaIsSelected(d)) return;
+    const price = parseFloat(extra.bookingpress_extra_service_price) || 0;
+    const min = Math.max(1, parseInt(extra.bookingpress_extra_service_min_quantity, 10) || 1);
+    const max = parseInt(extra.bookingpress_extra_service_max_quantity, 10) || 0;
+    let qty = Math.max(min, parseInt(d.bookingpress_selected_qty, 10) || 1);
+    if (max > 0) qty = Math.min(qty, max);
+    total += price * qty;
+  });
+  return total;
+}
+
+/** The selected extras' seeded detail rows for one service (summary popover data). */
+function bpaSelectedList(state, serviceId) {
+  const details = bpaDetailsForService(state, serviceId);
+  const out = [];
+  bpaExtrasForService(state, serviceId).forEach((extra) => {
+    const d = details[String(extra.bookingpress_extra_services_id)];
+    if (bpaIsSelected(d)) out.push(d);
+  });
+  return out;
+}
+
+/**
+ * Format a raw amount with the active currency configuration. Delegates to the
+ * Lite `formatPrice` util exposed on the global `BookingPressFormV3` registry
+ * by the loader — no Lite-internal import needed. Falls back to the raw value if
+ * the registry helper is unavailable (defensive — the loader is a hard dep).
+ */
+function bpaFormatPrice(state, amount) {
+  const BP = (typeof window !== 'undefined') ? window.BookingPressFormV3 : null;
+  const cfg = (state && state.config) || {};
+  if (BP && typeof BP.formatPrice === 'function') {
+    return BP.formatPrice(cfg, amount);
+  }
+  return String(amount != null ? amount : '');
+}
+
+/**
+ * Legacy `bookingpress_extra_service_validation` — the per-service minimum /
+ * maximum selectable-count rules. Returns the configured error message (with the
+ * `[x]` placeholder substituted) or '' when the selection is valid. Used as the
+ * extras panel's validator in the shared drawer's Continue / nav-away chain.
+ */
+function bpaValidateExtrasSelection(state, serviceId = 0) {
+  const fd = state.appointment_step_form_data;
+  const strings = state.strings || {};
+  const currentId = parseInt(serviceId, 10);
+  const ids = currentId > 0
+    ? [currentId]
+    : (bpaIsMultiService(state)
+      ? bpaMultiServiceIds(state)
+      : [parseInt(fd.selected_service || 0, 10)].filter(Boolean));
+  for (const sid of ids) {
+    const extras = bpaExtrasForService(state, sid);
+    if (!extras.length) continue;
+    const rules = bpaExtrasRules(state, sid);
+    const count = bpaSelectedCount(state, sid);
+    if (rules.min > 0 && count < rules.min) {
+      return String(strings.min_extra_service_error || '').replace('[x]', rules.min);
+    }
+    if (rules.max !== 'nolimit' && count > parseInt(rules.max, 10)) {
+      return String(strings.max_extra_service_error || '').replace('[x]', rules.max);
+    }
+  }
+  return '';
+}
+
+/**
+ * Whether the Service step sits AFTER the Date & Time step in the (possibly
+ * Pro-reordered) sequence — legacy `bpa_datetime_after_service_selection`. In
+ * that flow the slot is already chosen, so duration-bearing extras are disabled
+ * (their duration would invalidate the picked slot).
+ */
+function bpaServiceAfterDatetime(state) {
+  const steps = (state && Array.isArray(state.steps)) ? state.steps : [];
+  const svcSt = steps.find((s) => s && s.id === 'service');
+  const dtSt = steps.find((s) => s && s.id === 'datetime');
+  if (!svcSt || !dtSt) return false;
+  return Number(svcSt.order) > Number(dtSt.order);
+}
+
+/** Main services with exact duration unit `d` are date-only; extras duration must not rebuild slots. */
+function bpaIsDayServiceId(state, serviceId) {
+  const sid = parseInt(serviceId || 0, 10);
+  if (!sid || !state || !Array.isArray(state.services)) return false;
+  const svc = state.services.find((s) => parseInt(s && s.serviceId, 10) === sid);
+  return !!(svc && String(svc.serviceDurationUnit || '') === 'd');
+}
+
+// --- Extras panel body (one `.bpa-sao__module-row` inside the shared drawer) ---
+
+const ExtrasPanelBody = {
+  name: 'ProServiceExtrasPanel',
+  props: {
+    state: { type: Object, required: true },
+    nav: { type: Object, default: null },
+    bus: { type: Object, default: null },
+    instanceId: { type: String, default: '' },
+    timeslots: { type: Object, default: null },
+  },
+  setup(props) {
+    const state = props.state;
+    const timeslots = props.timeslots;
+
+    const strings = computed(() => state.strings || {});
+
+    const selectedService = computed(() => bpaCurrentDrawerServiceId(state));
+
+    const isMultiService = computed(() => bpaIsMultiService(state));
+    const serviceGroups = computed(() => {
+      const ids = [selectedService.value].filter((serviceId) => serviceId > 0);
+      const services = Array.isArray(state.services) ? state.services : [];
+      return ids.map((serviceId) => {
+        const service = services.find((item) => parseInt(item && item.serviceId, 10) === serviceId);
+        return {
+          serviceId,
+          serviceName: service ? String(service.serviceName || '') : '',
+          extras: bpaExtrasForService(state, serviceId),
+        };
+      }).filter((group) => group.extras.length > 0);
+    });
+
+    // The legacy selection map — reactive, seeded server-side for every extra.
+    function detailFor(extra, serviceId) {
+      const map = bpaDetailsForService(state, serviceId);
+      const key = String(extra.bookingpress_extra_services_id);
+      if (!map[key]) {
+        // Defensive — the server seeds every extra; recreate if missing.
+        map[key] = {
+          bookingpress_is_selected: false,
+          bookingpress_selected_qty: 1,
+          bookingpress_extra_services_id: extra.bookingpress_extra_services_id,
+          bookingpress_extra_price: extra.bookingpress_extra_service_price,
+          bookingpress_extra_name: extra.bookingpress_extra_service_name,
+          bookingpress_extra_duration: String(extra.bookingpress_extra_service_duration) + String(extra.bookingpress_extra_service_duration_unit),
+          bookingpress_extra_duration_val: extra.bookingpress_extra_service_duration,
+          bookingpress_extra_duration_unit: extra.bookingpress_extra_service_duration_unit,
+          bookingpress_service_id: extra.bookingpress_service_id,
+        };
+      }
+      return map[key];
+    }
+
+    // --- Mobile behaviour (legacy: first 2 extras + Load More under 576px) ---
+    const viewportWidth = ref(typeof window !== 'undefined' ? window.outerWidth : 1200);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => { viewportWidth.value = window.outerWidth; });
+    }
+    const isMobile = computed(() => viewportWidth.value < 576);
+    const isLoadMore = ref('0');
+
+    const visibleExtras = computed(() => {
+      const group = serviceGroups.value[0];
+      const extras = group ? group.extras : [];
+      if (!isMobile.value || isLoadMore.value === '1') return extras;
+      return extras.filter((e) => parseInt(e.bookingpress_extra_counter, 10) < 3);
+    });
+    const showLoadMoreRow = computed(
+      () => isMobile.value && (serviceGroups.value[0] || { extras: [] }).extras.length > 2
+    );
+    function extrasForGroup(group) {
+      return visibleExtras.value;
+    }
+    function toggleLoadMore() {
+      isLoadMore.value = isLoadMore.value === '0' ? '1' : '0';
+    }
+
+    // --- Description View More / View Less (legacy per-extra toggle) --------
+    const descOpen = reactive({});
+    function toggleDesc(extra, serviceId) {
+      const key = String(serviceId) + ':' + String(extra.bookingpress_extra_services_id);
+      descOpen[key] = !descOpen[key];
+    }
+    function isDescOpen(extra, serviceId) {
+      return !!descOpen[String(serviceId) + ':' + String(extra.bookingpress_extra_services_id)];
+    }
+
+    // --- Sequence interplay: Service AFTER Date & Time disables duration extras ---
+    const serviceAfterDatetime = computed(() => bpaServiceAfterDatetime(state));
+    function isCheckboxDisabled(extra) {
+      return serviceAfterDatetime.value && String(extra.bookingpress_extra_service_duration) !== '0';
+    }
+
+    // --- Selection / quantity changes ---------------------------------------
+    //
+    // The extras duration changes the slot grid, so any change invalidates the
+    // cached timeslot months for the service. An already-picked slot is dropped
+    // too — its stored end time was computed from the PREVIOUS grid length and
+    // would persist a wrong appointment duration (date kept; slot re-picked).
+    function afterExtrasChange(serviceId) {
+      bpaSyncExtrasMeta(state);
+      const fd = state.appointment_step_form_data;
+      const sid = parseInt(serviceId, 10) || selectedService.value;
+      if (bpaIsDayServiceId(state, sid)) {
+        return;
+      }
+      const cacheServiceId = bpaIsMultiService(state) ? bpaMultiServiceIds(state)[0] : sid;
+      if (cacheServiceId > 0 && timeslots && typeof timeslots.invalidateForService === 'function') {
+        try { timeslots.invalidateForService(cacheServiceId); } catch (e) { /* defensive */ }
+      }
+      if (fd.selected_start_time) {
+        fd.selected_start_time = '';
+        fd.selected_end_time = '';
+      }
+    }
+
+    function toggleExtra(extra, serviceId) {
+      if (isCheckboxDisabled(extra)) return;
+      const d = detailFor(extra, serviceId);
+      d.bookingpress_is_selected = !bpaIsSelected(d);
+      afterExtrasChange(serviceId);
+    }
+
+    function onQtyChange(serviceId) {
+      afterExtrasChange(serviceId);
+    }
+
+    /** Quantity options min..max for the mobile select (legacy el-option loop). */
+    function qtyOptions(extra) {
+      const min = parseInt(extra.bookingpress_extra_service_min_quantity, 10) || 1;
+      const max = parseInt(extra.bookingpress_extra_service_max_quantity, 10) || 1;
+      const out = [];
+      for (let n = Math.max(1, min); n <= max; n++) out.push(n);
+      return out;
+    }
+
+    function qtyMin(extra) {
+      return parseInt(extra.bookingpress_extra_service_min_quantity, 10) || 1;
+    }
+    function qtyMax(extra) {
+      return parseInt(extra.bookingpress_extra_service_max_quantity, 10) || 1;
+    }
+
+    function showPrice(extra) {
+      return (parseFloat(extra.bookingpress_extra_service_price) || 0) > 0;
+    }
+
+    return {
+      state, strings, serviceGroups, isMultiService, extrasForGroup, showLoadMoreRow, isLoadMore,
+      detailFor, bpaIsSelected, toggleExtra, onQtyChange,
+      qtyOptions, qtyMin, qtyMax, showPrice,
+      toggleLoadMore, toggleDesc, isDescOpen,
+      isCheckboxDisabled, serviceAfterDatetime,
+      ICON_CLOCK, ICON_PLUS, ICON_MINUS, ICON_EXPAND, ICON_COLLAPSE,
+    };
+  },
+  template: `
+    <div class="bpa-sao__module-row --bpa-sao-service-extras" v-if="serviceGroups.length > 0">
+      <div class="bpa-front-sec--sub-heading" :aria-label="strings.service_extra_title">{{ strings.service_extra_title }}</div>
+      <div class="bpa-se--wrapper">
+        <div class="bpa-multiservice-extra-group" v-for="group in serviceGroups" :key="group.serviceId">
+        <div
+          class="bpa-service-extra__item"
+          v-for="extra in extrasForGroup(group)"
+          :key="extra.bookingpress_extra_services_id"
+        >
+          <div class="bpa-sei__header">
+            <div class="bpa-sei__left">
+              <div class="bpa-sei__left-checkbox">
+                <!-- Hand-written el-checkbox DOM (mirrors the Lite Basic
+                     Details terms checkbox) so the legacy checkbox CSS
+                     applies verbatim. -->
+                <label
+                  class="el-checkbox bp-ui-checkbox bp-checkbox bpa-form-label bpa-custom-checkbox--is-label bpa-front-form-control--checkbox"
+                  :class="{ 'is-checked': bpaIsSelected(detailFor(extra, group.serviceId)), 'is-disabled': isCheckboxDisabled(extra) }"
+                  role="checkbox"
+                  :aria-checked="bpaIsSelected(detailFor(extra, group.serviceId))"
+                >
+                  <span
+                    class="el-checkbox__input"
+                    :class="{ 'is-checked': bpaIsSelected(detailFor(extra, group.serviceId)), 'is-disabled': isCheckboxDisabled(extra) }"
+                  >
+                    <input
+                      type="checkbox"
+                      class="el-checkbox__original"
+                      :checked="bpaIsSelected(detailFor(extra, group.serviceId))"
+                      :disabled="isCheckboxDisabled(extra)"
+                      @change="toggleExtra(extra, group.serviceId)"
+                    >
+                    <span class="el-checkbox__inner"></span>
+                  </span>
+                </label>
+              </div>
+              <div class="bpa-sei__left-body">
+                <div
+                  class="bpa-se--heading"
+                  :aria-label="extra.bookingpress_extra_service_name"
+                  @click="toggleExtra(extra, group.serviceId)"
+                >{{ extra.bookingpress_extra_service_name }}</div>
+                <div class="bpa-se--options">
+                  <div
+                    class="bpa-se-o__item"
+                    v-if="showPrice(extra)"
+                    :aria-label="extra.bookingpress_extra_formatted_price"
+                  >{{ extra.bookingpress_extra_formatted_price }}</div>
+                  <div
+                    class="bpa-se-o__item"
+                    v-if="String(extra.bookingpress_extra_service_duration) !== '0'"
+                    :aria-label="extra.bookingpress_extra_service_duration + ' ' + extra.bookingpress_extra_service_duration_unit"
+                  >
+                    <span v-html="ICON_CLOCK"></span>
+                    {{ extra.bookingpress_extra_service_duration }}
+                    {{ extra.bookingpress_extra_service_duration_unit }}
+                  </div>
+                </div>
+                
+                <!-- <div class="bpa-sei--view-more-btn">
+                  <a
+                    v-if="extra.bookingpress_service_description && !isDescOpen(extra, group.serviceId)"
+                    class="el-link el-link--default is-underline bpa-sei__vm--btn"
+                    href="javascript:void(0)"
+                    :aria-label="strings.extras_view_more"
+                    @click="toggleDesc(extra, group.serviceId)"
+                  ><span class="el-link--inner">{{ strings.extras_view_more }}<span v-html="ICON_PLUS"></span></span></a>
+                  <a
+                    v-if="extra.bookingpress_service_description && isDescOpen(extra, group.serviceId)"
+                    class="el-link el-link--default is-underline bpa-sei__vm--btn"
+                    href="javascript:void(0)"
+                    :aria-label="strings.extras_view_less"
+                    @click="toggleDesc(extra, group.serviceId)"
+                  ><span class="el-link--inner">{{ strings.extras_view_less }}<span v-html="ICON_MINUS"></span></span></a>
+                </div> -->
+              </div>
+            </div>
+            <div class="bpa-sei__right bpa--service-extra-qty">
+              <bp-ui-input-number
+                v-if="!extra.bookingpress_hide_service_counter"
+                v-model="detailFor(extra, group.serviceId).bookingpress_selected_qty"
+                class="bpa-front-form-control bpa-front-form-control--number"
+                :min="qtyMin(extra)"
+                :max="qtyMax(extra)"
+                step-strictly
+                @change="onQtyChange(group.serviceId)"
+              ></bp-ui-input-number>
+            </div>
+            <div class="bpa-sei__right bpa--service-extra-qty--is-mob">
+              <bp-ui-select
+                v-if="!extra.bookingpress_hide_service_counter"
+                v-model="detailFor(extra, group.serviceId).bookingpress_selected_qty"
+                class="bpa-front-form-control"
+                popper-class="bpa-fm--service__advance-options-popper"
+                :disabled="serviceAfterDatetime"
+                @change="onQtyChange(group.serviceId)"
+              >
+                <bp-ui-option v-for="n in qtyOptions(extra)" :key="n" :value="n" :label="String(n)" :aria-label="n">{{ n }}</bp-ui-option>
+              </bp-ui-select>
+            </div>
+            <span
+              v-if="extra.bookingpress_service_description"
+              class="bpa-expand-icon bpa_focusable"
+              tabindex="0"
+              role="button"
+              v-html="ICON_EXPAND"
+              @click="toggleDesc(extra, group.serviceId)"
+              @keydown.enter="toggleDesc(extra, group.serviceId)"
+            ></span>
+          </div>
+          <div class="bpa-sei__body" v-if="extra.bookingpress_service_description && isDescOpen(extra, group.serviceId)">
+            <div class="bpa-sei__body-desc" :aria-label="extra.bookingpress_service_description">{{ extra.bookingpress_service_description }}</div>
+          </div>
+        </div>
+        </div>
+
+        <div class="bpa-service-extra__load-more" v-if="showLoadMoreRow && isLoadMore === '0'">
+          <a
+            class="el-link el-link--default is-underline bpa-se__lm--btn"
+            href="javascript:void(0)"
+            :aria-label="strings.extras_load_more"
+            @click="toggleLoadMore()"
+          ><span class="el-link--inner">{{ strings.extras_load_more }}<span v-html="ICON_EXPAND"></span></span></a>
+        </div>
+        <div class="bpa-service-extra__load-more" v-if="showLoadMoreRow && isLoadMore === '1'">
+          <a
+            class="el-link el-link--default is-underline bpa-se__lm--btn"
+            href="javascript:void(0)"
+            :aria-label="strings.extras_load_less"
+            @click="toggleLoadMore()"
+          ><span class="el-link--inner">{{ strings.extras_load_less }}<span v-html="ICON_COLLAPSE"></span></span></a>
+        </div>
+      </div>
+    </div>
+  `,
+};
+
+// --- Summary block (legacy "<n> <Extras>" count + hover popover) -----------
+
+const ExtrasSummary = {
+  name: 'ProServiceExtrasSummary',
+  props: {
+    state: { type: Object, required: true },
+  },
+  setup(props) {
+    const state = props.state;
+    const strings = computed(() => state.strings || {});
+
+    const selectedService = computed(() =>
+      parseInt(state.appointment_step_form_data.selected_service || 0, 10)
+    );
+    const isMultiService = computed(() => bpaIsMultiService(state));
+    const selectedGroups = computed(() => {
+      const ids = isMultiService.value ? bpaMultiServiceIds(state) : [selectedService.value];
+      const services = Array.isArray(state.services) ? state.services : [];
+      return ids.map((serviceId) => {
+        const service = services.find((item) => parseInt(item && item.serviceId, 10) === serviceId);
+        return {
+          serviceId,
+          serviceName: service ? String(service.serviceName || '') : '',
+          extras: bpaSelectedList(state, serviceId),
+        };
+      }).filter((group) => group.extras.length > 0);
+    });
+    const count = computed(() => selectedGroups.value.reduce((total, group) => total + group.extras.length, 0));
+
+    // Renders the raw `bookingpress_extra_price` with the active currency
+    // config (symbol + separators) via the shared Lite formatter.
+    function formatPrice(amount) {
+      return bpaFormatPrice(state, amount);
+    }
+
+    return { state, strings, selectedGroups, isMultiService, count, formatPrice, ICON_CLOCK };
+  },
+  template: `
+    <span class="bpa-front-module--bs-summary-content-item-wrapper bpa_extra_service" v-if="count > 0">
+      <span :aria-label="strings.service_extras_summary_title">{{ strings.service_extras_summary_title }}</span>
+      <div class="bpa-front-bs-sm__extra-wrapper">
+        <bp-ui-popover
+          placement="bottom-end"
+          :width="280"
+          trigger="hover"
+          popper-class="bpa--summary_front_popover bpa--summary-extra_servic_front_popover"
+        >
+          <div class="bpa-front-tabs">
+            <div class="bpa-front-module--booking-summary bpa-front-sm-module--booking-service-wrapper">
+              <div v-for="group in selectedGroups" :key="group.serviceId" class="bpa-multiservice-extra-summary-group">
+              <div class="bpa-front-sec--sub-heading" v-if="isMultiService" :aria-label="group.serviceName">{{ group.serviceName }}</div>
+              <div
+                class="bpa-aaf-extra__item bpa_summary_extras_block bpa-front-module--bs-summary-content"
+                v-for="extras_details in group.extras"
+                :key="group.serviceId + ':' + extras_details.bookingpress_extra_services_id"
+              >
+                <div class="bpa_summary_extra_body_inner bpa-front-module--bs-summary-content-item">
+                  <div class="bpa-front-bs-sm__extra-wrapper-container">
+                    <div class="bpa-front-bs-sm__item-val" :aria-label="extras_details.bookingpress_extra_name">{{ extras_details.bookingpress_extra_name }}</div>
+                    <div class="bpa_summary_extra_inner bpa-front-module--bs-summary-content-item">
+                      <span :aria-label="extras_details.bookingpress_extra_price">{{ formatPrice(extras_details.bookingpress_extra_price) }}</span>
+                      <span class="bpa-summary_service_inner_extra" :aria-label="extras_details.bookingpress_extra_duration"><span class="bpa-summary_service_inner_extra-icon" v-html="ICON_CLOCK"></span> {{ extras_details.bookingpress_extra_duration }}</span>
+                    </div>
+                  </div>
+                  <div class="bpa_summary_extra_inner_cls bpa-front-module--bs-summary-content-item"><span class="bpa-summary_service_inner_extra-qty" :aria-label="extras_details.bookingpress_selected_qty">{{ extras_details.bookingpress_selected_qty }}</span></div>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+          <template #reference>
+            <span class="bpa--summary_extra_count_name bpa_focusable" tabindex="0" role="button" :aria-label="count">{{ count }} {{ strings.service_extras_label }}</span>
+          </template>
+        </bp-ui-popover>
+      </div>
+    </span>
+  `,
+};
+
+// --- Module wiring -----------------------------------------------------------
+
+(function () {
+  if (typeof window === 'undefined') return;
+
+  const BP = window.BookingPressFormV3;
+  if (!BP || typeof BP.renderInSlot !== 'function') {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] extras: BookingPressFormV3 registry unavailable');
+    return;
+  }
+
+  // --- Register the extras panel into the shared advance-options drawer ------
+  if (typeof BP.registerAdvancePanel === 'function') {
+    BP.registerAdvancePanel('service-extras', {
+      // Order 10 — extras stack above the Multiple Quantity panel (order 20) and
+      // their min/max rule is validated first on Continue.
+      order: 10,
+      component: ExtrasPanelBody,
+      reselectRemove: true,
+      isActive(state) {
+        return !!(state && state.pro_service_extras && typeof state.pro_service_extras === 'object');
+      },
+      appliesTo(state, serviceId) {
+        return bpaExtrasForService(state, serviceId).length > 0;
+      },
+      validate(state, serviceId) {
+        return bpaValidateExtrasSelection(state, serviceId);
+      },
+      onServiceSelect(state, serviceId, willOpen) {
+        // Mirror the legacy `is_extra_service_exists` flag + count sync.
+        state.appointment_step_form_data.is_extra_service_exists =
+          (willOpen && bpaExtrasForService(state, serviceId).length > 0) ? '1' : '0';
+        bpaSyncExtrasMeta(state);
+      },
+      onServiceSwitch(state, prevId) {
+        if (!(state.config && state.config.multiServiceEnabled) && prevId > 0) {
+          bpaResetExtrasForService(state, prevId);
+        }
+        bpaSyncExtrasMeta(state);
+      },
+      onCancel(state, serviceId) {
+        if (serviceId > 0) bpaResetExtrasForService(state, serviceId);
+        bpaSyncExtrasMeta(state);
+      },
+    });
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] extras: advance-drawer host unavailable — panel not registered');
+  }
+
+  // --- wp.hooks filters (registered once across all instances) -------------
+  const hooks = window.wp && window.wp.hooks;
+  if (hooks && typeof hooks.addFilter === 'function' && !BP.__proExtrasFiltersAdded) {
+    BP.__proExtrasFiltersAdded = true;
+
+    // 1. Send the legacy `service_extra_details` JSON (the full selection map)
+    //    with every timeslot request, so the server builds the grid with the
+    //    extras duration added (FILTER_SLOT_DURATION).
+    hooks.addFilter(
+      'bookingpress_form_v3_timeslot_request',
+      'bookingpress-pro/service-extras-timeslot',
+      function (body, ctx) {
+        const state = ctx && ctx.state;
+        if (!body || typeof body !== 'object' || !state) return body;
+        if (bpaIsMultiService(state)) {
+          const details = bpaMultiSelectedDetails(state);
+          body.multi_service_extra_details = JSON.stringify(details);
+          const primary = bpaMultiServiceIds(state)[0];
+          const primaryDetails = details[String(primary)] || {};
+          body.service_extra_details = JSON.stringify(primaryDetails);
+          return body;
+        }
+        const details = bpaSelectedDetails(state);
+        if (details && Object.keys(details).length > 0) {
+          body.service_extra_details = JSON.stringify(details);
+        }
+        return body;
+      }
+    );
+
+    // 2. Effective price = (service / staff / × persons) price + Σ(extra price ×
+    //    qty). Priority 20 so the staff price override (10) and the Multiple
+    //    Quantity × persons (15) apply FIRST — extras are added flat, not
+    //    multiplied by the group size (legacy parity).
+    hooks.addFilter(
+      'bookingpress_form_v3_effective_price',
+      'bookingpress-pro/service-extras-price',
+      function (price, ctx) {
+        const state = ctx && ctx.state;
+        if (!state) return price;
+        // The Service-step card shows the plain per-service price — extras add
+        // to the ORDER TOTAL only, so opt out of the 'grid' display context.
+        if (ctx && ctx.context === 'grid') return price;
+        const serviceId = parseInt((ctx && ctx.serviceId) || 0, 10) || 0;
+        if (serviceId <= 0) return price;
+        const extrasTotal = bpaIsMultiService(state)
+          ? bpaMultiServiceIds(state).reduce((total, sid) => total + bpaExtrasTotal(state, sid), 0)
+          : bpaExtrasTotal(state, serviceId);
+        if (extrasTotal <= 0) return price;
+        const base = Number(price) || 0;
+        return base + extrasTotal;
+      },
+      20
+    );
+
+    hooks.addFilter(
+      'bookingpress_form_v3_timeslot_cache_signature',
+      'bookingpress-pro/service-extras-cache-signature',
+      function (signature, ctx) {
+        const state = ctx && ctx.state;
+        const ids = state ? bpaMultiServiceIds(state) : [];
+        if (ids.length < 2 || ids.some((sid) => bpaIsDayServiceId(state, sid))) return signature;
+        const all = bpaMultiSelectedDetails(state);
+        const selected = [];
+        ids.forEach((sid) => {
+          const details = all[String(sid)] || {};
+          Object.keys(details).sort((a, b) => Number(a) - Number(b)).forEach((extraId) => {
+            const detail = details[extraId];
+            if (bpaIsSelected(detail)) {
+              selected.push(sid + ':' + extraId + ':' + (parseInt(detail.bookingpress_selected_qty, 10) || 1));
+            }
+          });
+        });
+        return selected.length ? 'msextras:' + selected.join(',') : signature;
+      }
+    );
+  } else if (!hooks) {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] extras: wp.hooks unavailable — timeslot/price filters not registered');
+  }
+
+  /**
+   * Pre-select extras specified in URL parameters (e.g. ?se_id=1|1~2|1~ or ?se_id=1,2).
+   * Mirrors legacy URL pre-selection behavior in Vue 3 frontend.
+   */
+  function bpaPreselectExtrasFromUrl(state) {
+    if (typeof window === 'undefined' || !state) return;
+    const params = new URLSearchParams(window.location.search);
+    const rawExtraId = params.get('se_id');
+    if (!rawExtraId) return;
+
+    const fd = state.appointment_step_form_data;
+    if (!fd) return;
+
+    const targetSid = parseInt(fd.selected_service || params.get('s_id') || params.get('bpservice_id') || 0, 10);
+    const segments = String(rawExtraId).split(/[~,]+/).filter(Boolean);
+    const extrasMap = {};
+    segments.forEach((seg) => {
+      const parts = seg.split('|');
+      const eid = parseInt(parts[0].trim(), 10);
+      if (eid > 0) {
+        const qty = parts[1] !== undefined && parts[1].trim() !== '' ? Math.max(1, parseInt(parts[1].trim(), 10)) : 1;
+        extrasMap[eid] = qty;
+      }
+    });
+
+    if (Object.keys(extrasMap).length === 0) return;
+
+    const flat = fd.bookingpress_selected_extra_details;
+    const multi = fd.bookingpress_multi_service_extra_details;
+    const serviceExtrasList = bpaExtrasForService(state, targetSid);
+
+    let selectedAny = false;
+    Object.keys(extrasMap).forEach((eidStr) => {
+      const eid = parseInt(eidStr, 10);
+      const extraConfig = serviceExtrasList.find((e) => parseInt(e.bookingpress_extra_services_id, 10) === eid);
+      if (targetSid > 0 && !extraConfig) {
+        return;
+      }
+
+      let qty = extrasMap[eid];
+      if (extraConfig) {
+        const min = Math.max(1, parseInt(extraConfig.bookingpress_extra_service_min_quantity, 10) || 1);
+        const max = parseInt(extraConfig.bookingpress_extra_service_max_quantity, 10) || 0;
+        qty = Math.max(min, qty);
+        if (max > 0) qty = Math.min(qty, max);
+      }
+
+      if (flat && flat[String(eid)]) {
+        flat[String(eid)].bookingpress_is_selected = true;
+        flat[String(eid)].bookingpress_selected_qty = qty;
+        selectedAny = true;
+      }
+      if (multi && targetSid > 0 && multi[String(targetSid)] && multi[String(targetSid)][String(eid)]) {
+        multi[String(targetSid)][String(eid)].bookingpress_is_selected = true;
+        multi[String(targetSid)][String(eid)].bookingpress_selected_qty = qty;
+        selectedAny = true;
+      }
+    });
+
+    if (selectedAny) {
+      bpaSyncExtrasMeta(state);
+      if (state.currentTab === 'service' && params.get('allow_modify') !== '0' && targetSid > 0) {
+        state.proAdvanceDrawerServiceId = targetSid;
+        state.proAdvanceDrawerMode = 'select';
+        state.proAdvanceDrawerOpen = true;
+        document.body.classList.add('--bpa-open-advance-drawer');
+      }
+    }
+  }
+
+  function bpaWireExtrasInstance(ctx) {
+    const instanceId = ctx && ctx.instanceId;
+    if (!instanceId) return;
+    const handle = BP.instances && BP.instances[instanceId];
+    if (!handle || !handle.state) return;
+    bpaPreselectExtrasFromUrl(handle.state);
+  }
+
+  BP.renderInSlot('*', 'root:before-steps', bpaWireExtrasInstance);
+  if (BP.instances) {
+    Object.keys(BP.instances).forEach(function (iid) {
+      bpaWireExtrasInstance({ instanceId: iid });
+    });
+  }
+
+  // Mount the Summary extras count + popover (re-mounts per Summary entry).
+  BP.renderInSlot('*', 'summary-step:after-datetime', function (ctx) {
+    const node = ctx && ctx.node;
+    const instanceId = ctx && ctx.instanceId;
+    if (!node || !instanceId) return;
+    if (node.__bpExtrasSummaryMounted) return;
+
+    const handle = BP.instances && BP.instances[instanceId];
+    if (!handle || !handle.state) return;
+    if (!handle.state.pro_service_extras || typeof handle.state.pro_service_extras !== 'object') return;
+
+    const state = handle.state;
+    const fd = state.appointment_step_form_data;
+
+
+    if( handle.bus && 'function' === typeof handle.bus.on ){
+      handle.bus.on('bp-v3:before-submit', function (event) {
+        if (!event || event.instanceId !== instanceId || !event.payload) return;
+        
+        event.payload.bookingpress_selected_extra_details = getSelectedExtras(event.payload.bookingpress_selected_extra_details);
+        event.payload.bookingpress_multi_service_extra_details = getSelectedMultiServiceExtras(event.payload.bookingpress_multi_service_extra_details);
+        
+      });
+    }
+
+    node.__bpExtrasSummaryMounted = true;
+    try {
+      const app = createApp(ExtrasSummary, { state: handle.state });
+      app.use(BookingPressUI);
+      app.mount(node);
+    } catch (e) {
+      node.__bpExtrasSummaryMounted = false;
+      // eslint-disable-next-line no-console
+      console.error('[bp-v3][pro] extras: summary mount failed', e);
+    }
+  });
+})();
+
+export {};

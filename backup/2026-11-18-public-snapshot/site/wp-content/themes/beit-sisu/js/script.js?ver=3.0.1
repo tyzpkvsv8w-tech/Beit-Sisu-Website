@@ -1,0 +1,124 @@
+var observer = new IntersectionObserver(
+  function (entries, observer) {
+    entries.forEach(function (entry) {
+      var el = entry.target;
+      if (entry.isIntersecting) {
+        el.classList.add("animate");
+        // Stop observing the element once it's animated
+        observer.unobserve(el);
+      }
+    });
+  },
+  { threshold: 0.2 }
+);
+
+document.querySelectorAll(".animation").forEach(function (i) {
+  observer.observe(i);
+});
+
+/*Header sticky script*/
+document.addEventListener("DOMContentLoaded", function() {
+  var headerDv = document.querySelector(".start-style");
+  var lastScrollTop = 0;
+  var scrollThreshold = 10; // Threshold to start hiding the header
+
+  function updateHeaderPosition() {
+      var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+      if (scrollTop > lastScrollTop && scrollTop > scrollThreshold) {
+          // User is scrolling down and passed the threshold, hide the header
+          headerDv.style.transform = 'translateY(-100%)'; // Slide up
+      } else if (scrollTop < lastScrollTop) {
+          // User is scrolling up, show the header
+          headerDv.style.transform = 'translateY(0)'; // Slide down
+      }
+
+      lastScrollTop = scrollTop; // Update lastScrollTop
+  }
+
+  // Set initial position of header
+  headerDv.style.transition = 'transform 0.3s ease-in-out';
+
+  window.addEventListener("scroll", function() {
+      updateHeaderPosition();
+  }); 
+
+// Back to top 
+window.addEventListener("scroll", function () {
+  var backToTopButton = document.getElementById("back-to-top");
+  
+  if (window.scrollY > 200) { // Show the button after scrolling 200px
+    backToTopButton.classList.add('activate');
+  } else {
+    backToTopButton.classList.remove('activate');
+  }
+}); 
+
+// document.getElementById("back-to-top").addEventListener("click", function (e) {
+//   e.preventDefault();
+  
+//   window.scrollTo({
+//     top: 0,
+//     behavior: "smooth"
+//   });
+ 
+// });
+
+});
+
+
+// Mobile Navigation
+var navLink = document.getElementById('navLink');
+var hamburgerLink = document.querySelector('.hamburger');
+var mobileNavBg = document.querySelector('.mobile-nav-bg');
+var menuPanel = document.getElementById('navbarSupportedContent');
+
+navLink.addEventListener('click', function(event){ 
+  menuPanel.classList.toggle("collapse");
+  hamburgerLink.classList.toggle("is-active");
+  mobileNavBg.classList.toggle("add-bg-white");
+  event.preventDefault();
+}); 
+
+
+// Carousel Navigation
+jQuery(function($) {
+  var owl = $('.owl-carousel');
+  owl.owlCarousel({
+    stagePadding: 50,
+    margin: 10,
+    nav: true,
+    loop: true,
+    responsive: {
+      0: {
+        items: 1
+      },
+      600: {
+        items: 2
+      },
+      1000: {
+        items: 4
+      },
+      1400: {
+        items: 5
+      }
+    }
+  })
+})
+
+document.addEventListener('DOMContentLoaded', function () {
+const galleryItems = document.querySelectorAll('.gallery-item');
+const carouselItems = document.querySelectorAll('.carousel-item');
+
+    galleryItems.forEach((item, index) => {
+        item.addEventListener('click', () => {
+        // Remove the active class from all carousel items
+        carouselItems.forEach(carouselItem => carouselItem.classList.remove('active'));
+
+        // Add active class to the clicked image in the carousel
+        carouselItems[index].classList.add('active');
+        });
+    });
+});
+
+

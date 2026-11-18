@@ -1,0 +1,656 @@
+/**
+ * booking-form-vue3-coupon.js — Pro "Coupon" for the Vue 3 booking form.
+ *
+ * WHAT IT DOES
+ * ------------
+ * Mounts the legacy coupon box into the Lite `summary-step:before-total` slot.
+ * The visitor types a code and clicks Apply; the code is validated + priced
+ * SERVER-SIDE by the Pro `form-v3/coupon/apply` REST route (which delegates to
+ * the legacy `bookingpress_apply_coupon_code_func()` — same rules, same usage
+ * lock). On success the discount is stored on `appointment_step_form_data` and:
+ *
+ *   1. DISPLAY — a generic `bookingpress_form_v3_effective_price` filter at
+ *      priority 30 (AFTER staff @10 and extras @20) subtracts the discount, so
+ *      the Summary total, the submit payload and the PayPal payload all drop by
+ *      the same amount, in lockstep with the server-side FILTER_SUMMARY_TOTAL.
+ *   2. RESET — changing the service / staff / extras clears the applied coupon
+ *      (and releases its usage lock via `form-v3/coupon/remove`), mirroring the
+ *      legacy "reset coupon on service selection".
+ *
+ * The discount base sent to the apply route is the pre-coupon effective total
+ * (service/staff + extras) — the legacy `service_price_without_currency` key.
+ *
+ * WHY IT LIVES IN PRO
+ * -------------------
+ * Lite owns only the generic seams (the summary slot + the effective-price
+ * filter + FILTER_SUMMARY_TOTAL). All coupon-specific UI + behaviour lives here;
+ * when the module is inactive the server never sets `config.bookingpress_coupon_enabled`
+ * and never enqueues this file.
+ *
+ * DELIVERY
+ * --------
+ * Enqueued as a script module by `CouponFeature` (deps: the Lite loader + `vue`).
+ */
+
+import 'bookingpress-form-v3-loader';
+import { createApp, computed, ref, watch } from 'vue';
+
+import { BookingPressUI } from 'bookingpress-ui';
+
+// --- Shared helpers ---------------------------------------------------------
+
+/** Whether a coupon is currently applied (legacy `coupon_applied_status`). */
+function bpaCouponApplied(state) {
+  const fd = state && state.appointment_step_form_data;
+  return !!fd && String(fd.coupon_applied_status || '') === 'success';
+}
+
+/** The applied discount amount (raw float, 0 when none). */
+function bpaCouponDiscount(state) {
+  const fd = state && state.appointment_step_form_data;
+  if (!fd || !bpaCouponApplied(state)) return 0;
+  const d = parseFloat(fd.coupon_discount_amount);
+  return (!isNaN(d) && d > 0) ? d : 0;
+}
+
+/**
+ * The effective discount amount on the gross subtotal.
+ * When inclusive tax is active, the coupon endpoint returns the net (pre-tax) discount
+ * (e.g. 45.45) for display, but the gross total needs the full discount (45.45 * (1 + tax%/100) = 50.00).
+ */
+function bpaCouponEffectiveDiscount(state, instanceId) {
+  const discount = bpaCouponDiscount(state);
+  if (discount <= 0) return 0;
+  const cfg = (state && state.config) || {};
+  if (cfg.bookingpress_tax_enabled && String(cfg.bookingpress_tax_mode || '') === 'include_taxes') {
+    const countryConfig = cfg.bookingpress_country_wise_tax_percentage;
+    const formData = (state && state.appointment_step_form_data) || {};
+    let pct = Number(cfg.bookingpress_tax_percentage) || 0;
+    if (countryConfig && typeof countryConfig === 'object') {
+      const fieldKey = countryConfig.country_field_meta_key || '';
+      const country = fieldKey ? formData[fieldKey] : '';
+      const rates = countryConfig.country_tax_details || {};
+      if (country !== '' && country !== null && typeof country !== 'undefined'
+          && Object.prototype.hasOwnProperty.call(rates, country)) {
+        const rate = Number(rates[country]);
+        if (!isNaN(rate) && isFinite(rate) && rate >= 0) {
+          pct = rate;
+        }
+      }
+    }
+    // LOCATION-wise rate wins over the country one, matching the Tax module's
+    // taxRateCompute() and TaxFeature::tax_percentage_for_form_data(). Without
+    // this the coupon would be grossed up at the wrong rate whenever inclusive
+    // tax and location-wise tax are both on, and the server would disagree.
+    const locationRates = cfg.bookingpress_location_wise_tax_percentage;
+    if (locationRates && typeof locationRates === 'object') {
+      const rawLocation = (formData.selected_location !== '' && formData.selected_location != null)
+        ? formData.selected_location
+        : formData.bookingpress_location_id;
+      const locationId = parseInt(rawLocation, 10);
+      if (locationId && !isNaN(locationId)
+          && Object.prototype.hasOwnProperty.call(locationRates, String(locationId))) {
+        const locationRate = Number(locationRates[String(locationId)]);
+        if (!isNaN(locationRate) && isFinite(locationRate) && locationRate >= 0) {
+          pct = locationRate;
+        }
+      }
+    }
+    if (pct > 0) {
+      return discount * (1 + pct / 100);
+    }
+  }
+  return discount;
+}
+
+/**
+ * The cart order's pre-coupon total (the legacy `bookingpress_cart_total`) =
+ * the sum of the captured per-item prices, i.e. the same basis the cart module
+ * uses for its own "Cart Total". Derived from the items rather than read off
+ * `state.cart_total_amount`, because that key is only assigned as a side effect
+ * of a cart-owned computed which has not necessarily evaluated by the time the
+ * Summary applies a coupon — and a 0 total makes the legacy cart coupon handler
+ * reject every code with "Coupon code not applied on this service". Falls back
+ * to the published value when there are no items.
+ */
+function bpaCartTotal(state) {
+  const fd = (state && state.appointment_step_form_data) || {};
+  const items = Array.isArray(fd.cart_items) ? fd.cart_items : [];
+  if (items.length === 0) return Number(state && state.cart_total_amount) || 0;
+  return items.reduce((sum, it) => sum + (Number(it && it.service_price_without_currency) || 0), 0);
+}
+
+/**
+ * The pre-coupon effective total for the selected service (service/staff +
+ * extras). Runs the generic effective-price filter; the coupon callback below
+ * only subtracts when a coupon is APPLIED, so callers must clear the applied
+ * state first to read a clean base (apply() does exactly that).
+ */
+function bpaBaseTotal(state, instanceId, context) {
+  const fd = state.appointment_step_form_data || {};
+  const items = Array.isArray(fd.cart_items) ? fd.cart_items : [];
+  if (items.length > 0) {
+    return items.reduce((sum, it) => sum + (Number(it && it.service_price_without_currency) || 0), 0);
+  }
+  const sid = parseInt(fd.selected_service || 0, 10);
+  if (!sid) return 0;
+  const svc = (Array.isArray(state.services) ? state.services : []).find(
+    (s) => parseInt(s.serviceId, 10) === sid
+  );
+  const basePrice = svc ? (Number(svc.servicePrice) || 0) : 0;
+  const hooks = (typeof window !== 'undefined' && window.wp && window.wp.hooks) || null;
+  if (hooks && typeof hooks.applyFilters === 'function') {
+    const out = hooks.applyFilters('bookingpress_form_v3_effective_price', basePrice, {
+      state,
+      instanceId,
+      serviceId: sid,
+      context: context || 'total',
+    });
+    const n = Number(out);
+    if (!isNaN(n) && isFinite(n)) return n;
+  }
+  return basePrice;
+}
+
+/** POST to a Pro REST route with the instance's nonces (like the Lite api client). */
+async function bpaApiPost(state, instanceId, route, body) {
+  const rest = state.rest || {};
+  const nonces = state.nonces || {};
+  const root = String(rest.root || '').replace(/\/+$/, '');
+  const payload = Object.assign({}, body || {}, {
+    bp_v3_nonce: nonces.formNonce,
+    bp_v3_instance_token: nonces.instanceToken,
+    instanceId: instanceId,
+  });
+  const res = await fetch(root + '/' + route, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonces.wpRestNonce },
+    body: JSON.stringify(payload),
+  });
+  let json = null;
+  try { json = await res.json(); } catch (e) { json = null; }
+  return { ok: !!(json && json.ok), data: json && json.data, error: json && json.error };
+}
+
+/**
+ * The services a cart coupon is restricted to, parsed from the coupon row the
+ * apply route returns per line. Returns `[]` for an unrestricted coupon (valid
+ * for every service). The cart module reads the stored value
+ * (`fd.coupon_service_scope`) to size the per-item deposit on only the lines the
+ * coupon covers — server parity with `bpa_detect_cart_coupon_context()`, which
+ * skips the lines the coupon is not valid for.
+ */
+function bpaExtractCouponServiceScope(couponData) {
+  if (!couponData || typeof couponData !== 'object') return [];
+  const keys = Object.keys(couponData);
+  for (let i = 0; i < keys.length; i++) {
+    const row = couponData[keys[i]];
+    if (row && typeof row === 'object' && typeof row.bookingpress_coupon_services !== 'undefined') {
+      const raw = String(row.bookingpress_coupon_services || '').trim();
+      if (raw === '') return [];
+      return raw.split(',').map((s) => s.trim()).filter((s) => s !== '');
+    }
+  }
+  return [];
+}
+
+/** Clear the applied-coupon state on the shared form data. */
+function bpaClearCoupon(state, clearCode) {
+  const fd = state.appointment_step_form_data;
+  if (!fd) return;
+  fd.coupon_applied_status = '';
+  fd.coupon_discount_amount = 0;
+  fd.coupon_discount_amount_with_currecny = '';
+  fd.coupon_code_msg = '';
+  fd.coupon_service_scope = [];
+  if (clearCode) fd.coupon_code = '';
+}
+
+// --- Coupon component (legacy `.bpa-coupon-dt-box` / applied row markup) -----
+
+const CouponBox = {
+  name: 'ProCouponBox',
+  props: {
+    state: { type: Object, required: true },
+    instanceId: { type: String, required: true },
+  },
+  setup(props) {
+    const state = props.state;
+    const instanceId = props.instanceId;
+    const strings = computed(() => state.strings || {});
+    const fd = state.appointment_step_form_data;
+
+    const loading = ref(false);
+
+    const applied = computed(() => bpaCouponApplied(state));
+    const status = computed(() => String(fd.coupon_applied_status || ''));
+    const message = computed(() => String(fd.coupon_code_msg || ''));
+
+    // Only show the box when there is a price to discount (legacy parity:
+    // `service_price_without_currency != 0`).
+    const hasPrice = computed(() => bpaBaseTotal(state, instanceId) > 0 || applied.value);
+
+    // Reactive claim on the single Summary "Subtotal" row: while the coupon box
+    // renders (it carries its own Subtotal — or defers to the Package box's),
+    // other amount modules below (e.g. exclusive Tax) must not render another.
+    // Legacy shows exactly ONE Subtotal at the top of the amount details.
+    watch(hasPrice, (v) => { state.summaryCouponBoxActive = !!v; }, { immediate: true });
+
+    // Format a raw amount with the active currency config (shared Lite seam).
+    function formatMoney(amount) {
+      const BP = (typeof window !== 'undefined') ? window.BookingPressFormV3 : null;
+      const amt = parseFloat(amount) || 0;
+      if (BP && typeof BP.formatPrice === 'function') return BP.formatPrice(state.config || {}, amt);
+      return String(amt);
+    }
+
+    // The displayed discount: prefer the server's currency-formatted string
+    // (legacy parity); fall back to the shared formatter on the raw amount.
+    const discountLabel = computed(() => {
+      if (fd.coupon_discount_amount_with_currecny) return fd.coupon_discount_amount_with_currecny;
+      return formatMoney(fd.coupon_discount_amount);
+    });
+
+    // Subtotal = the PRE-coupon effective total (service/staff + extras).
+    // bpaBaseTotal already nets out the coupon discount once applied, so add it
+    // back to recover the pre-coupon figure (0 added when none applied). For a
+    // cart order the per-item prices are baked NET of any Advanced "Offer
+    // Discount" (the discount add-on subtracts it into each item's price so the
+    // total/deposit compute on the net base); the Subtotal row must still show the
+    // GROSS figure so the released "Subtotal / Offer Discount -X / Total"
+    // breakdown reads correctly, so add the baked offer discount back too.
+    const subtotalLabel = computed(() => {
+      const items = Array.isArray(fd.cart_items) ? fd.cart_items : [];
+      const isCart = items.length > 0;
+      const offerDiscount = isCart ? (parseFloat(fd.bookingpress_discount_applied_price) || 0) : 0;
+      return formatMoney(
+        bpaBaseTotal(state, instanceId) + (isCart ? offerDiscount : bpaCouponEffectiveDiscount(state, instanceId))
+      );
+    });
+
+    const isGiftCardApplied = computed(() => {
+      return !!fd && String(fd.gift_card_applied_status || '') === 'success';
+    });
+
+    const couponModel = computed({
+      get() { return String(fd.coupon_code || ''); },
+      set(v) { fd.coupon_code = String(v == null ? '' : v); },
+    });
+
+    async function apply() {
+      const code = String(fd.coupon_code || '').trim();
+      if (!code || loading.value) return;
+
+      if (String(fd.gift_card_applied_status || '') === 'success') {
+        fd.gift_card_applied_status = '';
+        fd.gift_card_discounted_amt = 0;
+        fd.gift_card_discounted_amount_with_currency = '';
+        fd.gift_card_data = '';
+        fd.gift_card_code_msg = '';
+      }
+
+      // Read a CLEAN pre-coupon base — clear any prior applied coupon first so
+      // the effective-price filter doesn't fold a stale discount into the base.
+      bpaClearCoupon(state, false);
+      // Match the legacy `service_price_without_currency`: send the gross
+      // pre-offer subtotal and let the server-side appointment-details filters
+      // apply offer/recurring/package adjustments exactly once.
+      const base = bpaBaseTotal(state, instanceId, 'subtotal');
+
+      const isRecurring = !!fd.recurring_active;
+      const bookable = isRecurring ? (Array.isArray(fd.recurring_appointments) ? fd.recurring_appointments.filter(o => o && !o.is_not_avaliable) : []) : [];
+      const sessionsCount = bookable.length;
+      const offerDiscountAggregate = parseFloat(fd.bookingpress_discount_applied_price) || 0;
+
+      // A ONE-item cart is sized as a single booking. Legacy's apply handler
+      // takes its cart branch whenever `cart_items` is non-empty, and that branch
+      // (the Discount add-on's `bookingpress_check_coupon_validity_from_outside`)
+      // sizes on the gross cart total without the offer discount. The server's
+      // charge, though, only treats an order as a cart from TWO items
+      // (`CouponFeature::bpa_detect_cart_coupon_context()`), so a one-item cart is
+      // charged on the single-booking rule: offer first, then the coupon. Sending
+      // the items made the two disagree: 200 - 20 offer, 5.5% coupon, 10%
+      // inclusive tax gave a coupon of 10.00 here against the server's 9.00, and
+      // "Server total 170.1 does not match client 169". Two or more items are
+      // untouched; both sides deliberately size those on the gross total.
+      const multiItemCart = Array.isArray(fd.cart_items) && fd.cart_items.length >= 2;
+      const sentCartItems = multiItemCart ? fd.cart_items : [];
+      const sentDetails = multiItemCart ? fd : Object.assign({}, fd, { cart_items: [] });
+
+      loading.value = true;
+      let res = null;
+      try {
+        res = await bpaApiPost(state, instanceId, 'coupon/apply', {
+          coupon_code: code,
+          selected_service: parseInt(fd.selected_service || 0, 10),
+          payable_amount: base,
+          base_price_without_currency: base,
+          // Legacy AJAX submitted the complete appointment_details object.
+          // Coupon pricing filters depend on fields in this payload (recurring,
+          // offer discounts, tax, packages, and other service adjustments).
+          appointment_details: sentDetails,
+          cart_items: sentCartItems,
+          cart_total: multiItemCart ? bpaCartTotal(state) : 0,
+          is_recurring_appointments: fd.recurring_active || 0,
+          recurring_appointments: fd.recurring_appointments || 0,
+          total_payable_amount: isRecurring ? (base * sessionsCount) : base,
+          bookingpress_selected_bring_members: parseInt(fd.bookingpress_selected_bring_members || 0, 10) || 1,
+          bookingpress_discount_applied_price: offerDiscountAggregate, 
+        });
+      } catch (e) {
+        res = null;
+      }
+      loading.value = false;
+
+      const data = res && res.data;
+      if (res && res.ok && data && String(data.variant) === 'success') {
+        fd.coupon_applied_status = 'success';
+        fd.coupon_code_msg = data.msg || '';
+        fd.coupon_discount_amount = parseFloat(data.coupon_discount_amount) || 0;
+        fd.coupon_discount_amount_with_currecny = data.coupon_discount_amount_with_currecny || data.discounted_amount || '';
+        fd.coupon_final_payable_amount = (typeof data.total_payable_amount !== 'undefined' && data.total_payable_amount !== null) ? parseFloat(data.total_payable_amount): 0;
+        if( 'undefined' !== typeof fd.cart_items ){
+          fd.cart_items.forEach((item, key) => {
+            if( item && data.coupon_data && data.coupon_data[key] ){
+              fd.cart_items[key].coupon_code = data.coupon_data[key].bookingpress_coupon_code || '';
+              fd.cart_items[key].coupon_discount_amount = parseFloat(data.coupon_data[key].bookingpress_coupon_discount_amount) || 0;
+              fd.cart_items[key].coupon_discount_amount_with_currecny = formatMoney(data.coupon_data[key].bookingpress_coupon_discount_amount) || '';
+            }
+          });
+          // Record which services the coupon covers so the cart sizes the per-item
+          // deposit on only the covered lines (server parity — a service-restricted
+          // coupon must not shrink the deposit base of the lines it does not apply to).
+          fd.coupon_service_scope = bpaExtractCouponServiceScope(data.coupon_data);
+        }
+        if( 'undefined' !== typeof fd.recurring_appointments ){
+          fd.recurring_appointments.forEach((item, key) => {
+            if( item && data.coupon_data && data.coupon_data[key] ){
+              fd.recurring_appointments[key].coupon_code = data.coupon_data[key].bookingpress_coupon_code || '';
+              fd.recurring_appointments[key].coupon_discount_amount = parseFloat(data.coupon_data[key].bookingpress_coupon_discount_amount) || 0;
+              fd.recurring_appointments[key].coupon_discount_amount_with_currecny = formatMoney(data.coupon_data[key].bookingpress_coupon_discount_amount) || '';
+            }
+          });
+        }
+          
+      } else {
+        fd.coupon_applied_status = 'error';
+        fd.coupon_discount_amount = 0;
+        fd.coupon_discount_amount_with_currecny = '';
+        fd.coupon_code_msg =
+          (data && data.msg) || (res && res.error && res.error.message) || '';
+      }
+    }
+
+    async function remove() {
+      const code = String(fd.coupon_code || '').trim();
+      bpaClearCoupon(state, true);
+      if (code) {
+        try { await bpaApiPost(state, instanceId, 'coupon/remove', { coupon_code: code }); } catch (e) { /* best-effort lock release */ }
+      }
+    }
+
+    return {
+      state, strings, fd, loading, applied, status, message, hasPrice,
+      discountLabel, subtotalLabel, couponModel, isGiftCardApplied, apply, remove,
+    };
+  },
+  template: `
+    <div class="bpa-front-module--bs-amount-details bpa-is-coupon-module-enable" v-if="hasPrice && (!isGiftCardApplied || applied)">
+      <!-- Coupon renders ONLY its own line (the applied "-discount" chip, or the
+           code-entry box). The single Subtotal row is owned by the Lite Summary
+           (position #4); this box sits at position #8. -->
+
+      <!-- Applied state — title + code chip (with the remove "x") and the negative discount. -->
+      <div class="bpa-fm--bs-amount-item bpa-is-coupon-applied" v-if="applied">
+        <div class="bpa-bs-ai__item" :aria-label="strings.coupon_applied_title">
+          {{ strings.coupon_applied_title }}
+          <span :aria-label="fd.coupon_code">{{ fd.coupon_code }}<svg
+            class="bpa_focusable"
+            tabindex="0"
+            role="button"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            @click="remove()"
+            @keydown.enter="remove()"
+          ><path d="M0 0h24v24H0V0z" fill="none"/><path d="M18.3 5.71c-.39-.39-1.02-.39-1.41 0L12 10.59 7.11 5.7c-.39-.39-1.02-.39-1.41 0-.39.39-.39 1.02 0 1.41L10.59 12 5.7 16.89c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0L12 13.41l4.89 4.89c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"/></svg></span>
+        </div>
+        <div class="bpa-bs-ai__item bpa-is-ca__price" :aria-label="'-' + discountLabel">-{{ discountLabel }}</div>
+      </div>
+
+      <!-- Input state — legacy two-column (label / field + validation + apply). -->
+      <div class="bpa-fm--bs__coupon-module-textbox bpa-coupon-dt-box" v-else-if="!isGiftCardApplied">
+        <div class="bpa-cmt__left">
+          <span class="bpa-front-form-label" :aria-label="strings.coupon_heading_title">{{ strings.coupon_heading_title }}</span>
+        </div>
+        <div class="bpa-cmt__right">
+          <bp-ui-input
+            class="bpa-front-form-control"
+            v-model="couponModel"
+            :placeholder="strings.coupon_placeholder"
+            :disabled="loading"
+            @keydown.enter="apply()"
+          ></bp-ui-input>
+          <div class="bpa-bs__coupon-validation --is-error" v-if="status === 'error' && message">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c.55 0 1 .45 1 1v4c0 .55-.45 1-1 1s-1-.45-1-1V8c0-.55.45-1 1-1zm-.01-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm1-3h-2v-2h2v2z"/></svg>
+            <p :aria-label="message">{{ message }}</p>
+          </div>
+          <button
+            type="button"
+            class="bpa-front-btn bpa-front-btn--primary bpa_focusable"
+            :class="loading ? 'bpa-front-btn--is-loader' : ''"
+            :disabled="loading"
+            :aria-label="strings.coupon_apply_button"
+            @click="apply()"
+          >
+            <span class="bpa-btn__label" v-if="!loading">{{ strings.coupon_apply_button }}</span>
+            <div class="bpa-front-btn--loader__circles"><div></div><div></div><div></div></div>
+          </button>
+        </div>
+      </div>
+    </div>
+  `,
+};
+
+// --- Module wiring -----------------------------------------------------------
+
+(function () {
+  if (typeof window === 'undefined') return;
+
+  const BP = window.BookingPressFormV3;
+  if (!BP || typeof BP.renderInSlot !== 'function') {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] coupon: BookingPressFormV3 registry unavailable');
+    return;
+  }
+
+  // Effective price = (service/staff + extras) − coupon discount. Priority 30
+  // so it runs AFTER the staff override (10) and the extras add (20): the
+  // discount comes off the full pre-coupon total. Registered once across
+  // instances. The callback reads the reactive coupon fields, so the Summary
+  // `total` (which calls effectivePrice inside its getter) recomputes when a
+  // coupon is applied / removed.
+  const hooks = window.wp && window.wp.hooks;
+  if (hooks && typeof hooks.addFilter === 'function' && !BP.__proCouponFilterAdded) {
+    BP.__proCouponFilterAdded = true;
+    hooks.addFilter(
+      'bookingpress_form_v3_effective_price',
+      'bookingpress-pro/coupon-discount',
+      function (price, ctx) {
+        const state = ctx && ctx.state;
+        if (!state) return price;
+        // The coupon discount belongs on the ORDER TOTAL, not the per-service
+        // Service-step card and not the pre-discount Subtotal — opt out of the
+        // 'grid' display and 'subtotal' contexts.
+        if (ctx && (ctx.context === 'grid' || ctx.context === 'subtotal' || ctx.context === 'deposit_base')) return price;
+        const discount = bpaCouponEffectiveDiscount(state, ctx && ctx.instanceId);
+        if (discount <= 0) return price;
+        const base = Number(price) || 0;
+        const out = base - discount;
+        return out > 0 ? out : 0;
+      },
+      30
+    );
+
+    hooks.addFilter(
+      'bookingpress_form_v3_deposit_due',
+      'bookingpress-pro/coupon-discount-due',
+      function (due, ctx) {
+        const state = ctx && ctx.state;
+        if (!state) return due;
+        // A multi-item Cart computes its remaining balance from coupon-discounted
+        // figures already (finalFull = full − discount), so subtracting the coupon
+        // here again would double-count it (the Remaining came out one coupon too
+        // low). The cart owns the whole deposit/remaining roll-up when active.
+        if (state.summaryCartActive) return due;
+        const discount = Number(bpaCouponEffectiveDiscount(state, ctx && ctx.instanceId)) || 0;
+        if (discount <= 0) {
+          return due;
+        }
+        const currentDue = Number(due) || 0;
+        return Math.max(0, currentDue - discount);
+      },
+      30
+    );
+  } else if (!hooks) {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] coupon: wp.hooks unavailable — discount filter not registered');
+  }
+
+  // Legacy "reset coupon on reload" (bookingpress_reset_coupon_load_method): a
+  // coupon that was applied — its usage LOCK incremented server-side — but never
+  // booked must have that lock released when the visitor reloads / leaves the
+  // page. On `beforeunload` we ONLY persist the applied code to localStorage
+  // (synchronous + reliable); the actual release runs on the NEXT page load (an
+  // unload-time async request is unreliable). Registered once across instances.
+  function bpaBindCouponUnload() {
+    if (BP.__proCouponUnloadBound) return;
+    BP.__proCouponUnloadBound = true;
+    window.addEventListener('beforeunload', function () {
+      try {
+        const instances = BP.instances || {};
+        let code = '';
+        Object.keys(instances).forEach(function (iid) {
+          const st = instances[iid] && instances[iid].state;
+          if (!st || !st.config || !st.config.bookingpress_coupon_enabled) return;
+          const f = st.appointment_step_form_data || {};
+          if (String(f.coupon_applied_status || '') === 'success' && String(f.coupon_code || '').trim() !== '') {
+            code = String(f.coupon_code).trim();
+          }
+        });
+        if (code) {
+          window.localStorage.setItem('bpa_reset_coupon', 'true');
+          window.localStorage.setItem('bpa_reset_coupon_code', code);
+        }
+      } catch (e) { /* localStorage unavailable — ignore */ }
+    });
+  }
+
+  // On load: if a previous session left an applied-but-unbooked coupon, release
+  // its usage lock via the remove route, then clear the flag. Runs once per page
+  // load. The server decrement is underflow-guarded, so a release that races a
+  // completed booking (lock already 0) is a harmless no-op.
+  function bpaReleaseAbandonedCoupon(state, instanceId) {
+    if (BP.__proCouponResetDone) return;
+    BP.__proCouponResetDone = true;
+    let code = '';
+    try {
+      if (window.localStorage.getItem('bpa_reset_coupon') !== 'true') return;
+      code = String(window.localStorage.getItem('bpa_reset_coupon_code') || '').trim();
+    } catch (e) { return; }
+    var clear = function () {
+      try {
+        window.localStorage.removeItem('bpa_reset_coupon');
+        window.localStorage.removeItem('bpa_reset_coupon_code');
+      } catch (e) { /* ignore */ }
+    };
+    if (!code) { clear(); return; }
+    // Clear ONLY on success — a failed release keeps the flag so the next load
+    // retries (legacy parity).
+    bpaApiPost(state, instanceId, 'coupon/remove', { coupon_code: code })
+      .then(clear)
+      .catch(function () { /* keep the flag → retry on the next load */ });
+  }
+
+  // Per-instance wiring: clear the applied coupon (and release its usage lock)
+  // whenever the priced selection changes — service, staff or extras — so a
+  // stale discount can never ride a changed total (legacy reset parity). Runs
+  // even while the Summary step is not mounted.
+  function bpaWireInstance(ctx) {
+    const instanceId = ctx && ctx.instanceId;
+    const handle = (instanceId && BP.instances) ? BP.instances[instanceId] : null;
+    if (!handle || !handle.state) return;
+    const state = handle.state;
+    if (!state.config || !state.config.bookingpress_coupon_enabled) return;
+    if (handle.__bpCouponWired) return;
+    handle.__bpCouponWired = true;
+
+    const fd = state.appointment_step_form_data;
+
+    // Release the lock of an applied-but-unbooked coupon left by a prior session
+    // (reload / tab-close), and arm the unload persister for this one.
+    bpaBindCouponUnload();
+    bpaReleaseAbandonedCoupon(state, instanceId);
+
+    // A signature of everything the discount base depends on. Changing any of
+    // it invalidates a previously-applied coupon.
+    const baseSignature = function () {
+      const items = Array.isArray(fd.cart_items) ? fd.cart_items : [];
+      const bookable = fd.recurring_active && Array.isArray(fd.recurring_appointments) ? fd.recurring_appointments.filter(o => o && !o.is_not_avaliable) : [];
+      return [
+        fd.selected_service || '',
+        fd.selected_staff_member_id || '',
+        fd.bookingpress_selected_extra_details ? JSON.stringify(fd.bookingpress_selected_extra_details) : '',
+        items.length,
+        items.reduce((sum, it) => sum + (Number(it && it.service_price_without_currency) || 0), 0),
+        fd.recurring_active ? 1 : 0,
+        bookable.length,
+        fd.recurring_frequency || '',
+      ].join('|');
+    };
+
+    watch(baseSignature, function (now, prev) {
+      if (now === prev) return;
+      if (String(fd.coupon_applied_status || '') !== 'success') return;
+      const code = String(fd.coupon_code || '').trim();
+      bpaClearCoupon(state, false);
+      if (code) {
+        try { bpaApiPost(state, instanceId, 'coupon/remove', { coupon_code: code }); } catch (e) { /* best-effort */ }
+      }
+    });
+  }
+
+  BP.renderInSlot('*', 'root:before-steps', bpaWireInstance);
+  if (typeof BP.registerAddon === 'function') {
+    BP.registerAddon('bookingpress-pro/coupon', bpaWireInstance);
+  }
+  if (BP.instances) {
+    Object.keys(BP.instances).forEach(function (iid) { bpaWireInstance({ instanceId: iid }); });
+  }
+
+  // Mount the coupon box into the Summary step (re-mounts per Summary entry).
+  // Dedicated `coupon` slot (sequence position #8 — after Package, before Gift Card).
+  BP.renderInSlot('*', 'summary-step:coupon', function (ctx) {
+    const node = ctx && ctx.node;
+    const instanceId = ctx && ctx.instanceId;
+    if (!node || !instanceId) return;
+    if (node.__bpCouponMounted) return;
+
+    const handle = BP.instances && BP.instances[instanceId];
+    if (!handle || !handle.state) return;
+    if (!handle.state.config || !handle.state.config.bookingpress_coupon_enabled) return;
+
+    node.__bpCouponMounted = true;
+    try {
+      const app = createApp(CouponBox, { state: handle.state, instanceId: instanceId });
+      app.use(BookingPressUI);
+      app.mount(node);
+    } catch (e) {
+      node.__bpCouponMounted = false;
+      // eslint-disable-next-line no-console
+      console.error('[bp-v3][pro] coupon: box mount failed', e);
+    }
+  });
+})();
+
+export {};

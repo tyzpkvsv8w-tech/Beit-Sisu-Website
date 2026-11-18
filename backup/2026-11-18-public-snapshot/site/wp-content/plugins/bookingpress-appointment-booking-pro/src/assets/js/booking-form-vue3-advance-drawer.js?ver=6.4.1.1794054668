@@ -1,0 +1,530 @@
+/**
+ * booking-form-vue3-advance-drawer.js — shared advance-options drawer host for
+ * the Vue 3 booking form.
+ *
+ * WHAT IT DOES
+ * ------------
+ * Owns the single legacy advance-options drawer shell
+ * (`.bpa-fm--service__advance-options`) that opens on service selection, its
+ * `.bpa-sao--body` (where module panels stack) and the one Cancel / Continue
+ * footer. Pro features (Service Extras, Multiple Quantity, …) register a PANEL
+ * into the host via `window.BookingPressFormV3.registerAdvancePanel(id, desc)`
+ * instead of each owning a drawer — so when several are active they share ONE
+ * shell + footer (legacy parity).
+ *
+ * A panel descriptor:
+ *   {
+ *     order:        number,                         // stacking + validation order
+ *     component:    VueComponent,                   // renders ONE .bpa-sao__module-row
+ *     isActive:     (state) => bool,                // feature active for this form
+ *     appliesTo:    (state, serviceId) => bool,     // panel shows for this service
+ *     reselectRemove: bool,                         // re-click opens edit/remove mode
+ *     validate:     (state, serviceId) => '' | errorMessage, // Continue / nav-away guard
+ *     onServiceSelect: (state, serviceId, willOpen) // a service was picked (seed)
+ *     onServiceSwitch: (state, prevId, nowId)       // service changed (reset prev)
+ *     onCancel:     (state, serviceId)              // Cancel / click-outside (reset)
+ *   }
+ *
+ * The host owns: open state (`state.proAdvanceDrawerOpen` + body class
+ * `--bpa-open-advance-drawer`), the shared error toast
+ * (`state.proAdvanceDrawerError`, 6s auto-hide), the open-on-select logic
+ * (opens + holds the auto-advance when ANY applicable panel applies AND the
+ * Service step is not after Date & Time), the forward-only nav-away validation
+ * guard, and the click-outside cancel.
+ *
+ * DELIVERY
+ * --------
+ * Enqueued as a script module by {@see \BookingPressPro\Vue3\AdvanceDrawerAssets}
+ * (a dependency of every panel module, so `registerAdvancePanel` exists before a
+ * panel registers). Styled by `css/booking-form-vue3-advance-drawer.css`.
+ */
+
+import 'bookingpress-form-v3-loader';
+import { createApp, computed, reactive } from 'vue';
+
+import { BookingPressUI } from 'bookingpress-ui';
+
+// --- Shared open / error state --------------------------------------------
+
+/** Open / close the drawer — flag on the shared state + the legacy body class. */
+function bpaSetDrawerOpen(state, open) {
+  state.proAdvanceDrawerOpen = !!open;
+  if (!open) {
+    state.proAdvanceDrawerServiceId = 0;
+    state.proAdvanceDrawerMode = '';
+  }
+  try {
+    if (open) document.body.classList.add('--bpa-open-advance-drawer');
+    else document.body.classList.remove('--bpa-open-advance-drawer');
+  } catch (e) { /* SSR-defensive — ignore */ }
+}
+
+/** Service that triggered the open drawer (not necessarily Multi Service's primary). */
+function bpaDrawerServiceId(state) {
+  const active = parseInt(state && state.proAdvanceDrawerServiceId || 0, 10);
+  if (active > 0) return active;
+  return parseInt(
+    state && state.appointment_step_form_data
+      ? state.appointment_step_form_data.selected_service || 0
+      : 0,
+    10
+  );
+}
+
+/** Show the shared drawer error toast (auto-hides after 6s — legacy parity). */
+function bpaShowDrawerError(state, msg) {
+  state.proAdvanceDrawerError = String(msg || '');
+  if (state.__proAdvanceErrTimer) clearTimeout(state.__proAdvanceErrTimer);
+  state.__proAdvanceErrTimer = 0;
+  if (state.proAdvanceDrawerError) {
+    state.__proAdvanceErrTimer = setTimeout(function () {
+      state.proAdvanceDrawerError = '';
+      state.__proAdvanceErrTimer = 0;
+    }, 6000);
+  }
+}
+
+function bpaClearDrawerError(state) {
+  if (state.__proAdvanceErrTimer) clearTimeout(state.__proAdvanceErrTimer);
+  state.__proAdvanceErrTimer = 0;
+  state.proAdvanceDrawerError = '';
+}
+
+/**
+ * Whether the Service step sits AFTER the Date & Time step in the (possibly
+ * Pro-reordered) sequence — legacy `bpa_datetime_after_service_selection`. In
+ * that flow the slot is already chosen, so the drawer is not offered on select.
+ */
+function bpaServiceAfterDatetime(state) {
+  const steps = (state && Array.isArray(state.steps)) ? state.steps : [];
+  const svcSt = steps.find((s) => s && s.id === 'service');
+  const dtSt = steps.find((s) => s && s.id === 'datetime');
+  if (!svcSt || !dtSt) return false;
+  return Number(svcSt.order) > Number(dtSt.order);
+}
+
+function bpaMultiServiceSelectionActive(state) {
+  const fd = state && state.appointment_step_form_data;
+  return !!(
+    state &&
+    state.config &&
+    state.config.multiServiceEnabled &&
+    fd &&
+    Array.isArray(fd.selected_services) &&
+    fd.selected_services.length > 0
+  );
+}
+
+// --- The panel registry (reactive so a late registration re-renders) -------
+
+const panels = reactive([]);
+
+function sortPanels() {
+  panels.sort((a, b) => (Number(a.order) || 50) - (Number(b.order) || 50));
+}
+
+/** Active panels for a form instance (feature on). */
+function activePanels(state) {
+  return panels.filter((p) => {
+    try { return typeof p.isActive === 'function' ? !!p.isActive(state) : true; }
+    catch (e) { return false; }
+  });
+}
+
+/** Active panels that apply to a given service (shown / validated for it). */
+function applicablePanels(state, serviceId) {
+  return activePanels(state).filter((p) => {
+    try { return typeof p.appliesTo === 'function' ? !!p.appliesTo(state, serviceId) : true; }
+    catch (e) { return false; }
+  });
+}
+
+function reselectRemovePanels(state, serviceId) {
+  return applicablePanels(state, serviceId).filter((p) => p.reselectRemove === true);
+}
+
+/** Run the validation chain over the applicable panels; first error wins. */
+function validateChain(state, serviceId) {
+  const list = applicablePanels(state, serviceId);
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i];
+    if (typeof p.validate !== 'function') continue;
+    let msg = '';
+    try { msg = p.validate(state, serviceId) || ''; } catch (e) { msg = ''; }
+    if (msg) return msg;
+  }
+  return '';
+}
+
+/** Error icon inside the drawer's toast (legacy template parity). */
+const ICON_ERROR =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c.55 0 1 .45 1 1v4c0 .55-.45 1-1 1s-1-.45-1-1V8c0-.55.45-1 1-1zm-.01-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm1-3h-2v-2h2v2z"/></svg>';
+
+// --- The host component (the shell + body + footer) ------------------------
+
+const AdvanceDrawerHost = {
+  name: 'ProAdvanceDrawerHost',
+  props: {
+    state: { type: Object, required: true },
+    nav: { type: Object, required: true },
+    bus: { type: Object, default: null },
+    instanceId: { type: String, required: true },
+    timeslots: { type: Object, default: null },
+  },
+  setup(props) {
+    const state = props.state;
+    const strings = computed(() => state.strings || {});
+    const open = computed(() => !!state.proAdvanceDrawerOpen);
+    const errorMsg = computed(() => state.proAdvanceDrawerError || '');
+
+    const selectedService = computed(() => bpaDrawerServiceId(state));
+    const editRemoveMode = computed(() =>
+      bpaMultiServiceSelectionActive(state) && state.proAdvanceDrawerMode === 'edit'
+    );
+
+    // The panels to render — active + applicable to the current service, in
+    // order. Reads the reactive registry, so a panel registered after mount
+    // (load-order) still renders.
+    const visiblePanels = computed(() => applicablePanels(state, selectedService.value));
+
+    // Shared props handed to every panel component.
+    const panelProps = computed(() => ({
+      state: props.state,
+      nav: props.nav,
+      bus: props.bus,
+      instanceId: props.instanceId,
+      timeslots: props.timeslots,
+    }));
+
+    const cancelLabel = computed(() => editRemoveMode.value
+      ? (strings.value.ms_remove_label || strings.value.remove_button_title || 'Remove')
+      : (strings.value.advance_drawer_cancel || strings.value.extras_cancel_button || 'Cancel')
+    );
+    const continueLabel = computed(() =>
+      strings.value.advance_drawer_continue || strings.value.extras_continue_button || 'Continue'
+    );
+
+    /** Continue — run the validation chain, then advance on pass. */
+    function continueNext() {
+      const msg = validateChain(state, selectedService.value);
+      if (msg) {
+        bpaShowDrawerError(state, msg);
+        return;
+      }
+      bpaClearDrawerError(state);
+      bpaSetDrawerOpen(state, false);
+      if (bpaMultiServiceSelectionActive(state)) return;
+      props.nav.goNext();
+    }
+
+    /** Cancel — reset every active panel's selection, clear the service, close. */
+    function secondaryAction() {
+      bpaClearDrawerError(state);
+      const sid = selectedService.value;
+      activePanels(state).forEach((p) => {
+        if (typeof p.onCancel === 'function') {
+          try { p.onCancel(state, sid); } catch (e) { /* defensive */ }
+        }
+      });
+      if (state.config && state.config.multiServiceEnabled) {
+        props.bus && props.bus.emit('bp-v3:remove-multi-service', {
+          instanceId: props.instanceId,
+          serviceId: sid,
+        });
+      } else {
+        state.appointment_step_form_data.selected_service = '';
+      }
+      bpaSetDrawerOpen(state, false);
+    }
+
+    return {
+      state, strings, open, errorMsg, visiblePanels, panelProps,
+      cancelLabel, continueLabel, editRemoveMode, continueNext, secondaryAction, ICON_ERROR,
+    };
+  },
+  template: `
+    <div class="bpa-fm--service__advance-options" :class="open ? '__bpa-is-active' : ''">
+      <div class="bpa-sao--body">
+        <div class="bpa-front-toast-notification --bpa-error bpa-front-advance-drawer-error" v-if="errorMsg" :aria-label="errorMsg">
+          <div class="bpa-front-tn-body">
+            <span v-html="ICON_ERROR"></span>
+            <p>{{ errorMsg }}</p>
+          </div>
+        </div>
+        <component
+          v-for="p in visiblePanels"
+          :is="p.component"
+          :key="p.id"
+          v-bind="panelProps"
+        ></component>
+      </div>
+      <div class="bpa-sao--footer">
+        <button
+          type="button"
+          class="bpa-front-btn bpa-front-btn__medium bpa_focusable"
+          :class="editRemoveMode ? 'bpa-front-btn--remove' : 'bpa-front-btn--borderless'"
+          :aria-label="cancelLabel"
+          @click="secondaryAction()"
+        >{{ cancelLabel }}</button>
+        <button
+          type="button"
+          class="bpa-front-btn bpa-front-btn__medium bpa-front-btn--primary bpa_focusable"
+          :aria-label="continueLabel"
+          @click="continueNext()"
+        >{{ continueLabel }}</button>
+      </div>
+    </div>
+  `,
+};
+
+// --- Module wiring -----------------------------------------------------------
+
+(function () {
+  if (typeof window === 'undefined') return;
+
+  const BP = window.BookingPressFormV3;
+  if (!BP || typeof BP.renderInSlot !== 'function') {
+    // eslint-disable-next-line no-console
+    console.warn('[bp-v3][pro] advance-drawer: BookingPressFormV3 registry unavailable');
+    return;
+  }
+
+  const hooks = window.wp && window.wp.hooks;
+
+  // Per-instance wiring (bus listeners + click-outside). Re-runnable: guarded so
+  // it only wires once an active panel exists, so a late registerAdvancePanel
+  // can wire instances the host saw before the panel loaded.
+  function wireInstance(ctx) {
+    const instanceId = ctx && ctx.instanceId;
+    const handle = (instanceId && BP.instances) ? BP.instances[instanceId] : null;
+    if (!handle || !handle.state || !handle.bus) return;
+    const state = handle.state;
+    if (handle.__bpAdvanceDrawerWired) return;
+    if (!activePanels(state).length) return; // no panel yet — try again on register.
+    handle.__bpAdvanceDrawerWired = true;
+
+    const fd = state.appointment_step_form_data;
+
+    // Track the last picked service so a switch can reset the previous one.
+    let lastService = parseInt(fd.selected_service || 0, 10);
+
+    handle.bus.on('bp-v3:before-select-service', function (e) {
+      const sid = parseInt(e && e.serviceId || 0, 10);
+      if (!sid) return;
+      const selected = Array.isArray(fd.selected_services)
+        ? fd.selected_services.map((id) => parseInt(id, 10)).filter((id) => id > 0)
+        : [];
+      state.proAdvanceDrawerServiceId = sid;
+      state.proAdvanceDrawerMode =
+        selected.includes(sid) && reselectRemovePanels(state, sid).length > 0
+          ? 'edit'
+          : 'select';
+    });
+
+    // Open the drawer on a service pick when an applicable panel applies and the
+    // Service step is not after Date & Time. The selection sticks, the Lite
+    // auto-advance is held for THIS pick, the panels seed their defaults, and a
+    // switch away from a previous service lets each panel reset it.
+    handle.bus.on('bp-v3:after-select-service', function (e) {
+      state.__bpaSelectionChanged = true; 
+      const sid = parseInt(
+        (e && e.serviceId) || (e && e.service && e.service.serviceId) || 0,
+        10
+      );
+      if (!sid) return;
+      // Multi Service immediately restores `selected_service` to its primary
+      // service. Preserve the clicked service separately for the complete
+      // drawer lifecycle so panels never infer a secondary pick from primary.
+      state.proAdvanceDrawerServiceId = sid;
+
+      const prevId = lastService;
+      lastService = sid;
+      if (prevId > 0 && prevId !== sid) {
+        activePanels(state).forEach(function (p) {
+          if (typeof p.onServiceSwitch === 'function') {
+            try { p.onServiceSwitch(state, prevId, sid); } catch (err) { /* defensive */ }
+          }
+        });
+      }
+
+      const willOpen = applicablePanels(state, sid).length > 0 && !bpaServiceAfterDatetime(state);
+      activePanels(state).forEach(function (p) {
+        if (typeof p.onServiceSelect === 'function') {
+          try { p.onServiceSelect(state, sid, willOpen); } catch (err) { /* defensive */ }
+        }
+      });
+      if (willOpen) {
+        state.serviceAdvanceHold = true; // consume the Lite auto-advance for THIS pick.
+        bpaSetDrawerOpen(state, true);
+      } else {
+        bpaSetDrawerOpen(state, false);
+      }
+    });
+
+    // Leaving the Service step forward runs the validation chain (legacy ran the
+    // checks on every nav-away — footer Next, drawer Continue AND sidebar).
+    // The Lite step navigation has no cancellable pre-hook, so the guard bounces
+    // back synchronously when the rules fail. Backward navigation skips the check.
+    handle.bus.on('bp-v3:step-changed', function (e) {
+      if (!e || e.from !== 'service' || e.to === 'service') return;
+      if (!state.proAdvanceDrawerOpen) return;
+      const steps = Array.isArray(state.steps) ? state.steps : [];
+      const fromStep = steps.find(function (s) { return s && s.id === 'service'; });
+      const toStep = steps.find(function (s) { return s && s.id === e.to; });
+      const isForward = !fromStep || !toStep || Number(toStep.order) > Number(fromStep.order);
+      if (isForward) {
+        const msg = validateChain(state, bpaDrawerServiceId(state));
+        if (msg) {
+          bpaShowDrawerError(state, msg);
+          handle.nav && handle.nav.goTo && handle.nav.goTo('service');
+          return;
+        }
+      }
+      bpaClearDrawerError(state);
+      bpaSetDrawerOpen(state, false);
+    });
+
+    // RETURNING to the Service step with a service already selected re-opens the
+    // drawer for it (legacy parity — the advance options stay visible while the
+    // selection exists). Covers Go Back from a later step AND the Cart's
+    // "edit item" jump (the item's selection was just loaded into the working
+    // state). Guards: an applicable panel must exist for the selected service,
+    // never in the service-after-datetime sequence (the drawer is not offered
+    // there on select either), and never in Multi Service mode (its drawer is a
+    // per-card select/edit flow, not a persistent one). Panels are NOT re-seeded
+    // (`onServiceSelect` is not fired) so the loaded selections show as-is.
+    handle.bus.on('bp-v3:step-changed', function (e) {
+      if (!e || e.to !== 'service' || e.from === 'service' || !e.from) return;
+      if (state.proAdvanceDrawerOpen) return;
+      if (state.config && state.config.multiServiceEnabled) return;
+      if (bpaServiceAfterDatetime(state)) return;
+      const sid = parseInt(fd.selected_service || 0, 10);
+      if (!sid) return;
+      if (applicablePanels(state, sid).length === 0) return;
+      state.proAdvanceDrawerServiceId = sid;
+      state.proAdvanceDrawerMode = 'select';
+      lastService = sid;
+      bpaSetDrawerOpen(state, true);
+    });
+
+    // Click outside the open drawer cancels it (legacy
+    // `bookingpress_close_extra_drawer_on_mouseup`) — unless the click landed in
+    // the drawer or a quantity-select popper. Honours the legacy
+    // `bpa_allow_close_draer` add-on filter.
+    window.addEventListener('mouseup', function (e) {
+      if (!state.proAdvanceDrawerOpen || state.currentTab !== 'service') return;
+      const elem = e.target;
+      if (!elem || !(elem instanceof Element)) return;
+      if (elem.closest('.bpa-fm--service__advance-options')) return;
+      if (elem.closest('.bpa-fm--service__advance-options-popper')) return;
+      let allowClose = true;
+      if (hooks && typeof hooks.applyFilters === 'function') {
+        allowClose = hooks.applyFilters('bpa_allow_close_draer', true, true, elem, [], []);
+      }
+      if (true !== allowClose) return;
+      state.__bpaSelectionChanged = false;
+      setTimeout(function () {
+        if (state.__bpaSelectionChanged) return;
+        if (!state.proAdvanceDrawerOpen) return;
+
+        bpaClearDrawerError(state);
+        const sid = bpaDrawerServiceId(state);
+        const editMode =
+          bpaMultiServiceSelectionActive(state) && state.proAdvanceDrawerMode === 'edit';
+        if (!editMode) {
+          activePanels(state).forEach(function (p) {
+            if (typeof p.onCancel === 'function') {
+              try { p.onCancel(state, sid); } catch (err) { /* defensive */ }
+            }
+          });
+        }
+        if (state.config && state.config.multiServiceEnabled) {
+          if (!editMode) {
+            handle.bus.emit('bp-v3:remove-multi-service', {
+              instanceId: instanceId,
+              serviceId: sid,
+            });
+          }
+        } else {
+          fd.selected_service = '';
+        }
+        bpaSetDrawerOpen(state, false);
+      }, 0);
+    });
+  }
+
+  function wireAllInstances() {
+    if (BP.instances) {
+      Object.keys(BP.instances).forEach(function (iid) { wireInstance({ instanceId: iid }); });
+    }
+  }
+
+  // Public API — register a panel (once per id). Re-sorts + (re)wires instances
+  // so a panel that loads after the host still hooks up.
+  if (typeof BP.registerAdvancePanel !== 'function') {
+    BP.registerAdvancePanel = function (id, descriptor) {
+      if (!id || !descriptor || typeof descriptor !== 'object') return;
+      const idx = panels.findIndex(function (p) { return p.id === id; });
+      const entry = {
+        id: id,
+        order: descriptor.order !== undefined ? descriptor.order : 50,
+        component: descriptor.component,
+        isActive: descriptor.isActive,
+        appliesTo: descriptor.appliesTo,
+        reselectRemove: descriptor.reselectRemove === true,
+        validate: descriptor.validate,
+        onServiceSelect: descriptor.onServiceSelect,
+        onServiceSwitch: descriptor.onServiceSwitch,
+        onCancel: descriptor.onCancel,
+      };
+      if (idx >= 0) panels.splice(idx, 1, entry);
+      else panels.push(entry);
+      sortPanels();
+      wireAllInstances();
+    };
+  }
+
+  // Wire existing + future instances (the duplicate-wiring guard makes re-entry
+  // a no-op). Mirrors the staff / extras module wiring.
+  BP.renderInSlot('*', 'root:before-steps', wireInstance);
+  if (typeof BP.registerAddon === 'function') {
+    BP.registerAddon('bookingpress-pro/advance-drawer', wireInstance);
+  }
+  wireAllInstances();
+
+  // Mount the host shell into the Service step (re-mounts whenever the step is
+  // re-entered — the slot node is recreated each time). The host module is only
+  // enqueued when a Pro advance feature is active, so it always mounts; the
+  // panel list (`visiblePanels`) is reactive, so a panel that registers AFTER
+  // the host mounts (module load-order) still renders. (Gating the mount on
+  // `activePanels()` here would lose the drawer entirely when the host's slot
+  // factory runs before its panel modules register.)
+  BP.renderInSlot('*', 'service-step:after-list', function (ctx) {
+    const node = ctx && ctx.node;
+    const instanceId = ctx && ctx.instanceId;
+    if (!node || !instanceId) return;
+    if (node.__bpAdvanceDrawerMounted) return;
+
+    const handle = BP.instances && BP.instances[instanceId];
+    if (!handle || !handle.state || !handle.nav) return;
+
+    node.__bpAdvanceDrawerMounted = true;
+    try {
+      const app = createApp(AdvanceDrawerHost, {
+        state: handle.state,
+        nav: handle.nav,
+        bus: handle.bus,
+        instanceId: instanceId,
+        timeslots: handle.timeslots || null,
+      });
+      app.use(BookingPressUI);
+      app.mount(node);
+    } catch (e) {
+      node.__bpAdvanceDrawerMounted = false;
+      // eslint-disable-next-line no-console
+      console.error('[bp-v3][pro] advance-drawer: host mount failed', e);
+    }
+  });
+})();
+
+export {};
