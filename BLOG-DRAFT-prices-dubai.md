@@ -1,4 +1,4 @@
-# Blog article: draft for approval (not live)
+# Blog article: ✅ PUBLISHED 20 Nov 2026 at https://beitsisu.com/ice-bath-sauna-prices-dubai/
 
 **Suggested address:** `beitsisu.com/ice-bath-sauna-prices-dubai/`
 **Google title (Yoast SEO title):** Ice Bath & Sauna Prices in Dubai: What's Included | Beit Sisu (60)
@@ -41,7 +41,7 @@ If you come regularly, a membership is the best value:
 - **Gold:** 8 × 60-minute sessions a month for AED 1,149
 - **Black:** unlimited 60-minute sessions a month, and you can bring a friend for free, for AED 1,899
 
-[How members book their sessions: please confirm.]
+Members book their sessions through the website or on WhatsApp.
 
 ## What's included in the price?
 
@@ -69,7 +69,11 @@ Yes. We rent **portable ice baths**, delivered, set up and collected anywhere in
 
 ## Do you offer group or corporate rates?
 
-We work with companies, running clubs, golf societies and social groups, and can create a dedicated discount code for your members. Get in touch through our [Collaborations page](/event-partnership-enquiries/).
+Yes. We offer **corporate memberships** for companies, and we work with running clubs, golf societies and social groups, creating a dedicated discount code for your members. Get in touch through our [Collaborations page](/event-partnership-enquiries/).
+
+## Do you sell gift vouchers?
+
+Yes. Beit Sisu gift vouchers make a great present for anyone who loves to recover and relax. Email [hello@beitsisu.com](mailto:hello@beitsisu.com) to organise one.
 
 ## Can I cancel or reschedule?
 

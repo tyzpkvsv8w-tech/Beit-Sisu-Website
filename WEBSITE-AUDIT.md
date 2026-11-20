@@ -893,3 +893,20 @@ Site Kit, 20 Oct–16 Nov:
   - mentions in Dubai "best of" lists
   - reviews on TripAdvisor/Facebook too
   - identical business details everywhere
+
+## Update: 20 November 2026: prices article published
+- **Owner answers:**
+  - corporate memberships are offered
+  - members book through the website or on WhatsApp
+  - 2-person cold plunge: guests take turns (one barrel)
+  - gift vouchers exist (article says to email hello@beitsisu.com, as the FAQ does)
+  - photo from the owner's Google Drive "Marketing" folder
+- **Photo:** "Copy of 5.jpg", a cedar cold plunge barrel on terrazzo and pebbles, with no people. Resized to 1200×1800 (282 KB) and uploaded as media 604 with alt text. Two other Drive photos were looked at and not used: a close body crop, and a team member's portrait (not used without the owner's OK).
+- **Published** https://beitsisu.com/ice-bath-sauna-prices-dubai/ (post 605):
+  - author Beit Sisu
+  - Yoast title "Ice Bath & Sauna Prices in Dubai: What's Included | Beit Sisu" and description set
+  - one H1, 11 H2 questions, no sideways scroll, no JS errors
+  - first on the homepage "From the blog" section and /blog/, and in the post sitemap
+  - llms.txt will pick it up at Yoast's next scheduled regeneration
+- Booking smoke test OK; cache purged; logged out.
+- **Owner said Google Business Profile has been imported to Bing Places.** Still recommended: Bing Webmaster Tools (import from Search Console).
