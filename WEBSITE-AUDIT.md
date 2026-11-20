@@ -877,3 +877,19 @@ Site Kit, 20 Oct–16 Nov:
 - The owner asked for a backup of the original site before any redesign work: UpdraftPlus **18 Nov 2026 11:56**, full (database, plugins, themes, uploads, must-use plugins, others). Remote storage: **Google Drive**.
 - Note: UpdraftPlus is set to manual schedules (files and database) and keeps the 2 latest backups. Automatic weekly backups are recommended (owner decision).
 - Redesign mockup: the label font changed from IBM Plex Mono to DM Mono (owner wanted it smoother).
+
+## Update: 20 November 2026: AI search improvements (#6–#8)
+- **Checked first:** all AI and search crawlers can read the site (OAI-SearchBot, ChatGPT-User, GPTBot, PerplexityBot, ClaudeBot, Bingbot, Googlebot get HTTP 200 and the full page on the homepage, a service page and an article). robots.txt blocks none of them. The business structured data (address, phone, price range AED 85–1,899, per-day hours, Instagram/TikTok @beitsisu) matches the Contact page.
+- **#6 llms.txt:** turned on Yoast → Site features → llms.txt (auto mode). Live at https://beitsisu.com/llms.txt, listing the site's pages, the 5 articles and the 3 services with descriptions.
+- **#7 FAQ structured data:** a new `wp_head` hook in `functions.php` outputs `FAQPage` JSON-LD on /frequently-asked-questions/ only. It's built from the page's own ACF content:
+  - the `accordion` lists in the 2-column sections (8 general questions)
+  - the `service_faq` section's per-service `faq` fields (21 questions)
+
+  It covers 29/29 questions, each matching a visible question. It's read-only; nothing visible changed. All 16 pages are the same as before and the booking smoke test is OK.
+- **#8 Prices article** drafted for approval: `BLOG-DRAFT-prices-dubai.md` (Q&A format for AI and search).
+- **Owner actions recommended:**
+  - Bing Webmaster Tools (import from Search Console)
+  - Bing Places (import Google Business Profile)
+  - mentions in Dubai "best of" lists
+  - reviews on TripAdvisor/Facebook too
+  - identical business details everywhere
