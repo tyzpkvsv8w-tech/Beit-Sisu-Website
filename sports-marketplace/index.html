@@ -1,0 +1,985 @@
+<title>ReKit Sports Marketplace</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Buy and sell second-hand sports equipment in the UAE. Free to post, free to buy.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app shell. Sticky top bar, content column max 1180px, bottom tab bar on phones.
+   Look: scoreboard / sports-hall. Condensed jersey type, court-blue accent, a hard volt highlight for prices. */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --surface-2: #e8ecf2;
+  --fg: #0f1a2b;
+  --muted: #5a6679;
+  --line: #d5dbe4;
+  --accent: #1747c9;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3eafc;
+  --volt: #d9f24a;
+  --volt-ink: #1b2400;
+  --sponsor: #8a5a00;
+  --sponsor-bg: #fff3d6;
+  --ok: #17784a;
+  --danger: #b42318;
+  --shadow: 0 1px 2px rgba(15,26,43,.06), 0 4px 16px rgba(15,26,43,.06);
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c121c; --surface: #141c29; --surface-2: #1c2636; --fg: #e8edf5; --muted: #98a3b5;
+    --line: #2a3547; --accent: #6f95ff; --accent-ink: #08101f; --accent-soft: #1b2950;
+    --volt: #d9f24a; --volt-ink: #1b2400; --sponsor: #f2c060; --sponsor-bg: #3a2c0c;
+    --ok: #4cc98a; --danger: #ff8a7a; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c121c; --surface: #141c29; --surface-2: #1c2636; --fg: #e8edf5; --muted: #98a3b5;
+  --line: #2a3547; --accent: #6f95ff; --accent-ink: #08101f; --accent-soft: #1b2950;
+  --volt: #d9f24a; --volt-ink: #1b2400; --sponsor: #f2c060; --sponsor-bg: #3a2c0c;
+  --ok: #4cc98a; --danger: #ff8a7a; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--surface); }
+a { color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.05; text-wrap: balance; margin: 0; letter-spacing: .005em; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.price { font-variant-numeric: tabular-nums; }
+
+/* Header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 14px; padding-block: 10px; }
+.logo { font-family: var(--display); font-weight: 800; font-style: italic; font-size: 30px; text-decoration: none; letter-spacing: -.01em; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.logo b { background: var(--volt); color: var(--volt-ink); padding: 0 6px; border-radius: 4px; transform: skewX(-8deg); display: inline-block; }
+.country { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 10px; font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+.searchbar { flex: 1; display: flex; min-width: 0; }
+.searchbar input { flex: 1; min-width: 0; border: 1px solid var(--line); border-right: 0; border-radius: 8px 0 0 8px; padding: 10px 12px; background: var(--bg); }
+.searchbar button { border: 0; background: var(--fg); color: var(--bg); border-radius: 0 8px 8px 0; padding: 0 16px; font-weight: 600; cursor: pointer; }
+.nav { display: flex; gap: 4px; align-items: center; }
+.nav a { text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 10px; border-radius: 6px; color: var(--muted); }
+.nav a:hover, .nav a.on { color: var(--fg); background: var(--surface-2); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 8px; padding: 10px 16px; font-weight: 700; font-size: 14px; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-volt { background: var(--volt); color: var(--volt-ink); }
+.btn-ghost { background: var(--surface); border-color: var(--line); color: var(--fg); }
+.btn-ghost:hover { border-color: var(--fg); }
+.btn-block { width: 100%; }
+
+/* Bottom tab bar (phones) */
+.tabs { display: none; }
+@media (max-width: 760px) {
+  .nav, .top .btn-post, .searchbar.desk { display: none; }
+  .top .wrap { justify-content: space-between; }
+  .tabs { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--surface); border-top: 1px solid var(--line);
+    padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+  .tabs a { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; text-decoration: none; color: var(--muted); padding: 4px 0; }
+  .tabs a.on { color: var(--accent); }
+  .tabs a svg { width: 22px; height: 22px; }
+  .tabs a.post-tab span.ic { background: var(--accent); color: var(--accent-ink); border-radius: 999px; width: 40px; height: 40px; display: grid; place-items: center; margin-top: -16px; box-shadow: var(--shadow); }
+  main { padding-bottom: 90px; }
+}
+
+/* Generic sections */
+main { min-height: 60vh; }
+.section { padding-block: 28px; }
+.section-head { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.section-head h2 { font-size: 30px; text-transform: uppercase; }
+.section-head a { font-weight: 600; font-size: 14px; color: var(--accent); text-decoration: none; }
+
+/* Hero */
+.hero { background: var(--fg); color: var(--bg); position: relative; overflow: hidden; }
+.hero .wrap { padding-block: 40px 44px; position: relative; display: grid; gap: 18px; }
+.hero h1 { font-size: clamp(42px, 7vw, 76px); font-weight: 800; font-style: italic; text-transform: uppercase; max-width: 15ch; }
+.hero h1 mark { background: var(--volt); color: var(--volt-ink); padding: 0 .12em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.hero p { margin: 0; max-width: 52ch; opacity: .82; font-size: 17px; }
+.hero .court { position: absolute; inset: 0; opacity: .14; pointer-events: none; }
+.hero-search { display: flex; flex-wrap: wrap; gap: 8px; max-width: 760px; background: var(--surface); padding: 8px; border-radius: 12px; }
+.hero-search input, .hero-search select { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 12px; color: var(--fg); }
+.hero-search input { flex: 3 1 220px; min-width: 0; }
+.hero-search select { flex: 1 1 140px; }
+.hero-search .btn { flex: 0 0 auto; padding-inline: 22px; }
+.hero-stats { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; opacity: .8; }
+.hero-stats b { font-family: var(--display); font-size: 20px; font-weight: 700; margin-right: 4px; }
+
+/* Sport tiles */
+.sports { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+.sport { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 12px 12px; text-decoration: none; display: grid; gap: 8px; transition: border-color .15s, transform .15s; }
+.sport:hover { border-color: var(--accent); transform: translateY(-2px); }
+.sport .glyph { width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center; font-size: 22px; }
+.sport .nm { font-family: var(--display); font-weight: 700; font-size: 19px; text-transform: uppercase; line-height: 1; }
+.sport .ct { font-size: 12px; color: var(--muted); }
+
+/* Ad slots */
+.ad { border: 1px dashed var(--line); border-radius: var(--radius); background: var(--surface); position: relative; overflow: hidden; }
+.ad .ad-label { position: absolute; top: 8px; right: 10px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--surface); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); }
+.ad-leader { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; padding: 18px 22px; }
+.ad-leader .brand { font-family: var(--display); font-weight: 800; font-size: 26px; text-transform: uppercase; line-height: .95; }
+.ad-leader .msg { color: var(--muted); }
+.ad-leader .msg strong { color: var(--fg); display: block; font-size: 17px; }
+@media (max-width: 640px) { .ad-leader { grid-template-columns: 1fr; gap: 8px; padding-top: 26px; } }
+.ad-mpu { padding: 26px 18px 18px; display: grid; gap: 10px; text-align: left; }
+.ad-mpu .brand { font-family: var(--display); font-weight: 800; font-size: 24px; text-transform: uppercase; }
+
+/* Listing cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+@media (max-width: 520px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; text-decoration: none; position: relative; min-width: 0; transition: box-shadow .15s, border-color .15s; }
+.card:hover { box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.card.sponsored { border-color: color-mix(in srgb, var(--sponsor) 45%, var(--line)); }
+.thumb { aspect-ratio: 4 / 3; max-width: 100%; display: grid; place-items: center; position: relative; overflow: hidden; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb .em { font-size: 58px; filter: saturate(1.1); }
+.thumb .ph { position: absolute; bottom: 8px; left: 8px; font-size: 11px; font-weight: 600; background: rgba(0,0,0,.55); color: #fff; padding: 2px 7px; border-radius: 4px; }
+.fav { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 999px; border: 0; background: rgba(255,255,255,.92); color: #0f1a2b; display: grid; place-items: center; cursor: pointer; z-index: 2; }
+.fav svg { width: 18px; height: 18px; }
+.fav.on { color: #d92d20; }
+.card .body { padding: 10px 12px 12px; display: grid; gap: 4px; min-width: 0; }
+.card .pr { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1; }
+.card .pr small { font-family: var(--body); font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.card .ti { font-weight: 600; font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card .meta { font-size: 12px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; letter-spacing: .02em; }
+.chip-cond { background: var(--surface-2); color: var(--fg); }
+.chip-sponsor { background: var(--sponsor-bg); color: var(--sponsor); text-transform: uppercase; letter-spacing: .08em; }
+.chip-new { background: var(--volt); color: var(--volt-ink); }
+.card .tag-row { position: absolute; top: 8px; left: 8px; display: flex; gap: 4px; z-index: 2; }
+.card.ad-card { justify-content: center; border-style: dashed; }
+
+/* Browse */
+.browse { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 22px; align-items: start; }
+.filters { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 14px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 76px); }
+.filters h3 { font-size: 20px; text-transform: uppercase; }
+.field { display: grid; gap: 5px; }
+.field label, .field .lbl { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.field input, .field select, .field textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 9px 10px; width: 100%; min-width: 0; }
+.field textarea { min-height: 120px; resize: vertical; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.conds { display: flex; flex-wrap: wrap; gap: 6px; }
+.conds label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer; text-transform: none; letter-spacing: 0; color: var(--fg); font-weight: 500; }
+.conds input { width: auto; margin: 0; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.toolbar h1 { font-size: 34px; text-transform: uppercase; }
+.toolbar .count { color: var(--muted); font-size: 14px; }
+.toolbar select { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; }
+.filter-toggle { display: none; }
+.m-search { display: none; margin-bottom: 10px; }
+.m-search input { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 11px 12px; }
+@media (max-width: 760px) { .m-search { display: block; } }
+.pillbar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
+.pillbar button { flex-shrink: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pillbar button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+@media (max-width: 860px) {
+  .browse { grid-template-columns: minmax(0, 1fr); }
+  .filters { position: static; display: none; }
+  .filters.open { display: grid; }
+  .filter-toggle { display: inline-flex; }
+}
+.empty { text-align: center; padding: 50px 16px; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); }
+.empty h3 { color: var(--fg); font-size: 26px; margin-bottom: 6px; text-transform: uppercase; }
+
+/* Detail */
+.crumbs { font-size: 13px; color: var(--muted); padding-top: 16px; display: flex; gap: 6px; flex-wrap: wrap; }
+.crumbs a { text-decoration: none; color: var(--accent); }
+.detail { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 24px; align-items: start; padding-block: 14px 30px; }
+@media (max-width: 860px) { .detail { grid-template-columns: minmax(0, 1fr); } .d-left { display: contents; } .d-left .gallery { order: 0; } .side-stack { order: 1; } .d-left .d-info { order: 2; } }
+.gallery { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.gallery .main { aspect-ratio: 4 / 3; display: grid; place-items: center; position: relative; }
+.gallery .main img { width: 100%; height: 100%; object-fit: cover; }
+.gallery .main .em { font-size: 130px; }
+.gallery .strip { display: flex; gap: 6px; padding: 8px; overflow-x: auto; }
+.gallery .strip button { width: 64px; height: 48px; border-radius: 6px; border: 2px solid transparent; padding: 0; overflow: hidden; cursor: pointer; flex-shrink: 0; display: grid; place-items: center; font-size: 22px; }
+.gallery .strip button.on { border-color: var(--accent); }
+.gallery .strip img { width: 100%; height: 100%; object-fit: cover; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: grid; gap: 12px; }
+.d-title { font-size: clamp(30px, 4vw, 40px); }
+.d-price { font-family: var(--display); font-weight: 800; font-size: 42px; line-height: 1; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.d-price .neg { font-family: var(--body); font-size: 13px; font-weight: 600; color: var(--ok); }
+.specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.specs div { background: var(--surface); padding: 10px 12px; min-width: 0; }
+.specs dt { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
+.specs dd { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.desc { white-space: pre-line; margin: 0; }
+.seller { display: flex; gap: 12px; align-items: center; }
+.avatar { width: 46px; height: 46px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 20px; flex-shrink: 0; }
+.seller .nm { font-weight: 700; }
+.seller .sub { font-size: 13px; color: var(--muted); }
+.verified { color: var(--ok); font-weight: 600; font-size: 12px; }
+.phone-reveal { font-variant-numeric: tabular-nums; user-select: all; }
+.tips { font-size: 13px; color: var(--muted); margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.side-stack { display: grid; gap: 14px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 76px); }
+@media (max-width: 860px) { .side-stack { position: static; } }
+
+/* Post form */
+.form-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; padding-block: 24px 30px; }
+@media (max-width: 860px) { .form-wrap { grid-template-columns: minmax(0, 1fr); } }
+.form-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: grid; gap: 16px; }
+.form-card h2 { font-size: 22px; text-transform: uppercase; padding-top: 6px; border-top: 1px solid var(--line); }
+.form-card h2:first-child { border-top: 0; padding-top: 0; }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.photos .slot { aspect-ratio: 1; border: 1px dashed var(--line); border-radius: 8px; display: grid; place-items: center; overflow: hidden; background: var(--bg); position: relative; font-size: 12px; color: var(--muted); text-align: center; }
+.photos .slot img { width: 100%; height: 100%; object-fit: cover; }
+.photos .slot button { position: absolute; top: 4px; right: 4px; border: 0; background: rgba(0,0,0,.6); color: #fff; border-radius: 999px; width: 22px; height: 22px; cursor: pointer; line-height: 1; }
+.photos label.slot { cursor: pointer; font-weight: 600; color: var(--accent); }
+.photos input { display: none; }
+.hint { font-size: 12px; color: var(--muted); }
+.err { color: var(--danger); font-size: 13px; font-weight: 600; }
+.free-badge { background: var(--volt); color: var(--volt-ink); border-radius: var(--radius); padding: 18px; display: grid; gap: 6px; }
+.free-badge h3 { font-size: 30px; text-transform: uppercase; font-style: italic; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.check input { width: auto; }
+
+/* Advertise */
+.adv-hero { background: var(--accent); color: var(--accent-ink); }
+.adv-hero .wrap { padding-block: 40px; display: grid; gap: 14px; }
+.adv-hero h1 { font-size: clamp(40px, 6vw, 64px); text-transform: uppercase; font-style: italic; font-weight: 800; max-width: 18ch; }
+.adv-hero p { margin: 0; max-width: 60ch; font-size: 17px; opacity: .9; }
+.adv-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.stat b { display: block; font-family: var(--display); font-size: 34px; font-weight: 800; line-height: 1; }
+.stat span { font-size: 13px; color: var(--muted); }
+.products { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.product { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: grid; gap: 10px; align-content: start; }
+.product h3 { font-size: 24px; text-transform: uppercase; }
+.product .rate { font-family: var(--display); font-size: 30px; font-weight: 800; }
+.product .rate small { font-family: var(--body); font-size: 13px; color: var(--muted); font-weight: 500; }
+.product ul { margin: 0; padding-left: 18px; font-size: 14px; color: var(--muted); display: grid; gap: 3px; }
+.product .where { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
+.product.best { border: 2px solid var(--accent); }
+.note { font-size: 13px; color: var(--muted); }
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.principles div { border-left: 3px solid var(--volt); padding: 4px 0 4px 14px; }
+.principles h3 { font-size: 20px; text-transform: uppercase; margin-bottom: 4px; }
+.principles p { margin: 0; font-size: 14px; color: var(--muted); }
+
+/* How it works */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; counter-reset: step; }
+.steps div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; counter-increment: step; }
+.steps div::before { content: counter(step); font-family: var(--display); font-weight: 800; font-style: italic; font-size: 40px; color: var(--accent); line-height: 1; display: block; margin-bottom: 6px; }
+.steps h3 { font-size: 21px; text-transform: uppercase; margin-bottom: 4px; }
+.steps p { margin: 0; font-size: 14px; color: var(--muted); }
+
+/* Chat drawer */
+.drawer-bg { position: fixed; inset: 0; background: rgba(5,10,20,.5); z-index: 80; }
+.drawer { position: fixed; right: 0; top: 0; bottom: 0; width: min(420px, 100%); background: var(--surface); z-index: 90; display: flex; flex-direction: column;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) 0; box-shadow: -8px 0 30px rgba(0,0,0,.2); }
+.drawer header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.drawer header .x { margin-left: auto; border: 0; background: var(--surface-2); border-radius: 999px; width: 34px; height: 34px; cursor: pointer; font-size: 18px; }
+.msgs { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--bg); }
+.msg { max-width: 80%; padding: 8px 12px; border-radius: 14px; font-size: 14px; }
+.msg.me { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+.msg.them { align-self: flex-start; background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.msg.sys { align-self: center; font-size: 12px; color: var(--muted); background: none; text-align: center; }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px 0; }
+.quick button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+.compose { display: flex; gap: 8px; padding: 12px 16px; }
+.compose input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 999px; padding: 10px 14px; background: var(--bg); }
+
+/* Country modal */
+.modal { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100% - 32px)); background: var(--surface); border-radius: 14px; z-index: 90; padding: 20px; display: grid; gap: 12px; box-shadow: var(--shadow); }
+.modal h3 { font-size: 26px; text-transform: uppercase; }
+.ctry { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--bg); text-align: left; cursor: pointer; width: 100%; }
+.ctry[disabled] { cursor: default; opacity: .65; }
+.ctry.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.ctry small { color: var(--muted); }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; z-index: 100; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
+@media (max-width: 760px) { .toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); } }
+
+footer.foot { border-top: 1px solid var(--line); background: var(--surface); margin-top: 20px; }
+footer.foot .wrap { padding-block: 24px; display: flex; flex-wrap: wrap; gap: 12px 26px; justify-content: space-between; font-size: 13px; color: var(--muted); }
+footer.foot a { color: var(--muted); }
+.proto-note { background: var(--surface-2); font-size: 12px; color: var(--muted); text-align: center; padding: 6px 16px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="proto-note">Prototype with sample listings. Ads you post are saved in this browser only.</div>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#home" aria-label="ReKit home">Re<b>Kit</b></a>
+    <button class="country" id="countryBtn" type="button" aria-label="Change country"></button>
+    <form class="searchbar desk" id="topSearch" role="search">
+      <input id="topQ" type="search" placeholder="Search rackets, bikes, golf clubs…" aria-label="Search listings">
+      <button type="submit">Search</button>
+    </form>
+    <nav class="nav" aria-label="Main">
+      <a href="#browse" data-nav="browse">Browse</a>
+      <a href="#saved" data-nav="saved">Saved</a>
+      <a href="#advertise" data-nav="advertise">Advertise</a>
+    </nav>
+    <a class="btn btn-primary btn-post" href="#post">+ Post an ad, free</a>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><strong style="color:var(--fg)">ReKit</strong> · Second-hand sports gear, free for everyone. Funded by clearly labelled ads.</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap"><a href="#advertise">Advertise with us</a><a href="#safety">Safety tips</a><a href="#post">Post an ad</a></div>
+  </div>
+</footer>
+
+<nav class="tabs" aria-label="App">
+  <a href="#home" data-nav="home"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg></span>Home</a>
+  <a href="#browse" data-nav="browse"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span>Search</a>
+  <a href="#post" data-nav="post" class="post-tab"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></span>Sell</a>
+  <a href="#saved" data-nav="saved"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3.4 5 7 5c2 0 3.3 1 5 3 1.7-2 3-3 5-3 3.6 0 5.8 3.6 4.5 6.8C19.5 16.4 12 21 12 21z"/></svg></span>Saved</a>
+  <a href="#advertise" data-nav="advertise"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1zM17 8a5 5 0 0 1 0 8"/></svg></span>Advertise</a>
+</nav>
+
+<div id="overlay"></div>
+
+<script>
+(function () {
+"use strict";
+
+/* ---------- Config: markets ---------- */
+const MARKETS = {
+  ae: { name: "United Arab Emirates", short: "UAE", flag: "🇦🇪", currency: "AED", live: true,
+        cities: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain", "Al Ain"] },
+  sa: { name: "Saudi Arabia", short: "KSA", flag: "🇸🇦", currency: "SAR", live: false, cities: ["Riyadh", "Jeddah", "Dammam"] },
+  qa: { name: "Qatar", short: "Qatar", flag: "🇶🇦", currency: "QAR", live: false, cities: ["Doha", "Al Wakrah"] },
+  om: { name: "Oman", short: "Oman", flag: "🇴🇲", currency: "OMR", live: false, cities: ["Muscat", "Salalah"] },
+  bh: { name: "Bahrain", short: "Bahrain", flag: "🇧🇭", currency: "BHD", live: false, cities: ["Manama"] },
+  kw: { name: "Kuwait", short: "Kuwait", flag: "🇰🇼", currency: "KWD", live: false, cities: ["Kuwait City"] }
+};
+let market = "ae";
+const M = () => MARKETS[market];
+
+/* ---------- Sports & conditions ---------- */
+const SPORTS = [
+  { id: "padel-tennis", name: "Padel & Tennis", em: "🎾", c: "#c9e86b" },
+  { id: "cycling", name: "Cycling", em: "🚴", c: "#7fb3ff" },
+  { id: "gym", name: "Gym & Fitness", em: "🏋️", c: "#ffb27a" },
+  { id: "football", name: "Football", em: "⚽", c: "#8fe0a8" },
+  { id: "golf", name: "Golf", em: "⛳", c: "#a8e6c8" },
+  { id: "water", name: "Water Sports", em: "🏄", c: "#7fd8f0" },
+  { id: "running", name: "Running", em: "👟", c: "#ff9aa8" },
+  { id: "cricket", name: "Cricket", em: "🏏", c: "#f2d27a" },
+  { id: "basketball", name: "Basketball", em: "🏀", c: "#ffbf80" },
+  { id: "combat", name: "Combat Sports", em: "🥊", c: "#ff9b8f" },
+  { id: "snow", name: "Ski & Snow", em: "🎿", c: "#c8d8ff" },
+  { id: "outdoor", name: "Camping & Outdoor", em: "⛺", c: "#d6c49a" }
+];
+const SPORT = Object.fromEntries(SPORTS.map(s => [s.id, s]));
+const CONDITIONS = ["New with tags", "Like new", "Good", "Well used", "For parts"];
+
+/* ---------- Sample data ---------- */
+const NOW = Date.now(), H = 3600e3, D = 24 * H;
+const seed = [
+  { id: 1, sport: "padel-tennis", title: "Bullpadel Vertex 03 padel racket + cover", price: 650, cond: "Like new", city: "Dubai", area: "Jumeirah Village Circle", brand: "Bullpadel", size: "Standard, 365 g", age: 2*H, neg: true, desc: "Used for about 10 sessions, switched to a lighter racket. No chips on the frame. Comes with the original thermo cover and a new overgrip.\n\nCan meet at Padel Pro in Al Quoz or JVC.", seller: "Omar K.", since: "2023", resp: "within an hour", photos: 3 },
+  { id: 2, sport: "cycling", title: "Specialized Allez road bike, 54 cm, Shimano Claris", price: 1900, cond: "Good", city: "Dubai", area: "Al Barsha", brand: "Specialized", size: "54 cm frame", age: 5*H, neg: true, desc: "Great first road bike for Al Qudra. Serviced in September, new chain and bar tape. A few cosmetic scratches on the top tube.\n\nPedals not included.", seller: "Priya S.", since: "2022", resp: "within a few hours", photos: 4 },
+  { id: 3, sport: "gym", title: "Adjustable dumbbells 2.5–24 kg (pair)", price: 1100, cond: "Like new", city: "Abu Dhabi", area: "Al Reem Island", brand: "Bowflex SelectTech 552", size: "2.5–24 kg each", age: 9*H, neg: false, desc: "Moving abroad, must go. Pair of dial-adjustable dumbbells with stands. Work perfectly.", seller: "James W.", since: "2021", resp: "within a day", photos: 2 },
+  { id: 4, sport: "golf", title: "Full set TaylorMade irons 5–PW, stiff shafts", price: 1450, cond: "Good", city: "Dubai", area: "Emirates Hills", brand: "TaylorMade", size: "Right-handed, stiff", age: 1*D, neg: true, desc: "Irons 5, 6, 7, 8, 9 and PW. Grips replaced last year. Normal wear on the soles. Bag not included but can do a deal.", seller: "Hassan A.", since: "2020", resp: "within a few hours", photos: 3 },
+  { id: 5, sport: "water", title: "Kitesurf kite 12 m with bar and lines", price: 2200, cond: "Good", city: "Dubai", area: "Umm Suqeim", brand: "Duotone Evo", size: "12 m²", age: 1*D + 4*H, neg: true, desc: "2022 model, no repairs, holds air overnight. Bar and lines in good shape. Perfect for Kite Beach winter wind.", seller: "Lena M.", since: "2023", resp: "within an hour", photos: 4 },
+  { id: 6, sport: "football", title: "Nike Phantom GX boots, UK 9, FG", price: 220, cond: "Like new", city: "Sharjah", area: "Al Majaz", brand: "Nike", size: "UK 9 / EU 44", age: 2*D, neg: false, desc: "Worn twice on grass. Bought the wrong size. Box included.", seller: "Rami T.", since: "2024", resp: "within an hour", photos: 2 },
+  { id: 7, sport: "running", title: "Garmin Forerunner 255 GPS running watch", price: 650, cond: "Good", city: "Dubai", area: "Dubai Marina", brand: "Garmin", size: "46 mm", age: 2*D + 3*H, neg: true, desc: "Battery still lasts about 10 days. Light scratch on the bezel. Charger included.", seller: "Aisha R.", since: "2022", resp: "within a few hours", photos: 2 },
+  { id: 8, sport: "cricket", title: "English willow cricket bat, short handle + pads", price: 480, cond: "Good", city: "Ajman", area: "Al Nuaimiya", brand: "Gray-Nicolls", size: "SH, 2 lb 9 oz", age: 3*D, neg: true, desc: "Knocked in and oiled. Includes batting pads and gloves (right-handed).", seller: "Vikram P.", since: "2021", resp: "within a day", photos: 3 },
+  { id: 9, sport: "basketball", title: "Portable basketball hoop, height adjustable", price: 700, cond: "Well used", city: "Dubai", area: "Arabian Ranches", brand: "Lifetime", size: "2.3–3.05 m", age: 3*D + 6*H, neg: true, desc: "Some sun fading on the backboard. Base fills with water or sand. You collect, it needs two people and an SUV.", seller: "Mark D.", since: "2019", resp: "within a day", photos: 2 },
+  { id: 10, sport: "combat", title: "Boxing gloves 14 oz, wraps and focus pads", price: 180, cond: "Good", city: "Abu Dhabi", area: "Khalifa City", brand: "Venum", size: "14 oz", age: 4*D, neg: false, desc: "Gloves, two pairs of wraps and a set of curved focus pads. Cleaned and sanitised.", seller: "Yousef H.", since: "2023", resp: "within an hour", photos: 2 },
+  { id: 11, sport: "snow", title: "Ski boots + skis 160 cm, great for Ski Dubai", price: 900, cond: "Good", city: "Dubai", area: "Mirdif", brand: "Rossignol", size: "Boot 26.5, skis 160 cm", age: 5*D, neg: true, desc: "Bindings set for 26.5 boot, easy to adjust. Saves hiring every weekend.", seller: "Elena V.", since: "2022", resp: "within a few hours", photos: 3 },
+  { id: 12, sport: "outdoor", title: "4-person tent + 2 sleeping bags (desert camping)", price: 350, cond: "Like new", city: "Ras Al Khaimah", area: "Mina Al Arab", brand: "Coleman", size: "4 person", age: 6*D, neg: true, desc: "Used one weekend in Jebel Jais. Packed away clean.", seller: "Daniel F.", since: "2024", resp: "within a day", photos: 2 },
+  { id: 13, sport: "padel-tennis", title: "Wilson Pro Staff tennis racket, grip L3", price: 420, cond: "Good", city: "Abu Dhabi", area: "Saadiyat", brand: "Wilson", size: "Grip L3, 97 sq in", age: 6*H, neg: true, desc: "Freshly strung with poly at 24 kg. Minor paint chips on the head.", seller: "Sophie L.", since: "2021", resp: "within a few hours", photos: 2 },
+  { id: 14, sport: "cycling", title: "Kids' mountain bike 24\", 21-speed", price: 380, cond: "Good", city: "Sharjah", area: "Aljada", brand: "Trek", size: "24\" wheels", age: 1*D + 9*H, neg: true, desc: "Outgrown. New tyres in the summer. Ideal for ages 8–12.", seller: "Fatima Z.", since: "2023", resp: "within an hour", photos: 2 },
+  { id: 15, sport: "gym", title: "Concept2 rowing machine, Model D, PM5", price: 3200, cond: "Good", city: "Dubai", area: "Business Bay", brand: "Concept2", size: "Model D", age: 2*D + 8*H, neg: true, desc: "About 800 km on the monitor. Chain cleaned and oiled. Splits into two for transport.", seller: "Chris B.", since: "2020", resp: "within a few hours", photos: 3 },
+  { id: 16, sport: "water", title: "Inflatable stand-up paddleboard 10'6\" with pump", price: 750, cond: "Like new", city: "Fujairah", area: "Dibba", brand: "Aqua Marina", size: "10'6\"", age: 4*D + 2*H, neg: false, desc: "Board, paddle, leash, pump and backpack. No punctures.", seller: "Noura S.", since: "2022", resp: "within a day", photos: 3 },
+  { id: 17, sport: "running", title: "Nike Vaporfly 3, UK 8, under 100 km", price: 450, cond: "Like new", city: "Dubai", area: "Downtown", brand: "Nike", size: "UK 8 / EU 42.5", age: 7*D, neg: true, desc: "Raced one half marathon in them. Foam still bouncy.", seller: "Tom G.", since: "2023", resp: "within an hour", photos: 2 },
+  { id: 18, sport: "golf", title: "Golf push trolley, 3-wheel, foldable", price: 260, cond: "Good", city: "Al Ain", area: "Al Jimi", brand: "Clicgear", size: "Standard", age: 8*D, neg: true, desc: "Folds flat. Includes umbrella holder and scorecard holder.", seller: "Ahmed M.", since: "2021", resp: "within a day", photos: 2 },
+  { id: 19, sport: "football", title: "Pop-up goals pair + 10 cones + ball pump", price: 150, cond: "Good", city: "Dubai", area: "Dubai Silicon Oasis", brand: "Kickmaster", size: "1.2 m goals", age: 9*D, neg: false, desc: "Good for kids' training in the park. One goal has a small tear in the net.", seller: "Sara N.", since: "2024", resp: "within an hour", photos: 2 },
+  { id: 20, sport: "combat", title: "Freestanding punch bag with base", price: 600, cond: "Well used", city: "Dubai", area: "Al Furjan", brand: "Everlast", size: "170 cm", age: 10*D, neg: true, desc: "Base fills with water. Some cracking on the vinyl near the top, still solid.", seller: "Karim B.", since: "2020", resp: "within a few hours", photos: 2 }
+];
+
+/* Sponsored placements: paid for by businesses, always labelled */
+const SPONSORED = [
+  { id: "s1", sport: "cycling", title: "Certified pre-owned road bikes from AED 1,499", price: 1499, from: true, cond: "Like new", city: "Dubai", area: "Al Quoz", brand: "Marina Bike Lab", size: "All sizes", sponsor: "Marina Bike Lab", desc: "Every bike inspected, serviced and backed by a 3-month workshop warranty. Trade in your old bike towards the price.", seller: "Marina Bike Lab", since: "Business", resp: "within an hour", photos: 3, age: 0 },
+  { id: "s2", sport: "padel-tennis", title: "Demo padel rackets, half price, this month only", price: 399, from: true, cond: "Like new", city: "Dubai", area: "Al Quoz", brand: "Al Quoz Padel Store", size: "Try before you buy", sponsor: "Al Quoz Padel Store", desc: "Rackets from our demo wall, used for test hits only. Book a free fitting session.", seller: "Al Quoz Padel Store", since: "Business", resp: "within an hour", photos: 2, age: 0 },
+  { id: "s3", sport: "gym", title: "Ex-hotel commercial treadmills, delivered & installed", price: 3900, from: true, cond: "Good", city: "Abu Dhabi", area: "Mussafah", brand: "Gulf Gym Supply", size: "Commercial", sponsor: "Gulf Gym Supply", desc: "Refurbished commercial cardio from hotel gym upgrades. Delivery and installation included anywhere in the UAE.", seller: "Gulf Gym Supply", since: "Business", resp: "within a few hours", photos: 3, age: 0 }
+];
+
+/* Display ads (banner / MPU), each with a target sport where relevant */
+const BANNERS = [
+  { brand: "Kite Beach Academy", head: "Learn to kitesurf this winter", text: "IKO-certified lessons at Kite Beach, gear included. Beginners welcome.", cta: "See lessons", sport: "water" },
+  { brand: "Desert Trail Runners", head: "Training plans for your first ultra", text: "Weekly group runs in Al Qudra and Hatta. First month free.", cta: "Join a run", sport: "running" },
+  { brand: "Fairway Fitting Studio", head: "Custom club fitting in 45 minutes", text: "Launch monitor session, AED 200 off any new set.", cta: "Book a fitting", sport: "golf" },
+  { brand: "Spin Cycle Service", head: "Full bike service, collected from your door", text: "Pickup and drop-off across Dubai and Sharjah.", cta: "Book a service", sport: "cycling" }
+];
+
+/* ---------- Storage (per-browser, optional) ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("rekit:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("rekit:" + k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+};
+let myAds = store.get("myAds", []);
+let favs = new Set(store.get("favs", []));
+market = store.get("market", "ae");
+if (!MARKETS[market] || !MARKETS[market].live) market = "ae";
+
+const all = () => [...myAds, ...seed];
+const byId = id => all().find(l => String(l.id) === String(id)) || SPONSORED.find(l => l.id === id);
+
+/* ---------- Helpers ---------- */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const money = n => Number(n).toLocaleString("en-AE");
+const ago = ms => { if (ms < H) return "just now"; if (ms < D) return Math.floor(ms / H) + "h ago"; const d = Math.floor(ms / D); return d === 1 ? "yesterday" : d + " days ago"; };
+const postedAt = l => l.ts ? NOW - l.ts + (Date.now() - NOW) : l.age;
+const heart = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3.4 5 7 5c2 0 3.3 1 5 3 1.7-2 3-3 5-3 3.6 0 5.8 3.6 4.5 6.8C19.5 16.4 12 21 12 21z"/></svg>';
+const heartO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3.4 5 7 5c2 0 3.3 1 5 3 1.7-2 3-3 5-3 3.6 0 5.8 3.6 4.5 6.8C19.5 16.4 12 21 12 21z"/></svg>';
+const tint = (sport, alpha) => { const c = (SPORT[sport] || SPORTS[0]).c; return `color-mix(in srgb, ${c} ${alpha}%, var(--surface))`; };
+
+function thumbHTML(l, big) {
+  const s = SPORT[l.sport] || SPORTS[0];
+  if (l.images && l.images.length) return `<img src="${l.images[0]}" alt="${esc(l.title)}">`;
+  return `<span class="em" aria-hidden="true">${s.em}</span>${big ? "" : `<span class="ph">${l.photos || 1} photos</span>`}`;
+}
+
+function cardHTML(l) {
+  const sp = !!l.sponsor;
+  const fresh = !sp && postedAt(l) < 12 * H;
+  const on = favs.has(String(l.id));
+  return `<a class="card${sp ? " sponsored" : ""}" href="#listing-${esc(l.id)}">
+    <div class="thumb" style="background:${tint(l.sport, 55)}">${thumbHTML(l)}</div>
+    <div class="tag-row">${sp ? '<span class="chip chip-sponsor">Sponsored</span>' : ""}${fresh ? '<span class="chip chip-new">New</span>' : ""}</div>
+    ${sp ? "" : `<button class="fav${on ? " on" : ""}" data-fav="${esc(l.id)}" aria-label="${on ? "Remove from saved" : "Save listing"}" aria-pressed="${on}">${on ? heart : heartO}</button>`}
+    <div class="body">
+      <div class="pr price">${l.from ? '<small style="margin:0 4px 0 0">from</small>' : ""}${M().currency} ${money(l.price)}${l.neg ? "<small>neg.</small>" : ""}</div>
+      <div class="ti">${esc(l.title)}</div>
+      <div class="meta"><span class="chip chip-cond">${esc(l.cond)}</span><span>${esc(l.area ? l.area + ", " : "")}${esc(l.city)}</span></div>
+      <div class="meta">${sp ? esc(l.sponsor) : ago(postedAt(l))}</div>
+    </div>
+  </a>`;
+}
+
+function adCardHTML(b) {
+  return `<div class="card ad ad-card"><span class="ad-label">Ad</span>
+    <div class="ad-mpu"><div class="eyebrow">${esc((SPORT[b.sport] || {}).name || "Sport")}</div>
+    <div class="brand">${esc(b.brand)}</div><strong>${esc(b.head)}</strong><div class="note">${esc(b.text)}</div>
+    <a class="btn btn-ghost" href="#advertise">${esc(b.cta)}</a></div></div>`;
+}
+
+function leaderHTML(b) {
+  return `<div class="ad ad-leader"><span class="ad-label">Advertisement</span>
+    <div class="brand">${esc(b.brand)}</div>
+    <div class="msg"><strong>${esc(b.head)}</strong>${esc(b.text)}</div>
+    <a class="btn btn-primary" href="#advertise">${esc(b.cta)}</a></div>`;
+}
+
+/* ---------- Views ---------- */
+const app = document.getElementById("app");
+let filters = { q: "", sport: "", city: "", conds: [], min: "", max: "", sort: "new" };
+
+function viewHome() {
+  const counts = {}; all().forEach(l => counts[l.sport] = (counts[l.sport] || 0) + 1);
+  const recent = [...all()].sort((a, b) => postedAt(a) - postedAt(b)).slice(0, 8);
+  const cities = M().cities.map(c => `<option>${esc(c)}</option>`).join("");
+  return `
+  <section class="hero">
+    <svg class="court" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="none" stroke="currentColor" stroke-width="3">
+        <rect x="620" y="40" width="540" height="320"/><line x1="890" y1="40" x2="890" y2="360"/>
+        <circle cx="890" cy="200" r="70"/><rect x="620" y="120" width="90" height="160"/><rect x="1070" y="120" width="90" height="160"/>
+      </g>
+    </svg>
+    <div class="wrap">
+      <div class="eyebrow" style="color:var(--volt)">${M().flag} Now live in the ${esc(M().name)}</div>
+      <h1>Your old gear, <mark>someone's next season</mark></h1>
+      <p>Buy and sell second-hand sports equipment near you. Posting is free, buying is free, and there are no commission fees. Ever.</p>
+      <form class="hero-search" id="heroSearch" role="search">
+        <input id="heroQ" type="search" placeholder="What are you looking for? e.g. padel racket" aria-label="Search">
+        <select id="heroCity" aria-label="Location"><option value="">All ${esc(M().short)}</option>${cities}</select>
+        <button class="btn btn-primary" type="submit">Search</button>
+      </form>
+      <div class="hero-stats"><span><b>0%</b>commission</span><span><b>AED 0</b>to post an ad</span><span><b>${SPORTS.length}</b>sports</span></div>
+    </div>
+  </section>
+
+  <section class="section"><div class="wrap">
+    <div class="section-head"><h2>Shop by sport</h2><a href="#browse">See all listings →</a></div>
+    <div class="sports">
+      ${SPORTS.map(s => `<a class="sport" href="#sport-${s.id}">
+        <span class="glyph" style="background:${tint(s.id, 60)}" aria-hidden="true">${s.em}</span>
+        <span class="nm">${esc(s.name)}</span><span class="ct">${counts[s.id] || 0} listings</span></a>`).join("")}
+    </div>
+  </div></section>
+
+  <div class="wrap">${leaderHTML(BANNERS[0])}</div>
+
+  <section class="section"><div class="wrap">
+    <div class="section-head"><h2>From local shops</h2><span class="note">Sponsored. Businesses pay to appear here, which keeps ReKit free.</span></div>
+    <div class="grid">${SPONSORED.map(cardHTML).join("")}</div>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <div class="section-head"><h2>Fresh listings</h2><a href="#browse">Browse all →</a></div>
+    <div class="grid">${recent.map(cardHTML).join("")}</div>
+  </div></section>
+
+  <section class="section"><div class="wrap">
+    <div class="section-head"><h2>How ReKit works</h2></div>
+    <div class="steps">
+      <div><h3>Snap & post</h3><p>Add photos, a price and your area. It takes about two minutes and costs nothing.</p></div>
+      <div><h3>Chat in the app</h3><p>Buyers message you directly. Your phone number stays hidden until you choose to share it.</p></div>
+      <div><h3>Meet & play</h3><p>Meet somewhere public, check the gear, pay the seller directly. We never take a cut.</p></div>
+    </div>
+  </div></section>`;
+}
+
+function applyFilters() {
+  const q = filters.q.trim().toLowerCase();
+  let list = all().filter(l =>
+    (!filters.sport || l.sport === filters.sport) &&
+    (!filters.city || l.city === filters.city) &&
+    (!filters.conds.length || filters.conds.includes(l.cond)) &&
+    (filters.min === "" || l.price >= +filters.min) &&
+    (filters.max === "" || l.price <= +filters.max) &&
+    (!q || [l.title, l.brand, l.desc, l.area, (SPORT[l.sport] || {}).name].join(" ").toLowerCase().includes(q)));
+  const s = filters.sort;
+  list.sort((a, b) => s === "low" ? a.price - b.price : s === "high" ? b.price - a.price : postedAt(a) - postedAt(b));
+  return list;
+}
+
+function viewBrowse() {
+  const list = applyFilters();
+  const sp = SPONSORED.filter(x => !filters.sport || x.sport === filters.sport);
+  const banner = BANNERS.find(b => b.sport === filters.sport) || BANNERS[1];
+  // Interleave: 1 sponsored at the top, an ad card after 6 results, another sponsored after 11.
+  const items = list.map(cardHTML);
+  if (list.length) {
+    if (sp[0]) items.unshift(cardHTML(sp[0]));
+    if (items.length > 6) items.splice(6, 0, adCardHTML(banner));
+    if (sp[1] && items.length > 11) items.splice(11, 0, cardHTML(sp[1]));
+  }
+  const title = filters.sport ? SPORT[filters.sport].name : filters.q ? `“${esc(filters.q)}”` : "All sports gear";
+  const cityOpts = M().cities.map(c => `<option ${filters.city === c ? "selected" : ""}>${esc(c)}</option>`).join("");
+  return `<div class="wrap section">
+    <div class="m-search"><input id="mq" type="search" value="${esc(filters.q)}" placeholder="Search rackets, bikes, golf clubs…" aria-label="Search listings"></div>
+    <div class="pillbar" role="group" aria-label="Sport">
+      <button data-sport="" class="${!filters.sport ? "on" : ""}">All</button>
+      ${SPORTS.map(s => `<button data-sport="${s.id}" class="${filters.sport === s.id ? "on" : ""}">${s.em} ${esc(s.name)}</button>`).join("")}
+    </div>
+    <div class="browse">
+      <aside class="filters" id="filters">
+        <h3>Filters</h3>
+        <div class="field"><label for="fq">Keyword</label><input id="fq" type="search" value="${esc(filters.q)}" placeholder="Brand, model, size…"></div>
+        <div class="field"><label for="fsport">Sport</label><select id="fsport"><option value="">All sports</option>
+          ${SPORTS.map(s => `<option value="${s.id}" ${filters.sport === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></div>
+        <div class="field"><label for="fcity">Emirate / city</label><select id="fcity"><option value="">All ${esc(M().short)}</option>${cityOpts}</select></div>
+        <div class="field"><span class="lbl">Price (${M().currency})</span><div class="row2">
+          <input id="fmin" type="number" min="0" inputmode="numeric" placeholder="Min" value="${esc(filters.min)}" aria-label="Minimum price">
+          <input id="fmax" type="number" min="0" inputmode="numeric" placeholder="Max" value="${esc(filters.max)}" aria-label="Maximum price"></div></div>
+        <div class="field"><span class="lbl">Condition</span><div class="conds">
+          ${CONDITIONS.map((c, i) => `<label><input type="checkbox" id="fc${i}" data-cond="${esc(c)}" ${filters.conds.includes(c) ? "checked" : ""}>${esc(c)}</label>`).join("")}</div></div>
+        <button class="btn btn-ghost" id="clearF" type="button">Clear filters</button>
+      </aside>
+      <div style="min-width:0">
+        <div class="toolbar">
+          <div><h1>${title}</h1><div class="count">${list.length} ${list.length === 1 ? "listing" : "listings"}${filters.city ? " in " + esc(filters.city) : ""}</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost filter-toggle" id="ftoggle" type="button">Filters</button>
+            <select id="fsort" aria-label="Sort"><option value="new" ${filters.sort === "new" ? "selected" : ""}>Newest first</option>
+              <option value="low" ${filters.sort === "low" ? "selected" : ""}>Price: low to high</option>
+              <option value="high" ${filters.sort === "high" ? "selected" : ""}>Price: high to low</option></select>
+          </div>
+        </div>
+        ${list.length ? `<div class="grid">${items.join("")}</div>` :
+          `<div class="empty"><h3>Nothing here yet</h3><p>Try another sport or widen the price range. Or be the first to list one.</p><a class="btn btn-primary" href="#post">Post an ad, free</a></div>`}
+      </div>
+    </div></div>`;
+}
+
+function viewListing(id) {
+  const l = byId(id);
+  if (!l) return `<div class="wrap section"><div class="empty"><h3>Listing not found</h3><p>It may have been sold or removed.</p><a class="btn btn-primary" href="#browse">Browse listings</a></div></div>`;
+  const s = SPORT[l.sport];
+  const sp = !!l.sponsor;
+  const on = favs.has(String(l.id));
+  const nPhotos = l.images && l.images.length ? l.images.length : (l.photos || 1);
+  const similar = all().filter(x => x.sport === l.sport && String(x.id) !== String(l.id)).slice(0, 4);
+  const banner = BANNERS.find(b => b.sport === l.sport) || BANNERS[2];
+  const thumbs = Array.from({ length: nPhotos }, (_, i) => `<button data-photo="${i}" class="${i === 0 ? "on" : ""}" style="background:${tint(l.sport, 35 + i * 12)}" aria-label="Photo ${i + 1}">${l.images ? `<img src="${l.images[i]}" alt="">` : s.em}</button>`).join("");
+  return `<div class="wrap">
+    <div class="crumbs"><a href="#home">Home</a>›<a href="#sport-${s.id}">${esc(s.name)}</a>›<span>${esc(l.city)}</span></div>
+    <div class="detail">
+      <div class="d-left" style="display:grid;gap:16px;min-width:0">
+        <div class="gallery">
+          <div class="main" id="mainPhoto" style="background:${tint(l.sport, 35)}">${l.images && l.images.length ? `<img src="${l.images[0]}" alt="${esc(l.title)}">` : `<span class="em" aria-hidden="true">${s.em}</span>`}</div>
+          ${nPhotos > 1 ? `<div class="strip">${thumbs}</div>` : ""}
+        </div>
+        <div class="panel d-info">
+          <h2 style="font-size:24px;text-transform:uppercase">Details</h2>
+          <dl class="specs" style="margin:0">
+            <div><dt>Condition</dt><dd>${esc(l.cond)}</dd></div>
+            <div><dt>Sport</dt><dd>${esc(s.name)}</dd></div>
+            <div><dt>Brand / model</dt><dd>${esc(l.brand || "Not specified")}</dd></div>
+            <div><dt>Size / spec</dt><dd>${esc(l.size || "Not specified")}</dd></div>
+            <div><dt>Location</dt><dd>${esc(l.area ? l.area + ", " : "")}${esc(l.city)}</dd></div>
+            <div><dt>Posted</dt><dd>${sp ? "Sponsored listing" : ago(postedAt(l))}</dd></div>
+          </dl>
+          <h2 style="font-size:24px;text-transform:uppercase">Description</h2>
+          <p class="desc">${esc(l.desc)}</p>
+        </div>
+      </div>
+      <div class="side-stack">
+        <div class="panel">
+          ${sp ? '<span class="chip chip-sponsor" style="justify-self:start">Sponsored by ' + esc(l.sponsor) + "</span>" : ""}
+          <h1 class="d-title">${esc(l.title)}</h1>
+          <div class="d-price price">${l.from ? '<span style="font-size:18px">from</span>' : ""}${M().currency} ${money(l.price)}${l.neg ? '<span class="neg">Price negotiable</span>' : ""}</div>
+          <div class="seller">
+            <div class="avatar">${esc(l.seller.charAt(0))}</div>
+            <div><div class="nm">${esc(l.seller)}</div>
+            <div class="sub">${sp ? "Verified business" : "Member since " + esc(l.since)} · replies ${esc(l.resp)}</div>
+            <div class="verified">✓ Phone number verified</div></div>
+          </div>
+          <button class="btn btn-primary btn-block" data-chat="${esc(l.id)}" type="button">Chat with ${sp ? "store" : "seller"}</button>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+            <button class="btn btn-ghost" id="showPhone" type="button">Show phone number</button>
+            ${sp ? "" : `<button class="btn btn-ghost" data-fav="${esc(l.id)}" aria-pressed="${on}" type="button">${on ? "♥ Saved" : "♡ Save"}</button>`}
+          </div>
+          <div id="phoneOut" class="phone-reveal" hidden></div>
+        </div>
+        <div class="panel">
+          <strong>Stay safe when you meet</strong>
+          <ul class="tips"><li>Meet in a public place, such as a mall or your sports club.</li><li>Check the gear in person before you pay.</li><li>Never send a deposit or pay by transfer to someone you haven't met.</li><li>ReKit will never ask for your bank details.</li></ul>
+        </div>
+        <div class="ad">${adCardHTML(banner).replace('class="card ad ad-card"', 'style="position:relative"')}</div>
+      </div>
+    </div>
+    ${similar.length ? `<section class="section" style="padding-top:0"><div class="section-head"><h2>More ${esc(s.name)}</h2><a href="#sport-${s.id}">See all →</a></div>
+      <div class="grid">${similar.map(cardHTML).join("")}</div></section>` : ""}
+  </div>`;
+}
+
+let draftPhotos = [];
+function viewPost() {
+  const cityOpts = M().cities.map(c => `<option>${esc(c)}</option>`).join("");
+  return `<div class="wrap"><div class="form-wrap">
+    <form class="form-card" id="postForm" novalidate>
+      <div><div class="eyebrow">Sell your gear</div><h1 style="font-size:40px;text-transform:uppercase">Post an ad</h1></div>
+      <h2>What are you selling?</h2>
+      <div class="field"><label for="pTitle">Title</label><input id="pTitle" maxlength="80" placeholder="e.g. Babolat padel racket, used 3 months" required></div>
+      <div class="row2">
+        <div class="field"><label for="pSport">Sport</label><select id="pSport" required><option value="">Choose a sport</option>${SPORTS.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></div>
+        <div class="field"><label for="pCond">Condition</label><select id="pCond" required>${CONDITIONS.map(c => `<option>${esc(c)}</option>`).join("")}</select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="pBrand">Brand / model</label><input id="pBrand" placeholder="Optional"></div>
+        <div class="field"><label for="pSize">Size / spec</label><input id="pSize" placeholder="e.g. UK 9, 54 cm, grip L2"></div>
+      </div>
+      <div class="field"><label for="pDesc">Description</label><textarea id="pDesc" maxlength="1500" placeholder="How long have you used it? Any wear or damage? What's included?"></textarea></div>
+      <div class="field"><span class="lbl">Photos (up to 6)</span>
+        <div class="photos" id="photoGrid"></div>
+        <span class="hint">Clear daylight photos sell faster. The first photo is your cover.</span></div>
+      <h2>Price & location</h2>
+      <div class="row2">
+        <div class="field"><label for="pPrice">Price (${M().currency})</label><input id="pPrice" type="number" min="0" inputmode="numeric" placeholder="0" required></div>
+        <div class="field"><label for="pCity">Emirate / city</label><select id="pCity" required>${cityOpts}</select></div>
+      </div>
+      <div class="field"><label for="pArea">Area</label><input id="pArea" placeholder="e.g. Dubai Marina"></div>
+      <label class="check"><input type="checkbox" id="pNeg" checked> Open to offers</label>
+      <h2>Your details</h2>
+      <div class="row2">
+        <div class="field"><label for="pName">Name shown to buyers</label><input id="pName" placeholder="e.g. Sam R." required></div>
+        <div class="field"><label for="pPhone">Mobile</label><input id="pPhone" type="tel" placeholder="05X XXX XXXX" required></div>
+      </div>
+      <span class="hint">Your number stays hidden until you choose to share it in chat.</span>
+      <div id="postErr" class="err" hidden></div>
+      <button class="btn btn-primary btn-block" type="submit" style="padding-block:14px;font-size:16px">Publish ad, free</button>
+    </form>
+    <aside style="display:grid;gap:14px">
+      <div class="free-badge"><h3>Free. Really.</h3><p style="margin:0">No listing fee, no commission, no premium tier for sellers. ReKit is paid for by local sports businesses who advertise here, and every ad is labelled.</p></div>
+      <div class="panel"><strong>Tips for a quick sale</strong>
+        <ul class="tips"><li>Put the brand and size in the title.</li><li>Mention any wear honestly. Buyers trust it.</li><li>Check what similar items are listed for.</li></ul></div>
+    </aside>
+  </div></div>`;
+}
+
+function viewSaved() {
+  const list = all().filter(l => favs.has(String(l.id)));
+  return `<div class="wrap section">
+    <div class="toolbar"><div><h1>Saved</h1><div class="count">${list.length} saved ${list.length === 1 ? "item" : "items"}</div></div></div>
+    ${list.length ? `<div class="grid">${list.map(cardHTML).join("")}</div>` :
+      `<div class="empty"><h3>No saved items yet</h3><p>Tap the heart on any listing to keep it here.</p><a class="btn btn-primary" href="#browse">Browse listings</a></div>`}
+    ${myAds.length ? `<section class="section"><div class="section-head"><h2>Your ads</h2></div><div class="grid">${myAds.map(cardHTML).join("")}</div></section>` : ""}
+  </div>`;
+}
+
+function viewAdvertise() {
+  const products = [
+    { h: "Homepage banner", where: "Top of the home page", rate: "3,500", per: "per week", pts: ["Full-width banner seen by every visitor", "Desktop and app", "One advertiser at a time"] },
+    { h: "Sport takeover", where: "One sport category", rate: "1,500", per: "per week", best: true, pts: ["Banner + in-feed ads in one sport, e.g. Padel", "Reach buyers already shopping that sport", "Ideal for clubs, coaches and specialist shops"] },
+    { h: "Sponsored listings", where: "In search results", rate: "75", per: "per listing / week", pts: ["Your stock shown at the top of matching searches", "Labelled 'Sponsored'", "For businesses only. Private sellers never pay."] },
+    { h: "Listing-page ads", where: "Beside listing details", rate: "25", per: "per 1,000 views (CPM)", pts: ["Targeted by sport and emirate", "Pay only for impressions served", "Self-serve dashboard (planned)"] },
+    { h: "Newsletter feature", where: "Weekly 'Fresh Gear' email", rate: "1,200", per: "per send", pts: ["Featured slot in the weekly email", "Segmented by sport interest", "Includes click report"] },
+    { h: "Event & club partner", where: "Site-wide", rate: "Custom", per: "", pts: ["Race, tournament or academy launches", "Co-branded collections, e.g. 'Kit for Dubai 30x30'", "Talk to us for a package"] }
+  ];
+  return `<section class="adv-hero"><div class="wrap">
+      <div class="eyebrow" style="color:inherit;opacity:.8">ReKit for business</div>
+      <h1>Reach people who are buying sports gear right now</h1>
+      <p>Everyone who visits ReKit is shopping for a sport they play. Put your shop, club, academy or event in front of them, targeted by sport and emirate.</p>
+      <div><a class="btn btn-volt" href="#advertise-form">Request a media kit</a></div>
+    </div></section>
+  <section class="section"><div class="wrap">
+    <div class="adv-stats">
+      <div class="stat"><b>${SPORTS.length}</b><span>sport categories to target</span></div>
+      <div class="stat"><b>${M().cities.length}</b><span>UAE cities and emirates</span></div>
+      <div class="stat"><b>0%</b><span>fees for users, so more of them</span></div>
+      <div class="stat"><b>6</b><span>GCC markets on the roadmap</span></div>
+    </div>
+    <p class="note">Audience numbers will be published once the site launches. Rates below are starting prices for planning and are in ${M().currency}.</p>
+  </div></section>
+  <section class="section" style="padding-top:0"><div class="wrap">
+    <div class="section-head"><h2>Ad products</h2></div>
+    <div class="products">${products.map(p => `<div class="product${p.best ? " best" : ""}">
+      ${p.best ? '<span class="chip chip-new" style="justify-self:start">Most popular</span>' : ""}
+      <div class="where">${esc(p.where)}</div><h3>${esc(p.h)}</h3>
+      <div class="rate price">${p.rate === "Custom" ? "Custom" : M().currency + " " + p.rate} <small>${esc(p.per)}</small></div>
+      <ul>${p.pts.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>
+  </div></section>
+  <section class="section" style="padding-top:0"><div class="wrap">
+    <div class="section-head"><h2>Our ad rules</h2></div>
+    <div class="principles">
+      <div><h3>Always labelled</h3><p>Every paid placement says "Ad" or "Sponsored". Users can always tell.</p></div>
+      <div><h3>Sport only</h3><p>We accept sport, fitness and outdoor advertisers. No gambling, no unrelated pop-ups.</p></div>
+      <div><h3>Never in the way</h3><p>Ads sit beside listings, never over them. No autoplay video, no full-screen interstitials.</p></div>
+    </div>
+  </div></section>
+  <section class="section" style="padding-top:0" id="advertise-form"><div class="wrap" style="max-width:720px">
+    <form class="form-card" id="advForm" novalidate>
+      <h2 style="border:0;padding:0;font-size:30px">Talk to our ad team</h2>
+      <div class="row2">
+        <div class="field"><label for="aName">Your name</label><input id="aName" required></div>
+        <div class="field"><label for="aBiz">Business</label><input id="aBiz" required placeholder="Shop, club or brand"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="aEmail">Work email</label><input id="aEmail" type="email" required></div>
+        <div class="field"><label for="aSport">Main sport</label><select id="aSport"><option value="">Several / all</option>${SPORTS.map(s => `<option>${esc(s.name)}</option>`).join("")}</select></div>
+      </div>
+      <div class="field"><label for="aBudget">Monthly budget (${M().currency})</label><select id="aBudget"><option>Under 2,000</option><option>2,000 – 10,000</option><option>10,000 – 50,000</option><option>50,000+</option></select></div>
+      <div class="field"><label for="aMsg">What do you want to promote?</label><textarea id="aMsg" style="min-height:90px"></textarea></div>
+      <div id="advErr" class="err" hidden></div>
+      <button class="btn btn-primary" type="submit">Send enquiry</button>
+      <span class="hint">Prototype: enquiries are not sent anywhere yet.</span>
+    </form>
+  </div></section>`;
+}
+
+function viewSafety() {
+  return `<div class="wrap section" style="max-width:760px"><div class="panel">
+    <h1 style="font-size:40px;text-transform:uppercase">Buying & selling safely</h1>
+    <ul class="tips" style="font-size:15px;color:var(--fg)">
+      <li>Meet in a busy public place: a mall, a café, or the car park of your sports club.</li>
+      <li>Inspect the item. Spin bike wheels, check racket frames for cracks, try boots on.</li>
+      <li>Pay in person, in cash or by instant transfer once you have the item in your hands.</li>
+      <li>Be wary of prices that look too good, or sellers who only want a courier and a deposit.</li>
+      <li>Keep the conversation in ReKit chat so there is a record if something goes wrong.</li>
+      <li>Report suspicious listings using the flag on the listing page.</li>
+    </ul></div></div>`;
+}
+
+/* ---------- Router ---------- */
+function route() {
+  const h = (location.hash || "#home").slice(1);
+  let html, nav = h;
+  if (h.startsWith("listing-")) { html = viewListing(h.slice(8)); nav = ""; }
+  else if (h.startsWith("sport-")) { filters = { ...filters, sport: SPORT[h.slice(6)] ? h.slice(6) : "", q: "" }; html = viewBrowse(); nav = "browse"; }
+  else if (h === "browse") html = viewBrowse();
+  else if (h === "post") html = viewPost();
+  else if (h === "saved") html = viewSaved();
+  else if (h === "advertise" || h === "advertise-form") { html = viewAdvertise(); nav = "advertise"; }
+  else if (h === "safety") html = viewSafety();
+  else { html = viewHome(); nav = "home"; }
+  app.innerHTML = html;
+  document.querySelectorAll("[data-nav]").forEach(a => a.classList.toggle("on", a.dataset.nav === nav));
+  if (h === "post") renderPhotos();
+  if (h === "advertise-form") document.getElementById("advertise-form")?.scrollIntoView();
+  else window.scrollTo(0, 0);
+  renderCountry();
+}
+function rerenderBrowse() {
+  const open = document.getElementById("filters")?.classList.contains("open");
+  const active = document.activeElement && document.activeElement.id;
+  app.innerHTML = viewBrowse();
+  if (open) document.getElementById("filters").classList.add("open");
+  if (active && document.getElementById(active)) { const el = document.getElementById(active); el.focus(); if (el.type === "search") { const v = el.value; el.setSelectionRange(v.length, v.length); } }
+}
+function goBrowse() { if (location.hash === "#browse") rerenderBrowse(); else location.hash = "browse"; }
+window.addEventListener("hashchange", route);
+
+/* ---------- Interactions ---------- */
+function toast(msg) {
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; t.setAttribute("role", "status");
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
+}
+function toggleFav(id) {
+  id = String(id);
+  if (favs.has(id)) { favs.delete(id); toast("Removed from saved"); } else { favs.add(id); toast("Saved"); }
+  store.set("favs", [...favs]);
+}
+
+document.addEventListener("click", e => {
+  const fav = e.target.closest("[data-fav]");
+  if (fav) { e.preventDefault(); e.stopPropagation(); toggleFav(fav.dataset.fav); const y = scrollY; route(); scrollTo(0, y); return; }
+  const sp = e.target.closest("[data-sport]");
+  if (sp) { filters.sport = sp.dataset.sport; rerenderBrowse(); return; }
+  if (e.target.id === "clearF") { filters = { q: "", sport: "", city: "", conds: [], min: "", max: "", sort: filters.sort }; rerenderBrowse(); return; }
+  if (e.target.id === "ftoggle") { document.getElementById("filters").classList.toggle("open"); return; }
+  const ph = e.target.closest("[data-photo]");
+  if (ph) {
+    const l = byId(location.hash.slice(9)); const i = +ph.dataset.photo; const main = document.getElementById("mainPhoto");
+    document.querySelectorAll("[data-photo]").forEach(b => b.classList.toggle("on", b === ph));
+    if (l.images) main.innerHTML = `<img src="${l.images[i]}" alt="${esc(l.title)}">`;
+    else main.style.background = tint(l.sport, 35 + i * 12);
+    return;
+  }
+  if (e.target.id === "showPhone") {
+    const out = document.getElementById("phoneOut"); const l = byId(location.hash.slice(9));
+    const n = String(1000000 + (String(l.id).split("").reduce((a, c) => a * 31 + c.charCodeAt(0), 7) % 8999999));
+    out.hidden = false; out.textContent = l.phone || ("+971 50 " + n.slice(0, 3) + " " + n.slice(3));
+    e.target.textContent = "Number shown below"; e.target.disabled = true; return;
+  }
+  const chat = e.target.closest("[data-chat]");
+  if (chat) { openChat(byId(chat.dataset.chat)); return; }
+  if (e.target.closest("#countryBtn")) { openCountry(); return; }
+  if (e.target.closest("[data-close]") || e.target.classList.contains("drawer-bg")) { closeOverlay(); return; }
+  const ct = e.target.closest("[data-market]");
+  if (ct) { market = ct.dataset.market; store.set("market", market); closeOverlay(); route(); toast("Showing " + M().name); return; }
+  const rm = e.target.closest("[data-rmphoto]");
+  if (rm) { draftPhotos.splice(+rm.dataset.rmphoto, 1); renderPhotos(); return; }
+  const qk = e.target.closest("[data-quick]");
+  if (qk) { sendChat(qk.dataset.quick); return; }
+});
+
+document.addEventListener("input", e => {
+  const id = e.target.id;
+  if (id === "fq" || id === "mq") { filters.q = e.target.value; rerenderBrowse(); }
+  else if (id === "fmin" || id === "fmax") { filters[id.slice(1)] = e.target.value; rerenderBrowse(); }
+});
+document.addEventListener("change", e => {
+  const id = e.target.id;
+  if (id === "fsport") { filters.sport = e.target.value; rerenderBrowse(); }
+  else if (id === "fcity") { filters.city = e.target.value; rerenderBrowse(); }
+  else if (id === "fsort") { filters.sort = e.target.value; rerenderBrowse(); }
+  else if (e.target.dataset.cond) {
+    const c = e.target.dataset.cond;
+    filters.conds = e.target.checked ? [...filters.conds, c] : filters.conds.filter(x => x !== c); rerenderBrowse();
+  } else if (id === "photoIn") {
+    const files = [...e.target.files].slice(0, 6 - draftPhotos.length);
+    files.forEach(f => {
+      if (!f.type.startsWith("image/")) return;
+      const r = new FileReader();
+      r.onload = () => shrink(r.result, src => { draftPhotos.push(src); renderPhotos(); });
+      r.readAsDataURL(f);
+    });
+  }
+});
+
+/* Resize uploads so they fit in browser storage */
+function shrink(src, cb) {
+  const img = new Image();
+  img.onload = () => {
+    const max = 900, k = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); cb(c.toDataURL("image/jpeg", 0.72));
+  };
+  img.onerror = () => cb(src);
+  img.src = src;
+}
+function renderPhotos() {
+  const g = document.getElementById("photoGrid"); if (!g) return;
+  g.innerHTML = draftPhotos.map((p, i) => `<div class="slot"><img src="${p}" alt="Photo ${i + 1}"><button type="button" data-rmphoto="${i}" aria-label="Remove photo">×</button></div>`).join("") +
+    (draftPhotos.length < 6 ? `<label class="slot" for="photoIn">+ Add photo<input id="photoIn" type="file" accept="image/*" multiple></label>` : "");
+}
+
+document.addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target;
+  if (f.id === "topSearch" || f.id === "heroSearch") {
+    filters = { q: "", sport: "", city: "", conds: [], min: "", max: "", sort: "new" };
+    filters.q = (f.id === "topSearch" ? document.getElementById("topQ") : document.getElementById("heroQ")).value;
+    if (f.id === "heroSearch") filters.city = document.getElementById("heroCity").value;
+    goBrowse(); return;
+  }
+  if (f.id === "postForm") {
+    const v = id => document.getElementById(id).value.trim();
+    const missing = [];
+    if (!v("pTitle")) missing.push("a title"); if (!v("pSport")) missing.push("a sport");
+    if (v("pPrice") === "" || +v("pPrice") < 0) missing.push("a price"); if (!v("pName")) missing.push("your name");
+    if (!/^[+\d][\d\s-]{6,}$/.test(v("pPhone"))) missing.push("a valid mobile number");
+    const err = document.getElementById("postErr");
+    if (missing.length) { err.hidden = false; err.textContent = "Please add " + missing.join(", ") + "."; err.scrollIntoView({ block: "center" }); return; }
+    const ad = { id: "u" + Date.now(), sport: v("pSport"), title: v("pTitle"), price: Math.round(+v("pPrice")), cond: v("pCond"), city: v("pCity"), area: v("pArea"),
+      brand: v("pBrand"), size: v("pSize"), neg: document.getElementById("pNeg").checked, desc: v("pDesc") || "No description given.", seller: v("pName"), phone: v("pPhone"),
+      since: String(new Date().getFullYear()), resp: "within an hour", images: draftPhotos.slice(), photos: draftPhotos.length || 1, ts: Date.now() };
+    myAds.unshift(ad);
+    let saved = store.set("myAds", myAds);
+    if (!saved && ad.images.length) { ad.images = []; saved = store.set("myAds", myAds); }
+    draftPhotos = [];
+    location.hash = "listing-" + ad.id;
+    toast(saved ? "Your ad is live" : "Your ad is live for this visit (browser storage is off)");
+    return;
+  }
+  if (f.id === "advForm") {
+    const v = id => document.getElementById(id).value.trim();
+    const err = document.getElementById("advErr");
+    if (!v("aName") || !v("aBiz") || !/^\S+@\S+\.\S+$/.test(v("aEmail"))) { err.hidden = false; err.textContent = "Please add your name, business and a valid email."; return; }
+    f.innerHTML = `<h2 style="border:0;padding:0;font-size:30px">Thanks, ${esc(v("aName"))}</h2><p style="margin:0">In the live product this goes to the ad sales inbox and we reply within one working day with a media kit for ${esc(v("aBiz"))}.</p><a class="btn btn-ghost" href="#home">Back to home</a>`;
+    return;
+  }
+  if (f.id === "chatForm") { const i = document.getElementById("chatIn"); if (i.value.trim()) sendChat(i.value.trim()); i.value = ""; }
+});
+
+/* Chat drawer (mock) */
+let chatWith = null;
+function openChat(l) {
+  chatWith = l;
+  const first = l.seller.split(" ")[0];
+  document.getElementById("overlay").innerHTML = `<div class="drawer-bg"></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-label="Chat with ${esc(l.seller)}">
+    <header><div class="avatar">${esc(l.seller.charAt(0))}</div><div style="min-width:0"><strong>${esc(l.seller)}</strong><div class="note" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l.title)}</div></div>
+      <button class="x" data-close aria-label="Close chat">×</button></header>
+    <div class="msgs" id="msgs"><div class="msg sys">Chat about this item. Keep payments in person.<br>Demo chat: replies are automatic.</div></div>
+    <div class="quick">
+      <button data-quick="Hi ${esc(first)}, is this still available?">Still available?</button>
+      <button data-quick="Would you take ${M().currency} ${money(Math.round(l.price * 0.85 / 10) * 10)}?">Make an offer</button>
+      <button data-quick="Where can we meet to see it?">Where to meet?</button>
+    </div>
+    <form class="compose" id="chatForm"><input id="chatIn" placeholder="Write a message…" aria-label="Message" autocomplete="off"><button class="btn btn-primary" type="submit">Send</button></form>
+  </aside>`;
+  document.getElementById("chatIn").focus();
+}
+function sendChat(text) {
+  const box = document.getElementById("msgs"); if (!box) return;
+  box.insertAdjacentHTML("beforeend", `<div class="msg me">${esc(text)}</div>`);
+  box.scrollTop = box.scrollHeight;
+  const l = chatWith;
+  const reply = /offer|take|\d/.test(text) ? `I could do ${M().currency} ${money(Math.round(l.price * 0.92 / 10) * 10)}. Does that work?`
+    : /meet|where/i.test(text) ? `I'm in ${l.area || l.city}. Evenings after 6 work for me.` : "Yes, still available! Happy to answer any questions.";
+  setTimeout(() => { if (document.getElementById("msgs")) { box.insertAdjacentHTML("beforeend", `<div class="msg them">${esc(reply)}</div>`); box.scrollTop = box.scrollHeight; } }, 900);
+}
+
+function openCountry() {
+  document.getElementById("overlay").innerHTML = `<div class="drawer-bg"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Choose country">
+    <h3>Choose your country</h3>
+    ${Object.entries(MARKETS).map(([k, m]) => `<button class="ctry${k === market ? " on" : ""}" data-market="${k}" ${m.live ? "" : "disabled"} type="button">
+      <span>${m.flag} <strong>${esc(m.name)}</strong></span><small>${m.live ? m.currency : "Coming soon"}</small></button>`).join("")}
+    <button class="btn btn-ghost" data-close type="button">Close</button>
+  </div>`;
+}
+function closeOverlay() { document.getElementById("overlay").innerHTML = ""; chatWith = null; }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeOverlay(); });
+function renderCountry() { document.getElementById("countryBtn").innerHTML = `${M().flag} ${esc(M().short)} ▾`; }
+
+route();
+})();
+</script>
