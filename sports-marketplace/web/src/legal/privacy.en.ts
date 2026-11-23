@@ -36,7 +36,7 @@ export const privacyEn: LegalDoc = {
             "Account details: your mobile number (verified with a text-message code), your name, and your emirate or city. If you sign up with email, we also collect your email address and password. You can also add an email address for alerts, which we only use once you confirm it from a link we send you. We store passwords only in a scrambled (hashed) form, so we can't see them. We also store your language choice.",
             "Your ads: title, description, price, condition, brand, size, area and photos. Ads are public. Photos are resized in your browser before upload, which normally removes hidden location data. Even so, check that your photos don't show anything personal.",
             "Messages you send and receive in ReKit chat.",
-            "Items you save, and ads you report, including the reason you give.",
+            "Items you save, people you block, and ads or chats you report, including the reason you give.",
             "If you contact our ad team: your name, business name, email address and message.",
             "If you buy advertising: your ad, the dates and placement you booked, and payment records (amount, VAT, date and status). Card payments are handled by Stripe, so we never receive your card details.",
           ],

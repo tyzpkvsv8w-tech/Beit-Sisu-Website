@@ -60,6 +60,11 @@ The policy was written from the code. If the app changes, update the policy firs
 | Ad photos removed from storage when the ad is deleted | `setListingStatus` in `src/app/actions/listings.ts` |
 | Third parties: Supabase, the SMS provider, Vercel, Resend (email), Stripe (payments), browser push services, Google Fonts | Google Fonts could be self-hosted to remove it from the list |
 
+| Topic (Google Play) | What the app does | Why it needs checking |
+|---|---|---|
+| In-app payments | Ad bookings and promotions are website-only inside the Android app | Confirm whether Google Play's Payments policy allows advertising purchases with Stripe in a TWA. If it does, set `ANDROID_ALLOW_PAYMENTS=1`. |
+| Data safety form | Answers in `android/store-listing/data-safety.md` | Check them alongside the Privacy Policy. |
+
 ## 4. Gaps to close before or soon after launch
 
 - **Automatic deletion:** the policy says reports and advertiser enquiries are kept "up to 2 years", but nothing deletes them automatically yet. Add a scheduled clean-up, or change the wording.

@@ -58,6 +58,12 @@ See **[GO-LIVE.md](GO-LIVE.md)** for step-by-step Supabase + Vercel setup.
 - **Chat:** one conversation per buyer per listing. New messages appear within about 4 seconds, unread badges show in the header, and messages are marked read when opened. Sellers' phone numbers stay hidden unless they choose to show them, and then only to logged-in users.
 - **Your data:** users can permanently delete their account, with its ads, photos, saved items and conversations, from the account page.
 - **Trust & safety:** report an ad. Admins see reports and can dismiss them or remove the ad.
+- **Google Play readiness:** see [`../android/README.md`](../android/README.md).
+  - The app link file is at `/.well-known/assetlinks.json`, set from environment variables.
+  - The Android app's settings (`android/twa-manifest.json`) and the full listing: English and Arabic text, screenshots, feature graphics, and Data safety and content-rating answers.
+  - **Blocking:** block (and optionally report) someone from any chat. They can't message you or start a new chat, the chat disappears from your inbox, and you can unblock them from your account page.
+  - A public page explains how to delete your account (`/delete-account`).
+  - Ad bookings and promotions are website-only inside the Android app by default (`ANDROID_ALLOW_PAYMENTS`).
 - **Push notifications for new messages:**
   - People turn notifications on per device, on the account page or from a prompt in the chat right after sending a message. "No thanks" is remembered.
   - Each message shows the sender, the ad and the start of the message, in the recipient's language. Tapping opens the conversation.
@@ -96,7 +102,7 @@ ALLOW_DEV_SMS=1 ALLOW_DEV_EMAIL=1 ALLOW_DEV_SECRETS=1 npm start   # terminal 1, 
 npm run db:reset && npm run test:e2e    # terminal 2
 ```
 
-`tests/e2e.mjs` drives a real browser through 145 checks:
+`tests/e2e.mjs` drives a real browser through 158 checks:
 
 - browsing and filters
 - phone signup: wrong number, wrong code, missing city or terms
@@ -109,6 +115,7 @@ npm run db:reset && npm run test:e2e    # terminal 2
 - the Terms and Privacy pages in both languages, and deleting an account
 - ad booking: double-booking blocked (including by unpaid holds), VAT totals, https-only links, paying, cancelling at checkout and rebooking, approval and refund emails, the admin campaign form going live, business-only promotions, forged payment notifications refused, and the Arabic booking page
 - push notifications, using `tests/push-mock.mjs` as the push service and Chrome's newer headless mode (the default headless browser has no notification support). Covers turning on, encrypted and signed delivery (decrypted by the test), the phone displaying it, one notification per chat, logging out stopping it, expired subscriptions cleaned up, blocking other websites and made-up push addresses, the chat prompt, and the iPhone message. Run with `E2E_PUSH=1` and the push stand-in running.
+- Google Play requirements: blocking and unblocking (a blocked person can't reply or start a new chat, block-and-report reaches the admin), the account deletion page, the app link file, payments hidden inside the Android app, and the chat fitting a phone screen in both languages
 - the installable app: the manifest in both languages, icon sizes, Chrome's own installability check, the offline page, only shared files stored on the device, and the install suggestion on Android and iPhone (second page view, "Not now" remembered)
 - emails: confirming addresses, alerts (one per conversation, Arabic for Arabic users), forged and real unsubscribe links, and password reset (no account guessing, single-use links, other devices logged out)
 - Arabic: right-to-left layout, translated text and errors, Arabic search, and phone-width layouts in both languages
@@ -125,4 +132,4 @@ npm run db:reset && npm run test:e2e    # terminal 2
 3. **Advertiser cancellations:** cancellations after approval are done by hand: refund in the Stripe dashboard, then set the campaign to Cancelled in the admin form. Listing-page ads (CPM) and newsletter slots are still sold through the enquiry form.
 4. **Legal:** draft Terms of Use and Privacy Policy are live at `/terms` and `/privacy` in both languages. Fill in the company details and get a UAE lawyer to review them: see [LEGAL-NOTES.md](LEGAL-NOTES.md). You also need a trade licence that covers online marketplace activity.
 5. **Arabic search engines:** the language is stored in a cookie, so Google sees one URL per page. For Arabic search results, add `/ar/...` URLs later.
-6. **App stores:** the site installs from the browser today. To appear in Google Play, wrap it as a Trusted Web Activity (e.g. with PWABuilder). For the Apple App Store, build a native shell or a React Native / Expo app.
+6. **App stores:** Google Play is ready to build and submit (see `../android/README.md`). The Apple App Store needs a native app (e.g. React Native / Expo) or a native shell.

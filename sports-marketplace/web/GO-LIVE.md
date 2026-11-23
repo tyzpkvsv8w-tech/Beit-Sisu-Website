@@ -122,6 +122,10 @@ to `ADMIN`. Then reload the site: **Admin** appears on your account page.
 In Vercel, go to **Project → Settings → Domains** and add your domain, e.g. `rekit.ae`.
 `.ae` domains are registered through accredited UAE registrars.
 
+## 11. Google Play (optional)
+
+See `../android/README.md`. When the app exists, add `ANDROID_PACKAGE_NAME` and `ANDROID_CERT_SHA256` on Vercel.
+
 ## What not to do in production
 
 - Don't run `npm run db:seed` or `db:reset`. They delete everything and load demo data,
