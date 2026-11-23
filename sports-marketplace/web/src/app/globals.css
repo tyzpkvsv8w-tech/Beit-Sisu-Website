@@ -436,3 +436,7 @@ table.summary tr.total td { font-weight: 800; font-size: 17px; border-bottom: 0;
 @media (max-width: 760px) { .install-bar { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); } }
 /* Installed app: no browser bars, so give the top a little more room and stop text selection on the tab bar. */
 @media (display-mode: standalone) { .tabs { user-select: none; -webkit-user-select: none; } }
+
+/* ---- Push notification prompt in chat ---- */
+.push-prompt { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 16px 0; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; }
+.push-prompt span { flex: 1 1 180px; }

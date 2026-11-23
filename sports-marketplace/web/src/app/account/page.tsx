@@ -9,6 +9,8 @@ import { EmailSettings } from "@/components/EmailForms";
 import { ConfirmDelete, DeleteAccount } from "@/components/ConfirmDelete";
 import { LangSwitch } from "@/components/LangSwitch";
 import { InstallButton } from "@/components/AppInstall";
+import { PushSettings } from "@/components/PushNotifications";
+import { vapidPublicKey } from "@/lib/push";
 import { setListingStatus } from "@/app/actions/listings";
 import { logout } from "@/app/actions/auth";
 
@@ -74,6 +76,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         <div className="empty"><h3>{t.noAds}</h3><p>{t.noAdsText}</p><Link className="btn btn-primary" href="/sell">{m.common.postAdFree}</Link></div>
       )}
       <div style={{ maxWidth: 620, display: "grid", gap: 16 }}><ProfileForm user={user} /><EmailSettings user={user} /></div>
+      <PushSettings publicKey={vapidPublicKey()} />
       <div className="panel" style={{ maxWidth: 620 }}>
         <h2 style={{ fontSize: 22 }}>{m.app.installApp}</h2>
         <p style={{ margin: 0 }}>{m.app.installText}</p>

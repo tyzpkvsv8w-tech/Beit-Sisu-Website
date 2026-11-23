@@ -83,3 +83,11 @@ export async function requireAdmin() {
 export function safeNext(next: unknown) {
   return typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
+
+/** The current login session's id (a hash), or null. Push subscriptions are tied to it. */
+export const getSessionId = cache(async (): Promise<string | null> => {
+  const token = (await cookies()).get(COOKIE)?.value;
+  if (!token) return null;
+  const session = await db.session.findUnique({ where: { id: hashToken(token) }, select: { id: true, expiresAt: true } });
+  return session && session.expiresAt > new Date() ? session.id : null;
+});

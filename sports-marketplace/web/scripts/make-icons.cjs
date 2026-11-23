@@ -24,6 +24,13 @@ display:grid;place-items:center;font:italic 800 ${size * (1 - pad * 2) * 0.5}px 
     ["apple-touch-icon.png", 180, 0.1, false],
     ["favicon-32.png", 32, 0.02, true],
   ];
+  // Android shows the notification badge as a white silhouette, so it's white on transparent.
+  const badge = await browser.newPage({ viewport: { width: 72, height: 72 } });
+  await badge.setContent(`<!doctype html><html><head><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800&display=swap" rel="stylesheet">
+    <style>html,body{margin:0;width:72px;height:72px;background:transparent;display:grid;place-items:center}
+    span{font:italic 800 44px "Barlow Condensed",sans-serif;color:#fff;letter-spacing:-0.02em}</style></head><body><span>RK</span></body></html>`, { waitUntil: "networkidle" });
+  await badge.screenshot({ path: path.join(out, "badge-72.png"), omitBackground: true });
+  await badge.close();
   for (const [name, size, pad, rounded] of jobs) {
     const p = await browser.newPage({ viewport: { width: size, height: size } });
     await p.setContent(page(size, pad, rounded), { waitUntil: "networkidle" });

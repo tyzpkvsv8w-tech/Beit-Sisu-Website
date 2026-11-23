@@ -45,6 +45,7 @@ export const privacyEn: LegalDoc = {
         {
           list: [
             "Cookies that keep you logged in and remember your language. See \"Cookies\" below.",
+            "If you turn on notifications: the push address your browser gives us for that device, and the keys used to encrypt notifications for it.",
             "Technical data such as your IP address, browser type, the pages you request and when. Our hosting provider records this in server logs. We use it for security, for example to limit repeated login attempts and code requests.",
             "How many times each ad is viewed, and how many times each advertiser's ad is shown and clicked. Advertising counts are totals and aren't linked to you.",
           ],
@@ -63,6 +64,7 @@ export const privacyEn: LegalDoc = {
             ["Answer your questions and advertising enquiries", "Needed to respond to your request"],
             ["Email you when someone messages you, if you've confirmed an email address and kept alerts on", "Part of the service you signed up for. Turn these emails off at any time on your account page or with the link in each email."],
             ["Send password-reset and email confirmation links", "Needed to provide the service you asked for"],
+            ["Send a notification to your device when someone messages you, if you've turned notifications on there", "Your choice. Turn it off at any time on your account page or in your browser settings."],
             ["Send service messages, such as login codes or notice of important changes", "Needed to provide the service. We won't send you marketing without your consent."],
             ["Show advertisers overall figures, such as the number of live ads or members", "Only totals, never your personal data"],
             ["Respond to lawful requests from UAE authorities", "Needed to comply with the law"],
@@ -97,6 +99,7 @@ export const privacyEn: LegalDoc = {
             ["Vercel", "Hosts the website"],
             ["Resend", "Sends our emails, such as password resets and new-message alerts"],
             ["Stripe", "Takes card payments for advertising and listing promotions"],
+            ["Your browser's push service (Google, Apple, Mozilla or Microsoft)", "Delivers notifications to your device. Notifications are encrypted for your device, so the push service can't read them."],
             ["Google Fonts", "Supplies the site's fonts, so Google receives your IP address when pages load"],
           ],
         },
@@ -121,6 +124,7 @@ export const privacyEn: LegalDoc = {
             ["Conversations", "Until you or the other person deletes their account. The whole conversation is then deleted for both of you."],
             ["Login codes", "Deleted once used. Unused codes expire after 10 minutes and are cleared regularly."],
             ["Login sessions", "Up to 30 days, or until you log out"],
+            ["Notification settings for a device", "Until you turn notifications off, log out on that device, or your login expires"],
             ["Password-reset and confirmation links", "Work for 1 hour (reset) or 24 hours (confirmation). Records of them are deleted with your account."],
             ["Reports you make", "Until the ad is deleted, or up to 2 years"],
             ["Advertising enquiries", "Up to 2 years"],

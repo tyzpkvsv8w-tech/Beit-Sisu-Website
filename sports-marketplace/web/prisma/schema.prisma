@@ -46,6 +46,7 @@ model User {
   emailTokens   EmailToken[]
   campaigns     AdCampaign[]
   orders        Order[]
+  pushSubs      PushSubscription[]
 }
 
 model Session {
@@ -55,6 +56,25 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  pushSubs  PushSubscription[]
+
+  @@index([userId])
+}
+
+// A device that has turned on notifications. Tied to the login session, so logging out
+// (or a password reset) stops notifications on that device.
+model PushSubscription {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId  String
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  // The push service URL the browser gave us, plus the keys used to encrypt messages for it
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  createdAt  DateTime  @default(now())
+  lastSentAt DateTime?
 
   @@index([userId])
 }

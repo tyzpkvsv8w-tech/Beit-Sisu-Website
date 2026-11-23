@@ -55,9 +55,10 @@ The policy was written from the code. If the app changes, update the policy firs
 | Photos resized in the browser, which strips location data | `compress()` in `src/components/ListingForm.tsx` (falls back to the original file if the browser can't resize it) |
 | Cookies: only `rk_session` (30 days), `rk_otp` (15 minutes) and `rk_lang` (1 year) | `src/lib/auth.ts`, `src/app/actions/phone.ts`, `src/app/actions/auth.ts` |
 | No analytics or advertising trackers; ad counts are totals only | `src/lib/ads.ts`, `src/app/go/[id]/route.ts` |
+| Push notifications are opt-in per device, encrypted end to end, and stop at logout | `src/lib/push.ts`, `src/app/api/push/subscription/route.ts`, `public/sw.js` |
 | Delete your account from the account page; everything goes with it, including conversations for both sides | `deleteAccount` in `src/app/actions/auth.ts` (database cascade), and the photos are removed from storage |
 | Ad photos removed from storage when the ad is deleted | `setListingStatus` in `src/app/actions/listings.ts` |
-| Third parties: Supabase, the SMS provider, Vercel, Resend (email), Stripe (payments), Google Fonts | Google Fonts could be self-hosted to remove it from the list |
+| Third parties: Supabase, the SMS provider, Vercel, Resend (email), Stripe (payments), browser push services, Google Fonts | Google Fonts could be self-hosted to remove it from the list |
 
 ## 4. Gaps to close before or soon after launch
 

@@ -3,14 +3,16 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { sendMessage } from "@/app/actions/social";
 import { useI18n } from "@/i18n/client";
+import { ChatPushPrompt } from "./PushNotifications";
 
 type Msg = { id: string; body: string; mine: boolean; at: string };
 
-export function Chat({ conversationId, initial, quickReplies }: { conversationId: string; initial: Msg[]; quickReplies: string[] }) {
+export function Chat({ conversationId, initial, quickReplies, pushKey }: { conversationId: string; initial: Msg[]; quickReplies: string[]; pushKey: string | null }) {
   const { m, locale } = useI18n();
   const [msgs, setMsgs] = useState<Msg[]>(initial);
   const [text, setText] = useState("");
   const [error, setError] = useState("");
+  const [sentOne, setSentOne] = useState(false);
   const [pending, start] = useTransition();
   const box = useRef<HTMLDivElement>(null);
   const last = useRef(initial.at(-1)?.at ?? "");
@@ -48,6 +50,7 @@ export function Chat({ conversationId, initial, quickReplies }: { conversationId
       const res = await sendMessage(conversationId, body);
       if (res.error) { setError(res.error); return; }
       setText("");
+      setSentOne(true);
       await poll();
     });
   }
@@ -70,6 +73,7 @@ export function Chat({ conversationId, initial, quickReplies }: { conversationId
           </div>
         )}
         {error && <div className="err" style={{ padding: "8px 16px 0" }}>{error}</div>}
+        <ChatPushPrompt publicKey={pushKey} show={sentOne} />
         <form className="compose" onSubmit={(e) => { e.preventDefault(); send(text); }}>
           <input id="chatIn" value={text} onChange={(e) => setText(e.target.value)} placeholder={m.chat.placeholder} aria-label={m.chat.message} dir="auto" autoComplete="off" maxLength={2000} />
           <button className="btn btn-primary" type="submit" disabled={pending || !text.trim()}>{m.chat.send}</button>

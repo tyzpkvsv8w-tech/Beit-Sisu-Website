@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { Thumb } from "@/components/Thumb";
 import { Chat } from "@/components/Chat";
+import { vapidPublicKey } from "@/lib/push";
 import { fmt, getI18n } from "@/i18n";
 
 export async function generateMetadata() {
@@ -46,7 +47,7 @@ export default async function Conversation({ params }: { params: Promise<{ id: s
             </div>
           </div>
         </header>
-        <Chat conversationId={c.id} quickReplies={quick}
+        <Chat conversationId={c.id} quickReplies={quick} pushKey={vapidPublicKey()}
           initial={c.messages.map((m) => ({ id: m.id, body: m.body, mine: m.senderId === user.id, at: m.createdAt.toISOString() }))} />
       </div>
     </div>

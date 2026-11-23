@@ -24,5 +24,7 @@ Tick these off before ReKit goes public. ⛔ means launch is blocked until it's 
 - [ ] VAT tax invoices for advertisers, once VAT-registered.
 - [ ] Shared rate limiting (e.g. Upstash Redis) before running on several servers.
 - [x] Installable app (PWA).
-- [ ] Google Play and App Store listings (optional), and push notifications for new messages.
-- [ ] Before launch, install ReKit on a real iPhone and Android phone and check the icon, full-screen view and offline page.
+- [x] Push notifications for new messages.
+- [ ] Google Play and App Store listings (optional).
+- [ ] ⛔ Generate the notification keys (`npm run vapid`) and add them to Vercel. See `web/GO-LIVE.md`.
+- [ ] Before launch, install ReKit on a real iPhone and Android phone and check the icon, full-screen view, offline page and a real notification.

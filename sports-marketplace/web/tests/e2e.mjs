@@ -630,6 +630,157 @@ await shot(ip, "18-iphone-install-tip");
 await iphone.close();
 await appCtx.close();
 
+// 14. Push notifications for new messages
+if (process.env.E2E_PUSH) {
+  const { createECDH, randomBytes } = await import("node:crypto");
+  const ece = require("http_ece");
+  const PUSH = "http://localhost:12222";
+  const fakeDevice = (id) => {
+    const ecdh = createECDH("prime256v1"); ecdh.generateKeys();
+    const auth = randomBytes(16);
+    return { ecdh, auth, sub: { endpoint: `${PUSH}/push/${id}`, expirationTime: null, keys: { p256dh: ecdh.getPublicKey().toString("base64url"), auth: auth.toString("base64url") } } };
+  };
+  // Headless Chromium has no real push service, so the page gets a stand-in subscription
+  // pointing at tests/push-mock.mjs. Everything after that (server, encryption, delivery) is real.
+  const stubPush = (sub) => {
+    const key = "fake_push_" + sub.endpoint;
+    const make = () => ({ endpoint: sub.endpoint, options: {}, toJSON: () => sub, unsubscribe: async () => { localStorage.removeItem(key); return true; } });
+    PushManager.prototype.subscribe = async function () { localStorage.setItem(key, "1"); return make(); };
+    PushManager.prototype.getSubscription = async function () { return localStorage.getItem(key) ? make() : null; };
+  };
+  const pushesTo = async (id) => (await (await fetch(`${PUSH}/__log`)).json()).filter((p) => p.id === id);
+  const waitPush = async (id, n) => { for (let i = 0; i < 40; i++) { const l = await pushesTo(id); if (l.length >= n) return l; await new Promise((r) => setTimeout(r, 250)); } return pushesTo(id); };
+  const decrypt = (dev, p) => JSON.parse(ece.decrypt(Buffer.from(p.body, "base64"), { version: "aes128gcm", privateKey: dev.ecdh, authSecret: dev.auth }).toString());
+
+  // The default headless browser has no notification support, so these checks use Chrome's newer headless mode.
+  const pushBrowser = await chromium.launch({ channel: "chromium" });
+  const priyaCtx = await pushBrowser.newContext({ viewport: { width: 1280, height: 900 } });
+  await priyaCtx.grantPermissions(["notifications"], { origin: BASE });
+  const phoneA = fakeDevice("priya-phone");
+  await priyaCtx.addInitScript(stubPush, phoneA.sub);
+  const priya = await priyaCtx.newPage();
+  priya.on("pageerror", (e) => errors.push(e.message));
+  await priya.goto(`${BASE}/login/email?next=/account`);
+  await priya.fill("#email", "priya@rekit.test");
+  await priya.fill("#password", "new-password-123");
+  await priya.click("form.form-card button[type=submit]");
+  await priya.waitForURL(BASE + "/account");
+  await priya.locator('[data-testid=push-settings][data-status=off]').waitFor();
+  await priya.getByRole("button", { name: "Turn on notifications" }).click();
+  check("notifications can be turned on", await priya.locator('[data-testid=push-settings][data-status=on]').waitFor({ timeout: 8000 }).then(() => true, () => false));
+  await priya.reload();
+  check("the setting is remembered for this device", await priya.locator('[data-testid=push-settings][data-status=on]').waitFor({ timeout: 8000 }).then(() => true, () => false));
+
+  const evil = await priya.request.post(`${BASE}/api/push/subscription`, { headers: { Origin: "https://evil.example.com" }, data: phoneA.sub });
+  check("other websites can't change notification settings", evil.status() === 403);
+  const ssrf = await priya.evaluate(async () => (await fetch("/api/push/subscription", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "https://evil.example.com/hook", keys: { p256dh: "x".repeat(87), auth: "y".repeat(22) } }) })).status);
+  check("only real push services are accepted", ssrf === 400);
+
+  const omar = await newPage();
+  // Email logins from here on: the run has used up the SMS limit for one network (10 codes an hour).
+  await omar.goto(`${BASE}/login/email?next=/messages`);
+  await omar.fill("#email", "omar@rekit.test");
+  await omar.fill("#password", "rekit-demo-123");
+  await omar.click("form.form-card button[type=submit]");
+  await omar.waitForURL(BASE + "/messages");
+  await omar.locator(".inbox a", { hasText: "Priya" }).click();
+  await omar.waitForURL(/\/messages\//);
+  const sendAsOmar = async (text) => { await omar.fill("#chatIn", text); await omar.click(".compose button"); await omar.locator(".msg.me", { hasText: text }).waitFor(); };
+  await sendAsOmar("Still keen? I can do 600.");
+  const [push1] = await waitPush("priya-phone", 1);
+  const payload = push1 && decrypt(phoneA, push1);
+  check("notification delivered when a message arrives", !!payload && payload.title === "Omar K. sent you a message" && payload.body.includes("Still keen? I can do 600.") && payload.url.startsWith("/messages/"));
+  check("notifications are encrypted and signed", !!push1 && push1.headers["content-encoding"] === "aes128gcm" && /^vapid t=.+, k=.+/.test(push1.headers.authorization ?? ""));
+  check("notifications for one chat share a tag", payload?.tag === `conv-${payload?.url.split("/").pop()}`);
+
+  // The service worker shows it (pushed straight to it through Chrome's DevTools protocol)
+  const cdpP = await priyaCtx.newCDPSession(priya);
+  let registrationId;
+  cdpP.on("ServiceWorker.workerRegistrationUpdated", (e) => { const r = e.registrations.find((x) => x.scopeURL.startsWith(BASE)); if (r) registrationId = r.registrationId; });
+  await cdpP.send("ServiceWorker.enable");
+  await priya.goto(`${BASE}/browse`);
+  for (let i = 0; i < 20 && !registrationId; i++) await new Promise((r) => setTimeout(r, 100));
+  const shown = async () => priya.evaluate(async () => (await (await navigator.serviceWorker.ready).getNotifications()).map((n) => ({ title: n.title, body: n.body, tag: n.tag })));
+  await cdpP.send("ServiceWorker.deliverPushMessage", { origin: BASE, registrationId, data: JSON.stringify(payload) });
+  await priya.waitForTimeout(800);
+  const first = await shown();
+  check("the phone shows the notification", first.length === 1 && first[0].title === "Omar K. sent you a message");
+  await cdpP.send("ServiceWorker.deliverPushMessage", { origin: BASE, registrationId, data: JSON.stringify({ ...payload, body: "Second message" }) });
+  await priya.waitForTimeout(800);
+  const second = await shown();
+  check("a new message in the same chat replaces the notification", second.length === 1 && second[0].body === "Second message");
+
+  // Logging out stops notifications on that device
+  await priya.goto(BASE);
+  await priya.locator(".user-menu").getByRole("button", { name: "Log out" }).click();
+  await priya.waitForURL(BASE + "/");
+  await sendAsOmar("Are you there?");
+  await new Promise((r) => setTimeout(r, 2000));
+  check("logging out stops notifications on that device", (await pushesTo("priya-phone")).length === 1);
+
+  // An expired subscription is removed the first time it fails
+  const gone = fakeDevice("gone");
+  await priyaCtx.addInitScript(stubPush, gone.sub);
+  await priya.goto(`${BASE}/login/email?next=/account`);
+  await priya.fill("#email", "priya@rekit.test");
+  await priya.fill("#password", "new-password-123");
+  await priya.click("form.form-card button[type=submit]");
+  await priya.waitForURL(BASE + "/account");
+  await priya.locator('[data-testid=push-settings][data-status=off]').waitFor();
+  await priya.getByRole("button", { name: "Turn on notifications" }).click();
+  await priya.locator('[data-testid=push-settings][data-status=on]').waitFor();
+  await sendAsOmar("Last call!");
+  await waitPush("gone", 1);
+  await new Promise((r) => setTimeout(r, 500));
+  const still = await priya.evaluate(async (ep) => (await (await fetch(`/api/push/subscription?endpoint=${encodeURIComponent(ep)}`)).json()).active, gone.sub.endpoint);
+  check("expired subscriptions are cleaned up", still === false);
+
+  // The prompt in chat, right after sending a message
+  const askerCtx = await pushBrowser.newContext({ viewport: { width: 1280, height: 900 } });
+  const asker = await askerCtx.newPage();
+  await asker.goto(`${BASE}/signup?next=/browse`);
+  await asker.fill("#name", "Prompt Tester");
+  await asker.fill("#email", `prompt${Date.now()}@example.com`);
+  await asker.fill("#password", "a-strong-password");
+  await asker.selectOption("#city", "Dubai");
+  await asker.check("#terms");
+  await asker.click("form.form-card button[type=submit]");
+  await asker.waitForURL(BASE + "/browse");
+  await asker.goto(`${BASE}/browse?q=dumbbells`);
+  await asker.locator(".card").first().click();
+  await asker.getByRole("button", { name: "Chat with seller" }).click();
+  await asker.waitForURL(/\/messages\//);
+  const perm = await asker.evaluate(() => Notification.permission);
+  check("no notification prompt before sending", (await asker.locator(".push-prompt").count()) === 0);
+  await asker.fill("#chatIn", "Hi, are these still available?");
+  await asker.click(".compose button");
+  await asker.locator(".msg.me").first().waitFor();
+  if (perm === "default") {
+    check("chat offers notifications after you send", await asker.locator(".push-prompt").waitFor({ timeout: 5000 }).then(() => true, () => false));
+    await asker.getByRole("button", { name: "No thanks" }).click();
+    await asker.reload();
+    await asker.fill("#chatIn", "Also, can you deliver?");
+    await asker.click(".compose button");
+    await asker.locator(".msg.me").nth(1).waitFor();
+    await asker.waitForTimeout(800);
+    check("\"No thanks\" is remembered", (await asker.locator(".push-prompt").count()) === 0);
+  } else {
+    console.log(`(skipped chat prompt checks: this browser reports notification permission "${perm}")`);
+  }
+
+  // iPhone outside the home-screen app
+  const iphone2 = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1" });
+  const ip2 = await iphone2.newPage();
+  await ip2.goto(`${BASE}/login/email?next=/account`);
+  await ip2.fill("#email", "james@rekit.test");
+  await ip2.fill("#password", "rekit-demo-123");
+  await ip2.click("form.form-card button[type=submit]");
+  await ip2.waitForURL(BASE + "/account");
+  check("iPhone users are told to add ReKit to the home screen first", await ip2.locator('[data-testid=push-settings][data-status="ios-install"]').waitFor({ timeout: 5000 }).then(() => true, () => false));
+  await iphone2.close();
+  await pushBrowser.close();
+}
+
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();

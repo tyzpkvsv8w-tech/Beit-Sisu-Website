@@ -239,6 +239,18 @@ export const en = {
     installed: "ReKit is installed on this device.", iosAccount: "On iPhone: open ReKit in Safari, tap Share, then \"Add to Home Screen\".",
     shortcutSell: "Sell something", shortcutSearch: "Search", shortcutMessages: "Messages",
   },
+  push: {
+    title: "{sender} sent you a message", heading: "Notifications on this device",
+    text: "Get a notification when someone messages you, even when ReKit isn't open.",
+    turnOn: "Turn on notifications", turnOff: "Turn off", working: "One moment…",
+    on: "Notifications are on for this device.", off: "Notifications are off for this device.",
+    blocked: "Notifications for ReKit are blocked in this browser's settings. Allow them there, then come back.",
+    unsupported: "This browser doesn't support notifications.",
+    iosInstall: "On iPhone, add ReKit to your home screen first (Share, then \"Add to Home Screen\"). Open it from there to turn on notifications.",
+    notConfigured: "Notifications aren't available yet.", failed: "We couldn't turn on notifications. Try again.",
+    chatPrompt: "Get a notification when they reply?", chatYes: "Turn on", chatNo: "No thanks",
+    privacyNote: "Notifications show the sender's name, the ad and the start of the message. Logging out turns them off on this device.",
+  },
   notFound: { title: "Page not found", text: "This ad may have been sold or deleted.", cta: "Browse listings" },
   sports: {
     "padel-tennis": "Padel & Tennis", cycling: "Cycling", gym: "Gym & Fitness", football: "Football", golf: "Golf", water: "Water Sports",

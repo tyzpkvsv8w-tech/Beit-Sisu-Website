@@ -101,13 +101,16 @@ Stripe takes card and Apple Pay payments for ad bookings and listing promotions,
    | `PAYMENT_DRIVER` | `stripe` |
    | `STRIPE_SECRET_KEY` | from step 7 |
    | `STRIPE_WEBHOOK_SECRET` | from step 7 |
+   | `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` | run `npm run vapid` once on your computer and paste both. Keep the private key secret, and don't change the keys later, or every device has to turn notifications on again. |
+   | `VAPID_SUBJECT` | `mailto:` plus your support email, e.g. `mailto:support@rekit.ae` |
    | `APP_SECRET` | 32+ random characters. Generate with `openssl rand -base64 48` or a password manager. Keep it secret. |
 
 4. Click **Deploy**. The build creates the database tables automatically
    (`prisma migrate deploy`), then builds the site.
 5. Open the site and log in with your own mobile number. You should get a text.
 6. On your account page, add your email address. You should get a confirmation email.
-7. With Stripe test keys, book an ad using the test card `4242 4242 4242 4242` (any future date, any CVC). Check it appears in the admin review queue. Then switch to live keys.
+7. On your phone, open the site, go to your account page and tap **Turn on notifications**. Then send yourself a message from another account. On iPhone, add ReKit to the home screen first and open it from there.
+8. With Stripe test keys, book an ad using the test card `4242 4242 4242 4242` (any future date, any CVC). Check it appears in the admin review queue. Then switch to live keys.
 
 ## 9. Make yourself the admin
 
@@ -123,6 +126,7 @@ In Vercel, go to **Project → Settings → Domains** and add your domain, e.g. 
 
 - Don't run `npm run db:seed` or `db:reset`. They delete everything and load demo data,
   and the script refuses when `NODE_ENV=production`.
+- Don't set `ALLOW_DEV_PUSH`. It lets the server send notifications to local test addresses.
 - Don't set `PAYMENT_DRIVER=dev` or `ALLOW_DEV_PAYMENTS`. The test checkout lets anyone "pay" without paying.
 - Don't set `EMAIL_DRIVER=dev`, `ALLOW_DEV_EMAIL` or `ALLOW_DEV_SECRETS`. These are for automated tests only.
 - Don't set `SMS_DRIVER=dev` or `ALLOW_DEV_SMS`. Test mode shows login codes on screen.
