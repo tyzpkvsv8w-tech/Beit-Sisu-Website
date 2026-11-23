@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { sportOf } from "@/lib/constants";
+import { en } from "@/i18n/en";
+
+// The admin page is an internal tool, kept in English.
 import { timeAgo } from "@/lib/format";
 import { markEnquiryHandled, resolveReport, toggleCampaign } from "@/app/actions/admin";
 
@@ -39,7 +41,7 @@ export default async function Admin() {
                 <td>{r.reporter.name}</td><td>{timeAgo(r.createdAt)}</td>
                 <td style={{ whiteSpace: "nowrap" }}>
                   <form action={resolveReport} style={{ display: "inline" }}><input type="hidden" name="id" value={r.id} /><button className="btn btn-ghost btn-sm">Dismiss</button></form>{" "}
-                  <form action={resolveReport} style={{ display: "inline" }}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="remove" value="1" /><button className="btn btn-sm" style={{ background: "var(--danger)", color: "#fff" }}>Remove ad</button></form>
+                  <form action={resolveReport} style={{ display: "inline" }}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="remove" value="1" /><button className="btn btn-sm btn-danger">Remove ad</button></form>
                 </td>
               </tr>))}</tbody>
           </table></div>
@@ -54,7 +56,7 @@ export default async function Admin() {
             <tr key={c.id}>
               <td><strong>{c.advertiser}</strong><div className="note">{c.headline}</div></td>
               <td>{c.placement.replace("_", " ").toLowerCase()}</td>
-              <td>{[c.sport && sportOf(c.sport).name, c.city].filter(Boolean).join(", ") || "All"}</td>
+              <td>{[c.sport && en.sports[c.sport], c.city].filter(Boolean).join(", ") || "All"}</td>
               <td style={{ whiteSpace: "nowrap" }}>{c.startsAt.toLocaleDateString("en-GB")} – {c.endsAt.toLocaleDateString("en-GB")}</td>
               <td className="num">{c.impressions}</td><td className="num">{c.clicks}</td>
               <td className="num">{c.impressions ? ((c.clicks / c.impressions) * 100).toFixed(1) + "%" : "–"}</td>
@@ -71,7 +73,7 @@ export default async function Admin() {
             <tbody>{enquiries.map((e) => (
               <tr key={e.id} style={{ opacity: e.handled ? 0.55 : 1 }}>
                 <td><strong>{e.business}</strong></td><td>{e.name}<div className="note">{e.email}</div></td>
-                <td>{e.sport || "Several"}<div className="note">{e.budget}</div></td><td>{e.message}</td><td>{timeAgo(e.createdAt)}</td>
+                <td>{(e.sport && en.sports[e.sport]) || e.sport || "Several"}<div className="note">{e.budget}</div></td><td>{e.message}</td><td>{timeAgo(e.createdAt)}</td>
                 <td>{!e.handled && <form action={markEnquiryHandled}><input type="hidden" name="id" value={e.id} /><button className="btn btn-ghost btn-sm">Mark handled</button></form>}</td>
               </tr>))}</tbody>
           </table></div>

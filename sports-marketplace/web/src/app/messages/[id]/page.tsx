@@ -5,13 +5,18 @@ import { requireUser } from "@/lib/auth";
 import { money } from "@/lib/format";
 import { Thumb } from "@/components/Thumb";
 import { Chat } from "@/components/Chat";
+import { fmt, getI18n } from "@/i18n";
 
-export const metadata = { title: "Chat" };
+export async function generateMetadata() {
+  const { m } = await getI18n();
+  return { title: m.chat.title };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Conversation({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser(`/messages/${id}`);
+  const { m, locale } = await getI18n();
   const c = await db.conversation.findUnique({
     where: { id },
     include: {
@@ -27,19 +32,17 @@ export default async function Conversation({ params }: { params: Promise<{ id: s
   const other = iAmBuyer ? c.seller.name : c.buyer.name;
   const l = c.listing;
   const offer = Math.round((l.price * 0.85) / 10) * 10;
-  const quick = iAmBuyer
-    ? [`Hi ${other.split(" ")[0]}, is this still available?`, `Would you take ${money(offer)}?`, "Where can we meet to see it?"]
-    : ["Yes, it's still available.", "Happy to meet this week.", "Sorry, it's been sold."];
+  const quick = (iAmBuyer ? m.chat.buyerQuick : m.chat.sellerQuick).map((q) => fmt(q, { name: other.split(" ")[0], price: money(offer, locale) }));
   return (
     <div className="wrap" style={{ maxWidth: 820 }}>
       <div className="chat-page">
         <header>
-          <Link href="/messages" className="linkbtn" aria-label="Back to messages">←</Link>
+          <Link href="/messages" className="linkbtn" aria-label={m.chat.backLabel}>{m.common.back}</Link>
           <Thumb sport={l.sport} photoKey={l.photos[0]?.key} alt="" />
           <div style={{ minWidth: 0 }}>
-            <strong>{other}</strong>
+            <strong dir="auto">{other}</strong>
             <div className="note" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              <Link href={`/listing/${l.id}`}>{l.title}</Link> · {money(l.price)}{l.status === "SOLD" ? " · Sold" : ""}
+              <Link href={`/listing/${l.id}`}><bdi>{l.title}</bdi></Link> · {money(l.price, locale)}{l.status === "SOLD" ? m.chat.soldSuffix : ""}
             </div>
           </div>
         </header>

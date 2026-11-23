@@ -2,8 +2,12 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { ListingForm } from "@/components/ListingForm";
+import { getI18n } from "@/i18n";
 
-export const metadata = { title: "Edit ad" };
+export async function generateMetadata() {
+  const { m } = await getI18n();
+  return { title: m.sell.titleEdit };
+}
 
 export default async function EditListing({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

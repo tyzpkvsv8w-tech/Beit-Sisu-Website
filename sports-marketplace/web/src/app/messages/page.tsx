@@ -2,13 +2,18 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { timeAgo } from "@/lib/format";
+import { getI18n } from "@/i18n";
 import { Thumb } from "@/components/Thumb";
 
-export const metadata = { title: "Messages" };
+export async function generateMetadata() {
+  const { m } = await getI18n();
+  return { title: m.chat.title };
+}
 export const dynamic = "force-dynamic";
 
 export default async function Inbox() {
   const user = await requireUser("/messages");
+  const { m, locale } = await getI18n();
   const convos = await db.conversation.findMany({
     where: { OR: [{ buyerId: user.id }, { sellerId: user.id }], messages: { some: {} } },
     orderBy: { updatedAt: "desc" },
@@ -22,7 +27,7 @@ export default async function Inbox() {
   });
   return (
     <div className="wrap section" style={{ maxWidth: 820 }}>
-      <div className="toolbar"><div><h1>Messages</h1></div></div>
+      <div className="toolbar"><div><h1>{m.chat.title}</h1></div></div>
       {convos.length ? (
         <div className="inbox">
           {convos.map((c) => {
@@ -32,17 +37,17 @@ export default async function Inbox() {
               <Link key={c.id} href={`/messages/${c.id}`} className={c._count.messages ? "unread" : ""}>
                 <Thumb sport={c.listing.sport} photoKey={c.listing.photos[0]?.key} alt="" />
                 <div style={{ minWidth: 0 }}>
-                  <div className="who">{other} {c._count.messages > 0 && <span className="badge">{c._count.messages}</span>}</div>
-                  <div className="last">{c.listing.title}</div>
-                  <div className="last">{last ? `${last.senderId === user.id ? "You: " : ""}${last.body}` : ""}</div>
+                  <div className="who"><bdi>{other}</bdi> {c._count.messages > 0 && <span className="badge">{c._count.messages}</span>}</div>
+                  <div className="last" dir="auto">{c.listing.title}</div>
+                  <div className="last">{last ? <>{last.senderId === user.id ? m.chat.you : ""}<bdi>{last.body}</bdi></> : ""}</div>
                 </div>
-                <div className="when">{last && timeAgo(last.createdAt)}</div>
+                <div className="when">{last && timeAgo(last.createdAt, locale)}</div>
               </Link>
             );
           })}
         </div>
       ) : (
-        <div className="empty"><h3>No messages yet</h3><p>When you chat with a buyer or seller, it shows up here.</p><Link className="btn btn-primary" href="/browse">Browse listings</Link></div>
+        <div className="empty"><h3>{m.chat.emptyTitle}</h3><p>{m.chat.emptyText}</p><Link className="btn btn-primary" href="/browse">{m.savedPage.browse}</Link></div>
       )}
     </div>
   );

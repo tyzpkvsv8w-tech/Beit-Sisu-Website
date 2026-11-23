@@ -43,7 +43,8 @@ export async function destroySession() {
 export type CurrentUser = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
   role: string;
   isBusiness: boolean;
 };
@@ -55,7 +56,7 @@ export const getUser = cache(async (): Promise<CurrentUser | null> => {
   if (!token) return null;
   const session = await db.session.findUnique({
     where: { id: hashToken(token) },
-    include: { user: { select: { id: true, name: true, email: true, role: true, isBusiness: true } } },
+    include: { user: { select: { id: true, name: true, email: true, phone: true, role: true, isBusiness: true } } },
   });
   if (!session) return null;
   if (session.expiresAt < new Date()) {

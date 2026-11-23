@@ -5,9 +5,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getUser, requireUser } from "@/lib/auth";
-import { REPORT_REASONS, SPORTS } from "@/lib/constants";
+import { REPORT_REASONS, SPORT_BY_ID, market } from "@/lib/constants";
 import { rateLimit } from "@/lib/rate-limit";
-import type { FormState } from "./auth";
+import { fmt, getI18n } from "@/i18n";
+import { clientIp, type FormState } from "./auth";
 
 export async function toggleFavorite(listingId: string): Promise<{ saved: boolean } | { login: true }> {
   const user = await getUser();
@@ -42,30 +43,29 @@ export async function startConversation(form: FormData) {
 }
 
 export async function sendMessage(conversationId: string, body: string): Promise<{ error?: string }> {
+  const { m } = await getI18n();
   const user = await getUser();
-  if (!user) return { error: "Log in to send messages." };
+  if (!user) return { error: m.errors.loginToMessage };
   const text = body.trim();
-  if (!text) return { error: "Write a message first." };
-  if (text.length > 2000) return { error: "Keep messages under 2,000 characters." };
-  if (!rateLimit(`msg:${user.id}`, 60, 60 * 1000)) return { error: "You're sending messages too quickly. Wait a minute." };
+  if (!text) return { error: m.errors.emptyMessage };
+  if (text.length > 2000) return { error: m.errors.longMessage };
+  if (!rateLimit(`msg:${user.id}`, 60, 60 * 1000)) return { error: m.errors.tooFast };
   const convo = await db.conversation.findUnique({ where: { id: conversationId } });
-  if (!convo || (convo.buyerId !== user.id && convo.sellerId !== user.id)) return { error: "Conversation not found." };
-  const now = new Date();
+  if (!convo || (convo.buyerId !== user.id && convo.sellerId !== user.id)) return { error: m.errors.noConversation };
   await db.$transaction([
     db.message.create({ data: { conversationId, senderId: user.id, body: text } }),
-    db.conversation.update({ where: { id: conversationId }, data: { updatedAt: now } }),
+    db.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } }),
   ]);
   return {};
 }
 
-const reportSchema = z.object({
-  listingId: z.string().min(1),
-  reason: z.enum(REPORT_REASONS, { errorMap: () => ({ message: "Choose a reason" }) }),
-  details: z.string().trim().max(1000).optional(),
-});
-
 export async function reportListing(_: FormState, form: FormData): Promise<FormState> {
-  const parsed = reportSchema.safeParse(Object.fromEntries(form));
+  const { m } = await getI18n();
+  const parsed = z.object({
+    listingId: z.string().min(1),
+    reason: z.enum(REPORT_REASONS, { errorMap: () => ({ message: m.errors.reason }) }),
+    details: z.string().trim().max(1000).optional(),
+  }).safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const user = await requireUser(`/listing/${parsed.data.listingId}`);
   await db.report.upsert({
@@ -73,40 +73,35 @@ export async function reportListing(_: FormState, form: FormData): Promise<FormS
     update: { reason: parsed.data.reason, details: parsed.data.details, resolved: false },
     create: { ...parsed.data, reporterId: user.id },
   });
-  return { ok: "Thanks. Our team will review this ad." };
+  return { ok: m.report.thanks };
 }
-
-const enquirySchema = z.object({
-  name: z.string().trim().min(2, "Enter your name").max(80),
-  business: z.string().trim().min(2, "Enter your business name").max(120),
-  email: z.string().trim().email("Enter a valid work email"),
-  sport: z.string().optional().refine((s) => !s || SPORTS.some((x) => x.name === s), "Choose a sport"),
-  budget: z.string().max(40).optional(),
-  message: z.string().trim().max(2000).optional(),
-});
 
 export async function sendEnquiry(_: FormState, form: FormData): Promise<FormState> {
-  const h = (await import("next/headers")).headers;
-  const ip = (await h()).get("x-forwarded-for") ?? "local";
-  if (!rateLimit(`enq:${ip}`, 5, 3600 * 1000)) return { error: "Too many enquiries from this network. Try again later." };
-  const parsed = enquirySchema.safeParse(Object.fromEntries(form));
+  const { m } = await getI18n();
+  if (!rateLimit(`enq:${await clientIp()}`, 5, 3600 * 1000)) return { error: m.errors.tooManyEnquiries };
+  const parsed = z.object({
+    name: z.string().trim().min(2, m.errors.enquiryName).max(80),
+    business: z.string().trim().min(2, m.errors.enquiryBusiness).max(120),
+    email: z.string().trim().email(m.errors.enquiryEmail),
+    sport: z.string().optional().refine((s) => !s || s in SPORT_BY_ID, m.errors.sport),
+    budget: z.string().max(40).optional(),
+    message: z.string().trim().max(2000).optional(),
+  }).safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   await db.adEnquiry.create({ data: { ...parsed.data, sport: parsed.data.sport || null } });
-  return { ok: `Thanks, ${parsed.data.name}. Our ad team will email ${parsed.data.email} within one working day.` };
+  return { ok: fmt(m.advertise.sent, { name: parsed.data.name, email: parsed.data.email }) };
 }
 
-const profileSchema = z.object({
-  name: z.string().trim().min(2, "Enter your name").max(40),
-  phone: z.string().trim().max(20).refine((p) => !p || /^\+?[\d\s-]{7,}$/.test(p), "Enter a valid mobile number").optional(),
-  showPhone: z.string().optional().transform((v) => v === "on"),
-  city: z.string().optional(),
-});
-
 export async function updateProfile(_: FormState, form: FormData): Promise<FormState> {
-  const user = await requireUser("/account/profile");
-  const parsed = profileSchema.safeParse(Object.fromEntries(form));
+  const user = await requireUser("/account");
+  const { m } = await getI18n();
+  const parsed = z.object({
+    name: z.string().trim().min(2, m.errors.name).max(40, m.errors.name),
+    showPhone: z.string().optional().transform((v) => v === "on"),
+    city: z.string({ required_error: m.errors.city }).refine((c) => market().cities.includes(c), m.errors.city),
+  }).safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  await db.user.update({ where: { id: user.id }, data: { ...parsed.data, phone: parsed.data.phone || null } });
+  await db.user.update({ where: { id: user.id }, data: parsed.data });
   revalidatePath("/account");
-  return { ok: "Profile saved." };
+  return { ok: m.account.profileSaved };
 }

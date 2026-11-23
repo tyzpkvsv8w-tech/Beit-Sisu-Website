@@ -1,4 +1,5 @@
 import "server-only";
+import type { Prisma } from "@prisma/client";
 import { db } from "./db";
 import { DEFAULT_MARKET } from "./constants";
 
@@ -33,13 +34,14 @@ export async function pickAd(placement: Placement, opts: { sport?: string; city?
   return ad;
 }
 
-export async function sponsoredListings(opts: { sport?: string; take: number }) {
+/** Sponsored listings that also match the visitor's search, so paid slots stay relevant. */
+export async function sponsoredListings(opts: { where?: Prisma.ListingWhereInput; take: number }) {
   return db.listing.findMany({
     where: {
+      ...opts.where,
       status: "ACTIVE",
       market: DEFAULT_MARKET,
       sponsoredUntil: { gte: new Date() },
-      ...(opts.sport ? { sport: opts.sport } : {}),
     },
     include: { photos: { orderBy: { position: "asc" }, take: 1 }, seller: { select: { name: true } } },
     take: opts.take,

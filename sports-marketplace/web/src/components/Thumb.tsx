@@ -6,7 +6,7 @@ export function tint(sport: string, pct: number) {
 }
 
 /** Listing photo, or a sport-coloured tile when the seller added no photos. */
-export function Thumb({ sport, photoKey, alt, count }: { sport: string; photoKey?: string; alt: string; count?: number }) {
+export function Thumb({ sport, photoKey, alt, countLabel }: { sport: string; photoKey?: string; alt: string; countLabel?: string }) {
   return (
     <div className="thumb" style={{ background: tint(sport, 55) }}>
       {photoKey ? (
@@ -15,7 +15,7 @@ export function Thumb({ sport, photoKey, alt, count }: { sport: string; photoKey
       ) : (
         <span className="em" aria-hidden="true">{sportOf(sport).em}</span>
       )}
-      {count && count > 1 ? <span className="ph">{count} photos</span> : null}
+      {countLabel ? <span className="ph">{countLabel}</span> : null}
     </div>
   );
 }

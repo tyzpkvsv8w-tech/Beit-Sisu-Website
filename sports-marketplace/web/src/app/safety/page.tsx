@@ -1,17 +1,16 @@
-export const metadata = { title: "Safety tips" };
+import { getI18n } from "@/i18n";
 
-export default function Safety() {
+export async function generateMetadata() {
+  const { m } = await getI18n();
+  return { title: m.common.safetyTips };
+}
+
+export default async function Safety() {
+  const { m } = await getI18n();
   return (
     <div className="wrap section" style={{ maxWidth: 760 }}><div className="panel">
-      <h1 style={{ fontSize: 40, textTransform: "uppercase" }}>Buying & selling safely</h1>
-      <ul className="tips" style={{ fontSize: 15, color: "var(--fg)" }}>
-        <li>Meet in a busy public place: a mall, a café, or the car park of your sports club.</li>
-        <li>Inspect the item. Spin bike wheels, check racket frames for cracks, try boots on.</li>
-        <li>Pay in person, in cash or by instant transfer once you have the item in your hands.</li>
-        <li>Be wary of prices that look too good, or sellers who only want a courier and a deposit.</li>
-        <li>Keep the conversation in ReKit chat so there is a record if something goes wrong.</li>
-        <li>Report suspicious ads with the &quot;Report this ad&quot; link on the listing page.</li>
-      </ul>
+      <h1 style={{ fontSize: 40, textTransform: "uppercase" }}>{m.safety.title}</h1>
+      <ul className="tips" style={{ fontSize: 15, color: "var(--fg)" }}>{m.safety.items.map((x) => <li key={x}>{x}</li>)}</ul>
     </div></div>
   );
 }

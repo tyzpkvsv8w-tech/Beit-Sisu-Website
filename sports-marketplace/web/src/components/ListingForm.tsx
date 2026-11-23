@@ -5,6 +5,8 @@ import { createListing, updateListing } from "@/app/actions/listings";
 import type { FormState } from "@/app/actions/auth";
 import { CONDITIONS, MAX_PHOTOS, SPORTS, market } from "@/lib/constants";
 import { photoUrl } from "@/lib/format";
+import { fmt } from "@/i18n/fmt";
+import { useI18n } from "@/i18n/client";
 
 type Existing = {
   id: string; title: string; sport: string; condition: string; price: number; negotiable: boolean;
@@ -32,6 +34,8 @@ async function compress(file: File): Promise<Blob> {
 type NewPhoto = { id: string; blob: Blob; url: string };
 
 export function ListingForm({ existing }: { existing?: Existing }) {
+  const { m } = useI18n();
+  const t = m.sell;
   const [state, formAction] = useActionState<FormState, FormData>(existing ? updateListing : createListing, undefined);
   const [pending, start] = useTransition();
   const [keep, setKeep] = useState<string[]>(existing?.photos.map((p) => p.id) ?? []);
@@ -69,71 +73,71 @@ export function ListingForm({ existing }: { existing?: Existing }) {
   const v = existing;
   return (
     <form className="form-card" onSubmit={onSubmit} noValidate>
-      <div><div className="eyebrow">{v ? "Edit your ad" : "Sell your gear"}</div><h1 style={{ fontSize: 40, textTransform: "uppercase" }}>{v ? "Edit ad" : "Post an ad"}</h1></div>
+      <div><div className="eyebrow">{v ? t.eyebrowEdit : t.eyebrowNew}</div><h1 style={{ fontSize: 40, textTransform: "uppercase" }}>{v ? t.titleEdit : t.titleNew}</h1></div>
       {v && <input type="hidden" name="id" value={v.id} />}
 
-      <h2>What are you selling?</h2>
-      <div className="field"><label htmlFor="title">Title</label>
-        <input id="title" name="title" maxLength={80} defaultValue={v?.title} placeholder="e.g. Babolat padel racket, used 3 months" required /></div>
+      <h2>{t.what}</h2>
+      <div className="field"><label htmlFor="title">{t.title}</label>
+        <input id="title" name="title" maxLength={80} defaultValue={v?.title} placeholder={t.titlePh} dir="auto" required /></div>
       <div className="row2">
-        <div className="field"><label htmlFor="sport">Sport</label>
+        <div className="field"><label htmlFor="sport">{t.sport}</label>
           <select id="sport" name="sport" defaultValue={v?.sport ?? ""} required>
-            <option value="" disabled>Choose a sport</option>
-            {SPORTS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            <option value="" disabled>{t.chooseSport}</option>
+            {SPORTS.map((s) => <option key={s.id} value={s.id}>{m.sports[s.id]}</option>)}
           </select></div>
-        <div className="field"><label htmlFor="condition">Condition</label>
+        <div className="field"><label htmlFor="condition">{t.condition}</label>
           <select id="condition" name="condition" defaultValue={v?.condition ?? "Good"}>
-            {CONDITIONS.map((c) => <option key={c}>{c}</option>)}
+            {CONDITIONS.map((c) => <option key={c} value={c}>{m.conditions[c]}</option>)}
           </select></div>
       </div>
       <div className="row2">
-        <div className="field"><label htmlFor="brand">Brand / model</label><input id="brand" name="brand" maxLength={80} defaultValue={v?.brand ?? ""} placeholder="Optional" /></div>
-        <div className="field"><label htmlFor="size">Size / spec</label><input id="size" name="size" maxLength={80} defaultValue={v?.size ?? ""} placeholder="e.g. UK 9, 54 cm, grip L2" /></div>
+        <div className="field"><label htmlFor="brand">{t.brand}</label><input id="brand" name="brand" maxLength={80} defaultValue={v?.brand ?? ""} placeholder={m.common.optional} dir="auto" /></div>
+        <div className="field"><label htmlFor="size">{t.size}</label><input id="size" name="size" maxLength={80} defaultValue={v?.size ?? ""} placeholder={t.sizePh} dir="auto" /></div>
       </div>
-      <div className="field"><label htmlFor="description">Description</label>
-        <textarea id="description" name="description" maxLength={2000} defaultValue={v?.description} placeholder="How long have you used it? Any wear or damage? What's included?" /></div>
+      <div className="field"><label htmlFor="description">{t.description}</label>
+        <textarea id="description" name="description" maxLength={2000} defaultValue={v?.description} placeholder={t.descriptionPh} dir="auto" /></div>
 
-      <div className="field"><span className="lbl">Photos ({total}/{MAX_PHOTOS})</span>
+      <div className="field"><span className="lbl">{fmt(t.photos, { n: total, max: MAX_PHOTOS })}</span>
         <div className="photos">
           {v?.photos.filter((p) => keep.includes(p.id)).map((p) => (
             <div className="slot" key={p.id}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photoUrl(p.key)} alt="" />
               <input type="hidden" name="keepPhoto" value={p.id} />
-              <button type="button" onClick={() => setKeep((k) => k.filter((x) => x !== p.id))} aria-label="Remove photo">×</button>
+              <button type="button" onClick={() => setKeep((k) => k.filter((x) => x !== p.id))} aria-label={m.common.removePhoto}>×</button>
             </div>
           ))}
           {photos.map((p) => (
             <div className="slot" key={p.id}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.url} alt="" />
-              <button type="button" onClick={() => setPhotos((ps) => ps.filter((x) => x.id !== p.id))} aria-label="Remove photo">×</button>
+              <button type="button" onClick={() => setPhotos((ps) => ps.filter((x) => x.id !== p.id))} aria-label={m.common.removePhoto}>×</button>
             </div>
           ))}
           {total < MAX_PHOTOS && (
-            <label className="slot" htmlFor="picker">{busy ? "Adding…" : "+ Add photos"}
+            <label className="slot" htmlFor="picker">{busy ? t.adding : t.addPhotos}
               <input id="picker" name="picker" type="file" accept="image/jpeg,image/png,image/webp,image/heic" multiple
                 onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
             </label>
           )}
         </div>
-        <span className="hint">Clear daylight photos sell faster. The first photo is your cover.</span></div>
+        <span className="hint">{t.photosHint}</span></div>
 
-      <h2>Price & location</h2>
+      <h2>{t.priceLocation}</h2>
       <div className="row2">
-        <div className="field"><label htmlFor="price">Price ({market().currency})</label>
+        <div className="field"><label htmlFor="price">{fmt(t.price, { currency: market().currency })}</label>
           <input id="price" name="price" type="number" min={0} step={1} inputMode="numeric" defaultValue={v?.price} placeholder="0" required /></div>
-        <div className="field"><label htmlFor="city">Emirate / city</label>
+        <div className="field"><label htmlFor="city">{t.city}</label>
           <select id="city" name="city" defaultValue={v?.city ?? market().cities[0]}>
-            {market().cities.map((c) => <option key={c}>{c}</option>)}
+            {market().cities.map((c) => <option key={c} value={c}>{m.cities[c]}</option>)}
           </select></div>
       </div>
-      <div className="field"><label htmlFor="area">Area</label><input id="area" name="area" maxLength={80} defaultValue={v?.area ?? ""} placeholder="e.g. Dubai Marina" /></div>
-      <label className="check"><input type="checkbox" name="negotiable" id="negotiable" defaultChecked={v?.negotiable ?? true} /> Open to offers</label>
+      <div className="field"><label htmlFor="area">{t.area}</label><input id="area" name="area" maxLength={80} defaultValue={v?.area ?? ""} placeholder={t.areaPh} dir="auto" /></div>
+      <label className="check"><input type="checkbox" name="negotiable" id="negotiable" defaultChecked={v?.negotiable ?? true} /> {t.negotiable}</label>
 
       <div ref={errRef}>{state?.error && <div className="err" role="alert">{state.error}</div>}</div>
       <button className="btn btn-primary btn-block" type="submit" disabled={pending || busy} style={{ paddingBlock: 14, fontSize: 16 }}>
-        {pending ? "Saving…" : v ? "Save changes" : "Publish ad, free"}
+        {pending ? t.saving : v ? t.save : t.publish}
       </button>
     </form>
   );

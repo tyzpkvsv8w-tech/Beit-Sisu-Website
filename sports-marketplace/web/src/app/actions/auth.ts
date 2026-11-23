@@ -1,57 +1,52 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { createSession, destroySession, hashPassword, safeNext, verifyPassword } from "@/lib/auth";
+import { createSession, destroySession, getUser, hashPassword, safeNext, verifyPassword } from "@/lib/auth";
 import { failures, rateLimit } from "@/lib/rate-limit";
 import { market } from "@/lib/constants";
+import { getI18n, LOCALE_COOKIE } from "@/i18n";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
-async function clientIp() {
+export async function clientIp() {
   const h = await headers();
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
 }
 
-const signupSchema = z.object({
-  name: z.string().trim().min(2, "Enter your name (at least 2 characters)").max(40),
-  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
-  password: z.string().min(8, "Use at least 8 characters for your password").max(200),
-  city: z.string().refine((c) => market().cities.includes(c), "Choose your emirate or city"),
-  terms: z.literal("on", { errorMap: () => ({ message: "Please accept the terms to create an account" }) }),
-});
-
 export async function signup(_: FormState, form: FormData): Promise<FormState> {
-  if (!rateLimit(`signup:${await clientIp()}`, 10, 60 * 60 * 1000)) {
-    return { error: "Too many sign-ups from this network. Try again in an hour." };
-  }
-  const parsed = signupSchema.safeParse(Object.fromEntries(form));
+  const { m } = await getI18n();
+  if (!rateLimit(`signup:${await clientIp()}`, 10, 60 * 60 * 1000)) return { error: m.errors.tooManySignups };
+  const schema = z.object({
+    name: z.string().trim().min(2, m.errors.name).max(40, m.errors.name),
+    email: z.string().trim().toLowerCase().email(m.errors.email),
+    password: z.string().min(8, m.errors.password).max(200),
+    city: z.string({ required_error: m.errors.city }).refine((c) => market().cities.includes(c), m.errors.city),
+    terms: z.literal("on", { errorMap: () => ({ message: m.errors.terms }) }),
+  });
+  const parsed = schema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { name, email, password, city } = parsed.data;
-  const existing = await db.user.findUnique({ where: { email } });
-  if (existing) return { error: "An account with this email already exists. Log in instead." };
-  const user = await db.user.create({
-    data: { name, email, city, passwordHash: await hashPassword(password) },
-  });
+  if (await db.user.findUnique({ where: { email } })) return { error: m.errors.emailTaken };
+  const user = await db.user.create({ data: { name, email, city, passwordHash: await hashPassword(password) } });
   await createSession(user.id);
   redirect(safeNext(form.get("next")));
 }
 
 export async function login(_: FormState, form: FormData): Promise<FormState> {
+  const { m } = await getI18n();
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const password = String(form.get("password") ?? "");
-  const ip = await clientIp();
-  const key = `login:${ip}:${email}`;
-  if (failures.blocked(key, 8, 15 * 60 * 1000)) {
-    return { error: "Too many failed attempts. Wait 15 minutes and try again." };
-  }
-  const user = await db.user.findUnique({ where: { email } });
+  const key = `login:${await clientIp()}:${email}`;
+  if (failures.blocked(key, 8, 15 * 60 * 1000)) return { error: m.errors.tooManyLogins };
+  const user = email ? await db.user.findUnique({ where: { email } }) : null;
   // Same message either way, so the form doesn't reveal which emails have accounts.
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  if (!user?.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
     failures.record(key);
-    return { error: "That email and password don't match. Check them and try again." };
+    return { error: m.errors.badLogin };
   }
   failures.clear(key);
   await createSession(user.id);
@@ -61,4 +56,13 @@ export async function login(_: FormState, form: FormData): Promise<FormState> {
 export async function logout() {
   await destroySession();
   redirect("/");
+}
+
+export async function setLocale(locale: string) {
+  if (locale !== "en" && locale !== "ar") return;
+  const jar = await cookies();
+  jar.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 365 * 24 * 3600, sameSite: "lax" });
+  const user = await getUser();
+  if (user) await db.user.update({ where: { id: user.id }, data: { locale } });
+  revalidatePath("/", "layout");
 }

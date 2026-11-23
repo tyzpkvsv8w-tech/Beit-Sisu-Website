@@ -1,5 +1,6 @@
 // Sample data for development. Run with: npm run db:seed
-// Every account below uses the password "rekit-demo-123". Never run this against production.
+// Email accounts use the password "rekit-demo-123"; each demo person also has a verified
+// mobile number for SMS login (in dev mode the code is shown on screen). Never run this against production.
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -11,7 +12,7 @@ async function main() {
   if (process.env.NODE_ENV === "production") throw new Error("Refusing to seed in production");
   await db.$transaction([
     db.message.deleteMany(), db.conversation.deleteMany(), db.favorite.deleteMany(), db.report.deleteMany(),
-    db.photo.deleteMany(), db.listing.deleteMany(), db.session.deleteMany(), db.user.deleteMany(),
+    db.photo.deleteMany(), db.listing.deleteMany(), db.session.deleteMany(), db.phoneChallenge.deleteMany(), db.user.deleteMany(),
     db.adCampaign.deleteMany(), db.adEnquiry.deleteMany(),
   ]);
   const passwordHash = await bcrypt.hash("rekit-demo-123", 10);
@@ -19,12 +20,14 @@ async function main() {
 
   const admin = await mk("admin@rekit.test", "ReKit Admin", { role: "ADMIN" });
   const people = {};
-  for (const [key, name, city, phone] of [
-    ["omar", "Omar K.", "Dubai", "+971 50 123 4567"], ["priya", "Priya S.", "Dubai"], ["james", "James W.", "Abu Dhabi"],
-    ["hassan", "Hassan A.", "Dubai"], ["lena", "Lena M.", "Dubai", "+971 55 987 6543"], ["rami", "Rami T.", "Sharjah"],
-    ["aisha", "Aisha R.", "Dubai"], ["vikram", "Vikram P.", "Ajman"], ["sophie", "Sophie L.", "Abu Dhabi"], ["fatima", "Fatima Z.", "Sharjah"],
+  for (const [key, name, city, phone, showPhone, locale] of [
+    ["omar", "Omar K.", "Dubai", "+971501234567", true], ["priya", "Priya S.", "Dubai", "+971502223344"], ["james", "James W.", "Abu Dhabi", "+971503334455"],
+    ["hassan", "حسن أ.", "Dubai", "+971504445566", false, "ar"], ["lena", "Lena M.", "Dubai", "+971559876543", true], ["rami", "رامي ت.", "Sharjah", "+971506667788", false, "ar"],
+    ["aisha", "Aisha R.", "Dubai", "+971507778899"], ["vikram", "Vikram P.", "Ajman", "+971508889900"], ["sophie", "Sophie L.", "Abu Dhabi", "+971509990011"], ["fatima", "فاطمة ز.", "Sharjah", "+971561112233", false, "ar"],
   ]) {
-    people[key] = await mk(`${key}@rekit.test`, name, { city, phone: phone ?? null, showPhone: !!phone, createdAt: ago((200 + Math.random() * 600) * D) });
+    people[key] = await mk(`${key}@rekit.test`, name, {
+      city, phone, phoneVerifiedAt: new Date(), showPhone: !!showPhone, locale: locale ?? "en", createdAt: ago((200 + Math.random() * 600) * D),
+    });
   }
   const shops = {
     bike: await mk("bikes@rekit.test", "Marina Bike Lab", { isBusiness: true }),
@@ -55,6 +58,8 @@ async function main() {
     L(p.lena, "water", "Inflatable stand-up paddleboard 10'6\" with pump", 750, "Like new", "Fujairah", "Dibba", "Aqua Marina", "10'6\"", 4 * D + 2 * H, false, "Board, paddle, leash, pump and backpack. No punctures."),
     L(p.aisha, "running", "Nike Vaporfly 3, UK 8, under 100 km", 450, "Like new", "Dubai", "Downtown", "Nike", "UK 8 / EU 42.5", 7 * D, true, "Raced one half marathon in them. Foam still bouncy."),
     L(p.hassan, "golf", "Golf push trolley, 3-wheel, foldable", 260, "Good", "Al Ain", "Al Jimi", "Clicgear", "Standard", 8 * D, true, "Folds flat. Includes umbrella holder and scorecard holder."),
+    L(p.fatima, "padel-tennis", "مضرب بادل أديداس مع حقيبة", 380, "Good", "Sharjah", "الخان", "Adidas Metalbone", "عادي", 11 * H, true, "استخدام خفيف لمدة شهرين. لا يوجد كسر في الإطار. الحقيبة الأصلية مع المضرب.\nالتسليم في الشارقة أو دبي."),
+    L(p.hassan, "cycling", "دراجة جبلية للكبار مقاس L", 1200, "Like new", "Dubai", "مردف", "Giant Talon", "L / 29 إنش", 1 * D + 2 * H, true, "دراجة شبه جديدة، استُخدمت في مشوار واحد في حتا. فرامل هيدروليكية. السعر قابل للتفاوض البسيط."),
     L(p.rami, "football", "Pop-up goals pair + 10 cones + ball pump", 150, "Good", "Dubai", "Dubai Silicon Oasis", "Kickmaster", "1.2 m goals", 9 * D, false, "Good for kids' training in the park. One goal has a small tear in the net."),
     L(p.vikram, "combat", "Freestanding punch bag with base", 600, "Well used", "Dubai", "Al Furjan", "Everlast", "170 cm", 10 * D, true, "Base fills with water. Some cracking on the vinyl near the top, still solid."),
   ];

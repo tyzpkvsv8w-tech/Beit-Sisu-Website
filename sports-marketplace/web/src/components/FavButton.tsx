@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toggleFavorite } from "@/app/actions/social";
+import { useI18n } from "@/i18n/client";
 
 const Heart = ({ filled }: { filled: boolean }) => (
   <svg viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={filled ? 0 : 2} aria-hidden="true">
@@ -11,6 +12,7 @@ const Heart = ({ filled }: { filled: boolean }) => (
 );
 
 export function FavButton({ listingId, initial, variant = "icon" }: { listingId: string; initial: boolean; variant?: "icon" | "button" }) {
+  const { m } = useI18n();
   const [saved, setSaved] = useState(initial);
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -28,13 +30,13 @@ export function FavButton({ listingId, initial, variant = "icon" }: { listingId:
   if (variant === "button") {
     return (
       <button type="button" className="btn btn-ghost" onClick={onClick} disabled={pending} aria-pressed={saved}>
-        {saved ? "♥ Saved" : "♡ Save"}
+        {saved ? m.listing.saved : m.listing.save}
       </button>
     );
   }
   return (
     <button type="button" className={`fav${saved ? " on" : ""}`} onClick={onClick} disabled={pending}
-      aria-pressed={saved} aria-label={saved ? "Remove from saved" : "Save listing"}>
+      aria-pressed={saved} aria-label={saved ? m.card.unsave : m.card.save}>
       <Heart filled={saved} />
     </button>
   );

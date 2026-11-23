@@ -22,21 +22,21 @@ export const MARKETS: Record<string, Market> = {
 export const DEFAULT_MARKET = "ae";
 export const market = (code = DEFAULT_MARKET) => MARKETS[code] ?? MARKETS[DEFAULT_MARKET];
 
-export type Sport = { id: string; name: string; em: string; color: string };
+export type Sport = { id: string; em: string; color: string };
 
 export const SPORTS: Sport[] = [
-  { id: "padel-tennis", name: "Padel & Tennis", em: "🎾", color: "#c9e86b" },
-  { id: "cycling", name: "Cycling", em: "🚴", color: "#7fb3ff" },
-  { id: "gym", name: "Gym & Fitness", em: "🏋️", color: "#ffb27a" },
-  { id: "football", name: "Football", em: "⚽", color: "#8fe0a8" },
-  { id: "golf", name: "Golf", em: "⛳", color: "#a8e6c8" },
-  { id: "water", name: "Water Sports", em: "🏄", color: "#7fd8f0" },
-  { id: "running", name: "Running", em: "👟", color: "#ff9aa8" },
-  { id: "cricket", name: "Cricket", em: "🏏", color: "#f2d27a" },
-  { id: "basketball", name: "Basketball", em: "🏀", color: "#ffbf80" },
-  { id: "combat", name: "Combat Sports", em: "🥊", color: "#ff9b8f" },
-  { id: "snow", name: "Ski & Snow", em: "🎿", color: "#c8d8ff" },
-  { id: "outdoor", name: "Camping & Outdoor", em: "⛺", color: "#d6c49a" },
+  { id: "padel-tennis", em: "🎾", color: "#c9e86b" },
+  { id: "cycling", em: "🚴", color: "#7fb3ff" },
+  { id: "gym", em: "🏋️", color: "#ffb27a" },
+  { id: "football", em: "⚽", color: "#8fe0a8" },
+  { id: "golf", em: "⛳", color: "#a8e6c8" },
+  { id: "water", em: "🏄", color: "#7fd8f0" },
+  { id: "running", em: "👟", color: "#ff9aa8" },
+  { id: "cricket", em: "🏏", color: "#f2d27a" },
+  { id: "basketball", em: "🏀", color: "#ffbf80" },
+  { id: "combat", em: "🥊", color: "#ff9b8f" },
+  { id: "snow", em: "🎿", color: "#c8d8ff" },
+  { id: "outdoor", em: "⛺", color: "#d6c49a" },
 ];
 
 export const SPORT_BY_ID: Record<string, Sport> = Object.fromEntries(SPORTS.map((s) => [s.id, s]));

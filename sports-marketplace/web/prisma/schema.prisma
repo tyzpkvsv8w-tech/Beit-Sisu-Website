@@ -1,23 +1,29 @@
-// ReKit database schema.
-// Development uses SQLite. For production change provider to "postgresql";
-// the models below work unchanged on Postgres.
+// ReKit database schema (Postgres: Supabase in production, any Postgres locally).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Supabase: the pooled connection (port 6543) for the app...
+  url       = env("DATABASE_URL")
+  // ...and the direct connection (port 5432) for migrations.
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
   id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  phone        String?
-  showPhone    Boolean  @default(false)
+  // Accounts sign up with a verified mobile number, an email + password, or both.
+  email           String?   @unique
+  passwordHash    String?
+  name            String
+  // E.164 format, e.g. +971501234567. Only set once verified by SMS code.
+  phone           String?   @unique
+  phoneVerifiedAt DateTime?
+  showPhone       Boolean   @default(false)
+  // "en" | "ar"
+  locale          String    @default("en")
   city         String?
   market       String   @default("ae")
   // "USER" or "ADMIN"
@@ -140,6 +146,20 @@ model Report {
   createdAt  DateTime @default(now())
 
   @@unique([listingId, reporterId])
+}
+
+// One SMS login attempt: a code sent to a phone, checked at most 5 times.
+model PhoneChallenge {
+  id         String    @id @default(cuid())
+  phone      String
+  // Only used by the development SMS driver; Supabase keeps its own codes.
+  codeHash   String?
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
 }
 
 // Display advertising sold to businesses

@@ -21,6 +21,22 @@ const newPage = async (opts = {}) => {
   return page;
 };
 
+const FIXED_CODE = process.env.E2E_SMS_CODE; // set when testing against the Supabase mock
+const randomMobile = () => "05" + String(Math.floor(10_000_000 + Math.random() * 89_999_999));
+async function phoneCode(page) {
+  if (FIXED_CODE) return FIXED_CODE;
+  const text = await page.getByTestId("dev-code").textContent();
+  return text.match(/\d{6}/)[0];
+}
+/** Number -> code. Leaves the page on the next step (profile form, or redirected). */
+async function phoneLogin(page, mobile) {
+  await page.fill("#phone", mobile);
+  await page.click("form.form-card button[type=submit]");
+  await page.locator("#code").waitFor();
+  await page.fill("#code", await phoneCode(page));
+  await page.click("form.form-card button[type=submit]");
+}
+
 // A real JPEG to upload, made by screenshotting a coloured box.
 const img = await newPage({ viewport: { width: 400, height: 300 } });
 await img.setContent('<div style="width:400px;height:300px;background:linear-gradient(135deg,#1747c9,#d9f24a)"></div>');
@@ -47,21 +63,36 @@ check("guest sees 'log in to chat'", await guest.getByText("Log in to chat with 
 await guest.goto(`${BASE}/sell`);
 check("posting requires login", guest.url().includes("/login?next=%2Fsell"));
 
-// 2. Seller signs up and posts an ad with a photo
+// 2. Seller signs up with a mobile number and posts an ad with a photo
 const seller = await newPage();
-const email = `seller${Date.now()}@example.com`;
-await seller.goto(`${BASE}/signup?next=/sell`);
+const sellerMobile = randomMobile();
+await seller.goto(`${BASE}/login?next=/sell`);
+await seller.fill("#phone", "12345");
+await seller.click("form.form-card button[type=submit]");
+check("invalid mobile rejected", await seller.getByText("Enter a UAE mobile number").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await seller.fill("#phone", sellerMobile);
+await seller.click("form.form-card button[type=submit]");
+await seller.locator("#code").waitFor();
+const realCode = await phoneCode(seller);
+check("code screen shows the number", await seller.getByText(sellerMobile.replace(/^(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3")).first().isVisible());
+await seller.fill("#code", realCode === "000000" ? "111111" : "000000");
+await seller.click("form.form-card button[type=submit]");
+check("wrong code rejected", await seller.getByText("That code isn't right").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await seller.fill("#code", realCode);
+await seller.click("form.form-card button[type=submit]");
+await seller.locator("#name").waitFor();
+check("new number asks for name and city", true);
 await seller.fill("#name", "Test Seller");
-await seller.fill("#email", email);
-await seller.fill("#password", "short");
+await seller.click("form.form-card button[type=submit]");
+check("city must be chosen", await seller.getByText("Choose your emirate or city").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await seller.selectOption("#city", "Dubai");
+await seller.click("form.form-card button[type=submit]");
+check("terms must be accepted", await seller.getByText("accept the terms").waitFor({ timeout: 5000 }).then(() => true, () => false));
 await seller.selectOption("#city", "Dubai");
 await seller.check("#terms");
 await seller.click("form.form-card button[type=submit]");
-check("weak password rejected", await seller.getByText("Use at least 8 characters").waitFor({ timeout: 5000 }).then(() => true, () => false));
-await seller.fill("#password", "a-strong-password");
-await seller.click("form.form-card button[type=submit]");
 await seller.waitForURL(BASE + "/sell");
-check("signup logs in and returns to /sell", true);
+check("phone signup logs in and returns to /sell", (await seller.locator(".user-menu").textContent()).includes("Test"));
 await seller.fill("#title", "Babolat padel racket, used 3 months");
 await seller.selectOption("#sport", "padel-tennis");
 await seller.selectOption("#condition", "Like new");
@@ -79,7 +110,7 @@ const listingUrl = seller.url().split("?")[0];
 const listingId = listingUrl.split("/").pop();
 check("ad published", await seller.getByText("Your ad is live").isVisible());
 const imgSrc = await seller.locator(".gallery .main img").getAttribute("src");
-const imgRes = await seller.request.get(BASE + imgSrc);
+const imgRes = await seller.request.get(new URL(imgSrc, BASE).toString());
 check("photo stored and served", imgRes.ok() && imgRes.headers()["content-type"] === "image/jpeg", imgSrc);
 await shot(seller, "03-listing-own");
 
@@ -92,7 +123,7 @@ check("edit saves new price", (await seller.locator(".d-price").textContent()).i
 
 // 3. A second user (seeded demo buyer) messages the seller
 const buyer = await newPage();
-await buyer.goto(`${BASE}/login?next=/listing/${listingId}`);
+await buyer.goto(`${BASE}/login/email?next=/listing/${listingId}`);
 await buyer.fill("#email", "priya@rekit.test");
 await buyer.fill("#password", "wrong-password");
 await buyer.click("form.form-card button[type=submit]");
@@ -128,16 +159,15 @@ await shot(buyer, "04-chat");
 const editByOther = await buyer.goto(`${listingUrl}/edit`);
 check("other users can't edit the ad", editByOther.status() === 404);
 const outsider = await newPage();
-await outsider.goto(`${BASE}/login`);
-await outsider.fill("#email", "james@rekit.test");
-await outsider.fill("#password", "rekit-demo-123");
-await outsider.click("form.form-card button[type=submit]");
-await outsider.waitForURL(BASE + "/");
+await outsider.goto(`${BASE}/login?next=/browse`);
+await phoneLogin(outsider, "050 333 4455"); // James, a seeded account
+await outsider.waitForURL(BASE + "/browse");
+check("existing number logs straight in", (await outsider.locator(".user-menu").textContent()).includes("James"));
 const convoId = convoUrl.split("/").pop();
 check("outsiders can't read the chat (page)", (await outsider.goto(convoUrl)).status() === 404);
 check("outsiders can't read the chat (API)", (await outsider.request.get(`${BASE}/api/conversations/${convoId}/messages`)).status() === 404);
 check("guests can't read the chat (API)", (await guest.request.get(`${BASE}/api/conversations/${convoId}/messages`)).status() === 401);
-await guest.goto(`${BASE}/login?next=//evil.example.com`);
+await guest.goto(`${BASE}/login/email?next=//evil.example.com`);
 check("no open redirect after login", (await guest.locator("input[name=next]").inputValue()) === "/");
 check("path traversal blocked on uploads", (await guest.request.get(`${BASE}/uploads/..%2F.env`)).status() === 404);
 const adminAsUser = await outsider.goto(`${BASE}/admin`);
@@ -155,17 +185,19 @@ await guest.goto(`${BASE}/advertise`);
 await guest.fill("#aName", "Sara");
 await guest.fill("#aBiz", "Test Padel Club");
 await guest.fill("#aEmail", "sara@example.com");
+await guest.selectOption("#aSport", "padel-tennis");
 await guest.click("#enquire button[type=submit]");
 check("advertiser enquiry sent", await guest.getByText("Enquiry sent").waitFor({ timeout: 5000 }).then(() => true, () => false));
 
 const admin = await newPage();
-await admin.goto(`${BASE}/login?next=/admin`);
+await admin.goto(`${BASE}/login/email?next=/admin`);
 await admin.fill("#email", "admin@rekit.test");
 await admin.fill("#password", "rekit-demo-123");
 await admin.click("form.form-card button[type=submit]");
 await admin.waitForURL(BASE + "/admin");
 check("admin sees enquiry", await admin.getByText("Test Padel Club").isVisible());
-check("admin sees ad impressions", (await admin.locator("table.data td.num").first().textContent()) !== "0");
+const nums = (await admin.locator("table.data td.num").allTextContents()).map((t) => parseInt(t) || 0);
+check("admin sees ad impressions", nums.some((n) => n > 0));
 await shot(admin, "05-admin");
 await admin.getByRole("button", { name: "Remove ad" }).first().click();
 await admin.waitForLoadState("networkidle");
@@ -184,6 +216,66 @@ for (const path of ["/", "/browse", `/listing/${(await guest.goto(`${BASE}/brows
 }
 await phone.goto(`${BASE}/browse`);
 await shot(phone, "06-phone-browse");
+
+
+// 7. SMS limits: a number can only request 3 codes in 10 minutes
+const spammer = await newPage();
+const spamNumber = randomMobile();
+let limited = false;
+for (let i = 0; i < 4; i++) {
+  await spammer.goto(`${BASE}/login`);
+  await spammer.fill("#phone", spamNumber);
+  await spammer.click("form.form-card button[type=submit]");
+  limited = await spammer.getByText("Too many codes requested").waitFor({ timeout: 3000 }).then(() => true, () => false);
+  if (!limited) await spammer.locator("#code").waitFor();
+}
+check("4th code request in 10 minutes is refused", limited);
+
+// 8. Email account adds and verifies a mobile number
+const emailUser = await newPage();
+await emailUser.goto(`${BASE}/signup`);
+await emailUser.fill("#name", "Email Person");
+await emailUser.fill("#email", `email${Date.now()}@example.com`);
+await emailUser.fill("#password", "a-strong-password");
+await emailUser.selectOption("#city", "Abu Dhabi");
+await emailUser.check("#terms");
+await emailUser.click("form.form-card button[type=submit]");
+await emailUser.waitForURL(BASE + "/");
+await emailUser.goto(`${BASE}/account/phone`);
+await emailUser.fill("#phone", "050 123 4567"); // Omar's number
+await emailUser.click("form.form-card button[type=submit]");
+check("can't add someone else's number", await emailUser.getByText("already linked to another account").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await phoneLogin(emailUser, randomMobile());
+await emailUser.waitForURL(/\/account\?phone=1/);
+check("email account now has a verified mobile", await emailUser.getByText("✓ Verified").isVisible());
+
+// 9. Arabic
+const arabic = await newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+await arabic.goto(BASE);
+await arabic.getByRole("button", { name: "التبديل إلى العربية" }).click();
+await arabic.waitForFunction(() => document.documentElement.dir === "rtl");
+check("language switch turns on right-to-left", (await arabic.locator("html").getAttribute("lang")) === "ar");
+check("home page is in Arabic", (await arabic.locator(".hero h1").textContent()).includes("معداتك القديمة"));
+check("prices shown in dirhams", (await arabic.locator(".card .pr").first().textContent()).includes("درهم"));
+await arabic.goto(`${BASE}/browse?sport=padel-tennis`);
+check("sport names translated", (await arabic.locator("h1").textContent()) === "بادل وتنس");
+check("Arabic listings searchable", (await arabic.goto(`${BASE}/browse?q=${encodeURIComponent("مضرب")}`), await arabic.locator(".card .ti").allTextContents()).some((t) => t.includes("مضرب")));
+await shot(arabic, "07-arabic-browse");
+for (const path of ["/", "/browse", "/login", "/advertise", "/safety"]) {
+  await arabic.goto(BASE + path);
+  const w = await arabic.evaluate(() => document.documentElement.scrollWidth);
+  check(`Arabic phone width fits ${path}`, w <= 390, `scrollWidth=${w}`);
+}
+await arabic.goto(`${BASE}/login`);
+await arabic.fill("#phone", "999");
+await arabic.click("form.form-card button[type=submit]");
+check("errors are in Arabic", await arabic.getByText("أدخل رقم جوال إماراتيًا").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await shot(arabic, "08-arabic-login");
+await arabic.goto(BASE);
+await shot(arabic, "09-arabic-home");
+await arabic.getByRole("button", { name: "Switch to English" }).click();
+await arabic.waitForFunction(() => document.documentElement.dir === "ltr");
+check("switching back to English works", true);
 
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);

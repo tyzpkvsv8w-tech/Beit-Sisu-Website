@@ -2,15 +2,13 @@ import Link from "next/link";
 import { getUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { market } from "@/lib/constants";
+import { getI18n } from "@/i18n";
 import { logout } from "@/app/actions/auth";
+import { LangSwitch } from "./LangSwitch";
 
 async function unreadCount(userId: string) {
   return db.message.count({
-    where: {
-      readAt: null,
-      senderId: { not: userId },
-      conversation: { OR: [{ buyerId: userId }, { sellerId: userId }] },
-    },
+    where: { readAt: null, senderId: { not: userId }, conversation: { OR: [{ buyerId: userId }, { sellerId: userId }] } },
   });
 }
 
@@ -26,46 +24,44 @@ const Icon = ({ d }: { d: React.ReactNode }) => (
 );
 
 export async function Header() {
-  const user = await getUser();
+  const [{ m }, user] = await Promise.all([getI18n(), getUser()]);
   const unread = user ? await unreadCount(user.id) : 0;
-  const m = market();
+  const mk = market();
   return (
     <>
       <header className="top">
         <div className="wrap">
-          <Link className="logo" href="/" aria-label="ReKit home">Re<b>Kit</b></Link>
-          <span className="country" title="More countries coming soon">{m.flag} {m.short}</span>
+          <Link className="logo" href="/" aria-label="ReKit" dir="ltr">Re<b>Kit</b></Link>
+          <span className="country" title={m.common.moreCountries}>{mk.flag} {m.countries.aeShort}</span>
           <form className="searchbar desk" action="/browse" role="search">
-            <input name="q" type="search" placeholder="Search rackets, bikes, golf clubs…" aria-label="Search listings" />
-            <button type="submit">Search</button>
+            <input name="q" type="search" placeholder={m.common.searchPh} aria-label={m.common.searchLabel} />
+            <button type="submit">{m.common.search}</button>
           </form>
           <nav className="nav" aria-label="Main">
-            <Link href="/browse">Browse</Link>
-            {user && <Link href="/saved">Saved</Link>}
-            {user && <Link href="/messages">Messages{unread > 0 && <span className="badge">{unread}</span>}</Link>}
+            <Link href="/browse">{m.common.browse}</Link>
+            {user && <Link href="/saved">{m.common.saved}</Link>}
+            {user && <Link href="/messages">{m.common.messages}{unread > 0 && <span className="badge">{unread}</span>}</Link>}
           </nav>
           <div className="user-menu">
+            <LangSwitch />
             {user ? (
               <>
-                <Link className="nav-link linkbtn desk-only" href="/account">{user.name.split(" ")[0]}</Link>
-                <form action={logout} className="desk-only"><button className="linkbtn" type="submit">Log out</button></form>
+                <Link className="linkbtn desk-only" href="/account">{user.name.split(" ")[0]}</Link>
+                <form action={logout} className="desk-only"><button className="linkbtn" type="submit">{m.common.logOut}</button></form>
               </>
             ) : (
-              <>
-                <Link className="linkbtn" href="/login">Log in</Link>
-                <Link className="linkbtn desk-only" href="/signup">Sign up</Link>
-              </>
+              <Link className="linkbtn desk-only" href="/login">{m.common.logIn}</Link>
             )}
           </div>
-          <Link className="btn btn-primary btn-post" href="/sell">+ Post an ad, free</Link>
+          <Link className="btn btn-primary btn-post" href="/sell">{m.common.postAdFree}</Link>
         </div>
       </header>
       <nav className="tabs" aria-label="App">
-        <Link href="/"><span className="ic"><Icon d={icons.home} /></span>Home</Link>
-        <Link href="/browse"><span className="ic"><Icon d={icons.search} /></span>Search</Link>
-        <Link href="/sell" className="post-tab"><span className="ic"><Icon d={icons.plus} /></span>Sell</Link>
-        <Link href="/messages"><span className="ic"><Icon d={icons.chat} /></span>Chats{unread > 0 && <span className="badge">{unread}</span>}</Link>
-        <Link href={user ? "/account" : "/login"}><span className="ic"><Icon d={icons.user} /></span>{user ? "Account" : "Log in"}</Link>
+        <Link href="/"><span className="ic"><Icon d={icons.home} /></span>{m.common.home}</Link>
+        <Link href="/browse"><span className="ic"><Icon d={icons.search} /></span>{m.common.search}</Link>
+        <Link href="/sell" className="post-tab"><span className="ic"><Icon d={icons.plus} /></span>{m.common.sell}</Link>
+        <Link href="/messages"><span className="ic"><Icon d={icons.chat} /></span>{m.common.chats}{unread > 0 && <span className="badge">{unread}</span>}</Link>
+        <Link href={user ? "/account" : "/login"}><span className="ic"><Icon d={icons.user} /></span>{user ? m.common.account : m.common.logIn}</Link>
       </nav>
     </>
   );
