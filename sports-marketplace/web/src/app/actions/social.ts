@@ -103,6 +103,7 @@ export async function updateProfile(_: FormState, form: FormData): Promise<FormS
     name: z.string().trim().min(2, m.errors.name).max(40, m.errors.name),
     showPhone: z.string().optional().transform((v) => v === "on"),
     notifyMessages: z.string().optional().transform((v) => v === "on"),
+    isBusiness: z.string().optional().transform((v) => v === "on"),
     city: z.string({ required_error: m.errors.city }).refine((c) => market().cities.includes(c), m.errors.city),
   }).safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };

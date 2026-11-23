@@ -96,6 +96,11 @@ export default async function ListingPage({ params, searchParams }: Props) {
               <>
                 <div className="note">{fmt(t.yourAd, { n: l.views })}</div>
                 <Link className="btn btn-primary btn-block" href={`/listing/${l.id}/edit`}>{t.edit}</Link>
+                {l.seller.isBusiness && l.status === "ACTIVE" && (
+                  <Link className="btn btn-volt btn-block" href={`/listing/${l.id}/promote`}>
+                    {sponsored ? fmt(m.promote.until, { date: l.sponsoredUntil!.toLocaleDateString(locale === "ar" ? "ar-AE-u-nu-latn" : "en-GB", { day: "numeric", month: "short", timeZone: "Asia/Dubai" }) }) : m.promote.button}
+                  </Link>
+                )}
                 <form action={setListingStatus}>
                   <input type="hidden" name="id" value={l.id} />
                   <input type="hidden" name="status" value={l.status === "SOLD" ? "ACTIVE" : "SOLD"} />

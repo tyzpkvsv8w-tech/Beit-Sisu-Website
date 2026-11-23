@@ -17,6 +17,7 @@ export async function pickAd(placement: Placement, opts: { sport?: string; city?
       placement: { in: placements },
       market: DEFAULT_MARKET,
       active: true,
+      status: "APPROVED",
       startsAt: { lte: now },
       endsAt: { gte: now },
       AND: [

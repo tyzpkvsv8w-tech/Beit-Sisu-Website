@@ -21,6 +21,7 @@ export async function LegalPage({ doc }: { doc: { en: LegalDoc; ar: LegalDoc } }
     email: COMPANY.email,
     privacyEmail: COMPANY.privacyEmail,
     liabilityCap: COMPANY.liabilityCap.toLocaleString("en-AE"),
+    trn: COMPANY.trn,
     prevailing: m.legal.languageNames[COMPANY.prevailing],
   };
   const f = (s: string) => fmt(s, vars);

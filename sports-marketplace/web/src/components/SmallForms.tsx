@@ -76,7 +76,7 @@ export function EnquiryForm() {
 // Stored in English so the ad team sees the same values whatever the language.
 const BUDGETS = ["Under 2,000", "2,000 – 10,000", "10,000 – 50,000", "50,000+"];
 
-type ProfileUser = { name: string; phone: string | null; showPhone: boolean; city: string | null; email: string | null; emailVerifiedAt: Date | null; notifyMessages: boolean };
+type ProfileUser = { name: string; phone: string | null; showPhone: boolean; city: string | null; email: string | null; emailVerifiedAt: Date | null; notifyMessages: boolean; isBusiness: boolean };
 
 export function ProfileForm({ user }: { user: ProfileUser }) {
   const { m } = useI18n();
@@ -97,6 +97,7 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
           <select id="pCity" name="city" defaultValue={user.city ?? market().cities[0]}>{market().cities.map((c) => <option key={c} value={c}>{m.cities[c]}</option>)}</select></div>
       </div>
       {user.phone && <label className="check"><input type="checkbox" name="showPhone" id="pShow" defaultChecked={user.showPhone} /> {t.showPhone}</label>}
+      <label className="check"><input type="checkbox" name="isBusiness" id="pBusiness" defaultChecked={user.isBusiness} /> {t.business}</label>
       {user.email && user.emailVerifiedAt ? (
         <>
           <input type="hidden" name="notifyField" value="1" />

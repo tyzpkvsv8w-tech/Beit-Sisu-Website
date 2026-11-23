@@ -36,6 +36,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {me.role === "ADMIN" && <Link className="btn btn-ghost" href="/admin">{t.admin}</Link>}
           <Link className="btn btn-ghost m-only" href="/saved">{m.common.saved}</Link>
+          <Link className="btn btn-ghost" href="/advertise/bookings">{t.bookings}</Link>
           <Link className="btn btn-primary" href="/sell">+ {m.common.postAd}</Link>
         </div>
       </div>

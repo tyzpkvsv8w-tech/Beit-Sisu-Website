@@ -22,7 +22,8 @@ export default async function Advertise() {
         <div className="eyebrow" style={{ color: "inherit", opacity: 0.8 }}>{a.eyebrow}</div>
         <h1>{a.title}</h1>
         <p>{a.text}</p>
-        <div><a className="btn btn-volt" href="#enquire">{a.kit}</a></div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><a className="btn btn-volt" href="/advertise/book">{a.bookOnline}</a><a className="btn btn-ghost" href="#enquire">{a.kit}</a></div>
+        <p style={{ fontSize: 14 }}>{a.bookNote}</p>
       </div></section>
       <section className="section"><div className="wrap">
         <div className="adv-stats">

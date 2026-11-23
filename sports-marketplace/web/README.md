@@ -58,6 +58,14 @@ See **[GO-LIVE.md](GO-LIVE.md)** for step-by-step Supabase + Vercel setup.
 - **Chat:** one conversation per buyer per listing. New messages appear within about 4 seconds, unread badges show in the header, and messages are marked read when opened. Sellers' phone numbers stay hidden unless they choose to show them, and then only to logged-in users.
 - **Your data:** users can permanently delete their account, with its ads, photos, saved items and conversations, from the account page.
 - **Trust & safety:** report an ad. Admins see reports and can dismiss them or remove the ad.
+- **Online ad booking and payments:**
+  - Businesses book a homepage banner or a sport takeover at `/advertise/book`: pick dates, write the ad with a live preview, see the price with VAT, accept the Advertising Terms, and pay by card through Stripe Checkout.
+  - Exclusive slots can't be double-booked, and unpaid bookings hold their dates for 30 minutes.
+  - Paid bookings go to the admin review queue. Approving emails the advertiser; rejecting refunds in full automatically and emails the reason.
+  - Business sellers can promote their own listings (AED 75 a week + VAT). It goes live as soon as it's paid.
+  - Advertisers see their bookings, statuses, views and clicks at `/advertise/bookings`.
+  - Payments are confirmed by Stripe's signed webhook, and also checked directly when the advertiser returns, so a late webhook doesn't matter. Card details never reach our servers.
+- **Admin campaigns:** a form to create or edit any campaign (all four placements, targeting, dates, pause), for deals agreed offline.
 - **Ads (the revenue):**
   - Campaigns live in the `AdCampaign` table, with four placements: home banner, sport takeover, in-feed and listing sidebar. They can be targeted by sport and city.
   - A sport takeover beats general ads on that sport's pages.
@@ -73,7 +81,7 @@ ALLOW_DEV_SMS=1 ALLOW_DEV_EMAIL=1 ALLOW_DEV_SECRETS=1 npm start   # terminal 1, 
 npm run db:reset && npm run test:e2e    # terminal 2
 ```
 
-`tests/e2e.mjs` drives a real browser through 88 checks:
+`tests/e2e.mjs` drives a real browser through 114 checks:
 
 - browsing and filters
 - phone signup: wrong number, wrong code, missing city or terms
@@ -84,9 +92,12 @@ npm run db:reset && npm run test:e2e    # terminal 2
 - adding a phone number to an email account, including refusing someone else's number
 - reports, admin removal and advertiser enquiries
 - the Terms and Privacy pages in both languages, and deleting an account
+- ad booking: double-booking blocked (including by unpaid holds), VAT totals, https-only links, paying, cancelling at checkout and rebooking, approval and refund emails, the admin campaign form going live, business-only promotions, forged payment notifications refused, and the Arabic booking page
 - emails: confirming addresses, alerts (one per conversation, Arabic for Arabic users), forged and real unsubscribe links, and password reset (no account guessing, single-use links, other devices logged out)
 - Arabic: right-to-left layout, translated text and errors, Arabic search, and phone-width layouts in both languages
 - security: other people's ads and chats are off-limits, no open redirect, no path traversal, admin only for admins
+
+`tests/stripe-mock.mjs` is a stand-in for Stripe: checkout sessions, the payment page, signed webhooks and refunds. Run the same test with `PAYMENT_DRIVER=stripe`, `STRIPE_API_BASE` pointed at it, `STRIPE_SECRET_KEY=sk_test_mock`, `STRIPE_WEBHOOK_SECRET=whsec_mock` and `E2E_PAYMENTS=stripe`. All checks pass except one, which only applies to the test checkout page.
 
 `tests/supabase-mock.mjs` is a stand-in for Supabase's SMS and Storage services. Running the same test with `SMS_DRIVER=supabase` and `STORAGE_DRIVER=supabase` pointed at it, and `E2E_SMS_CODE=123456`, checks the real Supabase code paths without a Supabase project.
 
@@ -94,7 +105,7 @@ npm run db:reset && npm run test:e2e    # terminal 2
 
 1. **A real Supabase project:** follow [GO-LIVE.md](GO-LIVE.md). The Supabase integration has only been tested against the stand-in so far.
 2. **Rate limiting:** `src/lib/rate-limit.ts` keeps counts in memory. On Vercel, each server instance keeps its own counts, so move them to a shared store (e.g. Upstash Redis) soon after launch. The SMS limits in Supabase's own settings apply regardless.
-3. **Ad management:** campaigns are added directly in the database for now (Supabase Table Editor → AdCampaign). Next steps are a create-campaign form in the admin page, plus payment.
+3. **Advertiser cancellations:** cancellations after approval are done by hand: refund in the Stripe dashboard, then set the campaign to Cancelled in the admin form. Listing-page ads (CPM) and newsletter slots are still sold through the enquiry form.
 4. **Legal:** draft Terms of Use and Privacy Policy are live at `/terms` and `/privacy` in both languages. Fill in the company details and get a UAE lawyer to review them: see [LEGAL-NOTES.md](LEGAL-NOTES.md). You also need a trade licence that covers online marketplace activity.
 5. **Arabic search engines:** the language is stored in a cookie, so Google sees one URL per page. For Arabic search results, add `/ar/...` URLs later.
 6. **Mobile apps:** make the site installable from the browser first (PWA), then build a React Native / Expo app.

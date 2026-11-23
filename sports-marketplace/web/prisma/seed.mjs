@@ -11,7 +11,7 @@ const ago = (ms) => new Date(Date.now() - ms);
 async function main() {
   if (process.env.NODE_ENV === "production") throw new Error("Refusing to seed in production");
   await db.$transaction([
-    db.message.deleteMany(), db.conversation.deleteMany(), db.favorite.deleteMany(), db.report.deleteMany(),
+    db.order.deleteMany(), db.message.deleteMany(), db.conversation.deleteMany(), db.favorite.deleteMany(), db.report.deleteMany(),
     db.photo.deleteMany(), db.listing.deleteMany(), db.session.deleteMany(), db.phoneChallenge.deleteMany(), db.user.deleteMany(),
     db.adCampaign.deleteMany(), db.adEnquiry.deleteMany(),
   ]);
@@ -90,6 +90,17 @@ async function main() {
     { advertiser: "Fairway Fitting Studio", headline: "Custom club fitting in 45 minutes", body: "Launch monitor session, AED 200 off any new set.", ctaLabel: "Book a fitting", ctaUrl: "https://example.com/golf", placement: "SPORT_TAKEOVER", sport: "golf", startsAt: start, endsAt: end },
     { advertiser: "Spin Cycle Service", headline: "Full bike service, collected from your door", body: "Pickup and drop-off across Dubai and Sharjah.", ctaLabel: "Book a service", ctaUrl: "https://example.com/bike", placement: "LISTING_SIDE", startsAt: start, endsAt: end },
   ] });
+
+  // A business booking that's been paid and is waiting for the admin to review it.
+  const pending = await db.adCampaign.create({ data: {
+    advertiser: "Marina Bike Lab", headline: "Winter bike service, 20% off", body: "Full tune-up with free pickup in Dubai Marina and JBR.",
+    ctaLabel: "Book a service", ctaUrl: "https://example.com/service", placement: "SPORT_TAKEOVER", sport: "cycling",
+    startsAt: new Date(Date.now() + 3 * D), endsAt: new Date(Date.now() + 17 * D), status: "IN_REVIEW", ownerId: shops.bike.id,
+  } });
+  await db.order.create({ data: {
+    userId: shops.bike.id, kind: "CAMPAIGN", campaignId: pending.id, description: "Sport takeover (Cycling), 2 weeks", weeks: 2,
+    subtotal: 300000, vat: 15000, total: 315000, status: "PAID", provider: "dev", providerSessionId: "dev_seed", providerPaymentId: "dev_pay_seed", paidAt: new Date(),
+  } });
 
   console.log(`Seeded ${created.length + 3} listings, ${Object.keys(people).length + 4} users. Admin: ${admin.email}`);
 }

@@ -299,7 +299,7 @@ check("switching back to English works", true);
 
 // 10. Terms, privacy and account deletion
 await guest.goto(BASE);
-await guest.locator("footer").getByRole("link", { name: "Terms" }).click();
+await guest.locator("footer").getByRole("link", { name: "Terms", exact: true }).click();
 await guest.waitForURL(BASE + "/terms");
 check("terms page has all sections", (await guest.locator(".legal-sections > li").count()) === 15);
 check("terms page shows draft notice", await guest.locator(".legal-draft").isVisible());
@@ -427,6 +427,144 @@ await relog.fill("#password", "new-password-123");
 await relog.click("form.form-card button[type=submit]");
 await relog.waitForURL(BASE + "/");
 check("new password works", (await relog.locator(".user-menu").textContent()).includes("Priya"));
+
+// 12. Ads: online booking, payment, review, refunds, admin campaigns, promotions
+const STRIPE = process.env.E2E_PAYMENTS === "stripe";
+const biz = await newPage();
+await biz.goto(`${BASE}/login/email?next=/advertise/book`);
+await biz.fill("#email", "bikes@rekit.test");
+await biz.fill("#password", "rekit-demo-123");
+await biz.click("form.form-card button[type=submit]");
+await biz.waitForURL(BASE + "/advertise/book");
+async function fillAd(page, { product = "SPORT_TAKEOVER", sport, weeks = 2, start } = {}) {
+  await page.locator(`.choice:has(input[value=${product}])`).click();
+  if (sport) await page.selectOption("#sport", sport);
+  if (start) await page.fill("#start", start);
+  await page.selectOption("#weeks", String(weeks));
+  await page.fill("#advertiser", "Marina Bike Lab");
+  await page.fill("#headline", "Run club shoes, 30% off");
+  await page.fill("#body", "Fitted by experts in Al Quoz. Free gait check.");
+  await page.fill("#ctaLabel", "Shop now");
+  await page.fill("#ctaUrl", "https://example.com/run");
+  await page.check("#adterms");
+}
+await biz.locator(".choice:has(input[value=SPORT_TAKEOVER])").click();
+await biz.selectOption("#sport", "golf");
+check("booked dates are shown for a taken sport", (await biz.locator(".booked .chip").count()) >= 1);
+await fillAd(biz, { sport: "golf" });
+await biz.getByRole("button", { name: "Continue to payment" }).click();
+check("can't book dates another advertiser holds", await biz.locator(".err", { hasText: "already booked" }).waitFor({ timeout: 5000 }).then(() => true, () => false));
+await biz.selectOption("#sport", "running");
+check("price includes 5% VAT", (await biz.getByTestId("total").textContent()) === "AED 3,150");
+await biz.fill("#ctaUrl", "http://insecure.example.com");
+await biz.getByRole("button", { name: "Continue to payment" }).click();
+check("ad links must be https", await biz.getByText("starting with https://").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await biz.fill("#ctaUrl", "https://example.com/run");
+await biz.getByRole("button", { name: "Continue to payment" }).click();
+await biz.getByRole("button", { name: "Pay (test)" }).waitFor();
+check("payment page shows the total", (await biz.locator("h1").textContent()).includes("3,150"));
+await biz.getByRole("button", { name: "Pay (test)" }).click();
+await biz.waitForURL(/\/advertise\/bookings\/.+\?paid=1/);
+check("paid booking goes to review", (await biz.getByTestId("booking-title").textContent()) === "Payment received");
+const runningOrderUrl = biz.url().split("?")[0];
+const receipt = await waitForEmail("bikes@rekit.test");
+check("payment confirmation emailed", !!receipt && receipt.subject.startsWith("Payment received"));
+
+// Cancelling at checkout releases the dates; an unpaid booking holds them meanwhile
+await biz.goto(`${BASE}/advertise/book`);
+await fillAd(biz, { sport: "basketball", weeks: 1 });
+await biz.getByRole("button", { name: "Continue to payment" }).click();
+await biz.getByRole("button", { name: "Pay (test)" }).waitFor();
+const holdUrl = biz.url();
+await biz.goto(`${BASE}/advertise/book`);
+await fillAd(biz, { sport: "basketball", weeks: 1 });
+await biz.getByRole("button", { name: "Continue to payment" }).click();
+check("unpaid booking holds its dates", await biz.locator(".err", { hasText: "already booked" }).waitFor({ timeout: 5000 }).then(() => true, () => false));
+await biz.goto(holdUrl);
+await biz.getByRole("button", { name: "Cancel" }).click();
+await biz.waitForURL(/cancelled=1/);
+check("leaving checkout cancels the booking", (await biz.getByTestId("booking-title").textContent()) === "Payment cancelled");
+await biz.goto(`${BASE}/advertise/book`);
+await fillAd(biz, { sport: "basketball", weeks: 1 });
+await biz.getByRole("button", { name: "Continue to payment" }).click();
+check("cancelled dates can be booked again", await biz.getByRole("button", { name: "Pay (test)" }).waitFor({ timeout: 8000 }).then(() => true, () => false));
+if (!STRIPE) {
+  check("other people can't open your payment page", (await resetter.goto(biz.url())).status() === 404);
+}
+
+// Promotions: business sellers only
+await biz.goto(`${BASE}/account`);
+const bikeListing = await biz.locator(".myrow .t").first().getAttribute("href");
+await biz.goto(`${BASE}${bikeListing}/promote`);
+await biz.selectOption("#weeks", "1");
+check("promotion price includes VAT", (await biz.locator("tr.total").textContent()).includes("AED 78.75"));
+await biz.getByRole("button", { name: "Continue to payment" }).click();
+await biz.getByRole("button", { name: "Pay (test)" }).click();
+await biz.waitForURL(/paid=1/);
+check("paid promotion is live straight away", (await biz.getByTestId("booking-title").textContent()) === "Your ad is promoted");
+await outsider.goto(`${BASE}/browse?q=dumbbells`);
+const jamesListing = await outsider.locator(".card").first().getAttribute("href");
+await outsider.goto(`${BASE}${jamesListing}/promote`);
+check("private sellers can't buy promotion", await outsider.getByText("Promotion is for business accounts").isVisible());
+
+// Admin: review queue, refunds, and the campaign form
+await admin.goto(`${BASE}/admin`);
+check("paid bookings wait in the review queue", (await admin.locator(".review-list .panel").count()) === 2);
+const runningPanel = admin.locator(".review-list .panel", { hasText: "Run club shoes" });
+await runningPanel.getByRole("button", { name: "Approve" }).click();
+await admin.locator(".review-list .panel").nth(1).waitFor({ state: "detached" });
+const seededPanel = admin.locator(".review-list .panel", { hasText: "Winter bike service" });
+await seededPanel.locator("input[name=note]").fill("The offer needs an end date.");
+await seededPanel.getByRole("button", { name: "Reject and refund" }).click();
+await admin.getByText("Nothing waiting.").waitFor();
+check("review queue empties", (await admin.locator(".review-list .panel").count()) === 0);
+const decisions = emailsTo("bikes@rekit.test").map((e) => e.subject);
+check("advertiser emailed when approved", decisions.includes("Your ad is approved"));
+check("advertiser emailed refund with reason", emailsTo("bikes@rekit.test").some((e) => e.subject === "Your ad booking wasn't approved" && e.text.includes("The offer needs an end date") && e.text.includes("AED 3,150")));
+await biz.goto(runningOrderUrl);
+check("advertiser sees the approval", (await biz.getByTestId("booking-title").textContent()) === "Your ad is approved");
+await biz.goto(`${BASE}/advertise/bookings`);
+check("bookings list shows refunded booking", (await biz.locator(".booking-row", { hasText: "Winter bike service" }).textContent()).includes("Not approved"));
+
+await admin.goto(`${BASE}/admin/campaigns/new`);
+await admin.selectOption("#placement", "HOME_BANNER");
+await admin.fill("#advertiser", "Clash Test");
+await admin.fill("#headline", "Should not save");
+await admin.fill("#body", "Overlaps the booked homepage banner.");
+await admin.fill("#ctaLabel", "Go");
+await admin.fill("#ctaUrl", "https://example.com/x");
+const plus = (d) => new Date(Date.now() + 4 * 3600e3 + d * 86400e3).toISOString().slice(0, 10);
+await admin.fill("#end", plus(7));
+await admin.click("form.form-card button[type=submit]");
+check("admin can't double-book an exclusive slot", await admin.getByText("already holds this placement").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await admin.selectOption("#placement", "LISTING_SIDE");
+await admin.selectOption("#sport", "combat");
+await admin.fill("#advertiser", "Ring Ready Gym");
+await admin.fill("#headline", "Boxing classes for beginners");
+await admin.click("form.form-card button[type=submit]");
+await admin.waitForURL(/\/admin\?saved=1/);
+await guest.goto(`${BASE}/browse?sport=combat`);
+await guest.locator(".card").first().click();
+await guest.waitForURL(/\/listing\//);
+check("admin-created campaign goes live", await guest.getByText("Ring Ready Gym").waitFor({ timeout: 5000 }).then(() => true, () => false));
+check("revenue shows on admin page", (await admin.locator(".stat", { hasText: "ad revenue" }).textContent()).includes("AED 3,228.75"));
+
+const forged = await guest.request.post(`${BASE}/api/payments/webhook`, {
+  headers: { "Stripe-Signature": `t=${Math.floor(Date.now() / 1000)},v1=forged` },
+  data: JSON.stringify({ type: "checkout.session.completed", data: { object: { id: "cs_any", payment_status: "paid" } } }),
+});
+check("forged payment notifications are refused", forged.status() === 400);
+
+// Arabic booking page
+await arabic.goto(`${BASE}/login/email?next=/advertise/book`);
+await arabic.fill("#email", "sophie@rekit.test");
+await arabic.fill("#password", "rekit-demo-123");
+await arabic.click("form.form-card button[type=submit]");
+await arabic.waitForURL(BASE + "/advertise/book");
+check("booking page in Arabic", (await arabic.locator("h1").textContent()) === "احجز إعلانًا" && (await arabic.getByTestId("total").textContent()).includes("درهم"));
+const w3 = await arabic.evaluate(() => document.documentElement.scrollWidth);
+check("Arabic booking page fits phone width", w3 <= 390, `scrollWidth=${w3}`);
+await shot(arabic, "15-arabic-booking");
 
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);

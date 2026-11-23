@@ -44,6 +44,8 @@ model User {
   messages      Message[]
   reports       Report[]
   emailTokens   EmailToken[]
+  campaigns     AdCampaign[]
+  orders        Order[]
 }
 
 model Session {
@@ -84,6 +86,7 @@ model Listing {
   favorites     Favorite[]
   conversations Conversation[]
   reports       Report[]
+  orders        Order[]
 
   @@index([market, status, sport])
   @@index([createdAt])
@@ -200,12 +203,52 @@ model AdCampaign {
   market      String   @default("ae")
   startsAt    DateTime
   endsAt      DateTime
+  // Pause switch for a live campaign
   active      Boolean  @default(true)
+  // "PENDING_PAYMENT" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CANCELLED"
+  // Only APPROVED campaigns are shown. Admin-created campaigns start as APPROVED.
+  status      String   @default("APPROVED")
+  // The business that booked it online (null for campaigns entered by the admin)
+  ownerId     String?
+  owner       User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  reviewNote  String?
   impressions Int      @default(0)
   clicks      Int      @default(0)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  orders      Order[]
 
   @@index([placement, market, active])
+  @@index([status, placement, startsAt])
+}
+
+// A payment: an online ad booking, or promoting a listing. Amounts are in fils (AED x 100).
+model Order {
+  id                String      @id @default(cuid())
+  userId            String?
+  user              User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // "CAMPAIGN" | "PROMOTE"
+  kind              String
+  campaignId        String?
+  campaign          AdCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  listingId         String?
+  listing           Listing?    @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  description       String
+  weeks             Int
+  subtotal          Int
+  vat               Int
+  total             Int
+  currency          String      @default("aed")
+  // "PENDING" | "PAID" | "CANCELLED" | "REFUNDED"
+  status            String      @default("PENDING")
+  provider          String
+  providerSessionId String?     @unique
+  providerPaymentId String?
+  paidAt            DateTime?
+  refundedAt        DateTime?
+  createdAt         DateTime    @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model AdEnquiry {

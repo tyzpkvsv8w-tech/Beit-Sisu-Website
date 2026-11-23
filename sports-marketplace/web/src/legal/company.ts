@@ -8,6 +8,10 @@ export const COMPANY = {
   updated: "2026-11-23",
   email: "[support@your-domain.ae]",
   privacyEmail: "[privacy@your-domain.ae]",
+  // VAT added to ad prices (5% in the UAE). Set to 0 if the company isn't VAT-registered yet,
+  // and fill in the Tax Registration Number (TRN) once it is.
+  vatRate: 0.05,
+  trn: "[TRN]",
   // Cap on liability in the Terms (AED). Confirm with your lawyer.
   liabilityCap: 500,
   // Which language wins if the two versions differ. UAE courts work in Arabic; confirm with your lawyer.

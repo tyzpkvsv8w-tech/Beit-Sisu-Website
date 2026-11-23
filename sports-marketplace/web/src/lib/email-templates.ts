@@ -3,6 +3,7 @@ import { en, type Messages } from "@/i18n/en";
 import { ar } from "@/i18n/ar";
 import { fmt } from "@/i18n/fmt";
 import type { Mail } from "./email";
+import { aed } from "./pricing";
 
 const dict = (locale: string): Messages => (locale === "ar" ? ar : en);
 
@@ -79,4 +80,35 @@ export function newMessageEmail(o: {
     // Lets mail apps show their own one-click "Unsubscribe" button (RFC 8058).
     headers: { "List-Unsubscribe": `<${o.oneClickUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
   };
+}
+
+const day = (d: Date, locale: string) => d.toLocaleDateString(locale === "ar" ? "ar-AE-u-nu-latn" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Dubai" });
+
+export function paymentReceivedEmail(o: { to: string; name: string; locale: string; item: string; total: number; promotedUntil: Date | null; url: string }): Mail {
+  const m = dict(o.locale).email;
+  const loc = o.locale === "ar" ? "ar" : "en";
+  return {
+    to: o.to,
+    subject: fmt(m.paidSubject, { item: o.item }),
+    ...layout(o.locale, [
+      para(m.greeting, { name: o.name }),
+      para(m.paidIntro, { total: aed(o.total, loc), item: o.item }),
+      o.promotedUntil ? para(m.paidPromote, { date: day(o.promotedUntil, o.locale) }) : para(m.paidReview),
+    ], { label: m.bookingButton, url: o.url }),
+  };
+}
+
+export function orderDecisionEmail(o: {
+  to: string; name: string; locale: string; approved: boolean; headline: string; start: Date; end: Date; note: string | null; refunded: number | null; url: string;
+}): Mail {
+  const m = dict(o.locale).email;
+  const loc = o.locale === "ar" ? "ar" : "en";
+  const parts = o.approved
+    ? [para(m.greeting, { name: o.name }), para(m.approvedIntro, { headline: o.headline, start: day(o.start, o.locale), end: day(new Date(o.end.getTime() - 1), o.locale) })]
+    : [
+        para(m.greeting, { name: o.name }), para(m.rejectedIntro, { headline: o.headline }),
+        ...(o.note ? [para(m.rejectedReason, { note: o.note })] : []),
+        ...(o.refunded ? [para(m.rejectedRefund, { total: aed(o.refunded, loc) })] : []),
+      ];
+  return { to: o.to, subject: o.approved ? m.approvedSubject : m.rejectedSubject, ...layout(o.locale, parts, { label: m.bookingButton, url: o.url }) };
 }
