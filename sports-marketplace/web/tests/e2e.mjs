@@ -277,6 +277,43 @@ await arabic.getByRole("button", { name: "Switch to English" }).click();
 await arabic.waitForFunction(() => document.documentElement.dir === "ltr");
 check("switching back to English works", true);
 
+// 10. Terms, privacy and account deletion
+await guest.goto(BASE);
+await guest.locator("footer").getByRole("link", { name: "Terms" }).click();
+await guest.waitForURL(BASE + "/terms");
+check("terms page has all sections", (await guest.locator(".legal-sections > li").count()) === 15);
+check("terms page shows draft notice", await guest.locator(".legal-draft").isVisible());
+await guest.goto(`${BASE}/privacy`);
+check("privacy page lists the cookies", (await guest.locator("table").allTextContents()).join(" ").includes("rk_session"));
+await guest.goto(`${BASE}/signup`);
+check("sign-up links to the terms", (await guest.locator(".check a[href='/terms']").count()) === 1);
+await arabic.goto(BASE);
+await arabic.getByRole("button", { name: "التبديل إلى العربية" }).click();
+await arabic.waitForFunction(() => document.documentElement.dir === "rtl");
+await arabic.goto(`${BASE}/privacy`);
+check("Arabic privacy policy", (await arabic.locator("h1").textContent()) === "سياسة الخصوصية" && (await arabic.locator(".legal-sections > li").count()) === 13);
+const w2 = await arabic.evaluate(() => document.documentElement.scrollWidth);
+check("Arabic privacy page fits phone width", w2 <= 390, `scrollWidth=${w2}`);
+await shot(arabic, "10-arabic-privacy");
+
+const leaver = await newPage();
+const leaverMobile = randomMobile();
+await leaver.goto(`${BASE}/login?next=/account`);
+await phoneLogin(leaver, leaverMobile);
+await leaver.locator("#name").waitFor();
+await leaver.fill("#name", "Leaving User");
+await leaver.selectOption("#city", "Dubai");
+await leaver.check("#terms");
+await leaver.click("form.form-card button[type=submit]");
+await leaver.waitForURL(BASE + "/account");
+await leaver.getByRole("button", { name: "Delete my account" }).click();
+await leaver.getByRole("button", { name: "Yes, permanently delete everything" }).click();
+await leaver.waitForURL(/\?bye=1/);
+check("account deleted and logged out", await leaver.getByText("Your account and its data have been deleted").isVisible() && (await leaver.locator(".user-menu").textContent()).includes("Log in"));
+await leaver.goto(`${BASE}/login`);
+await phoneLogin(leaver, leaverMobile);
+check("deleted number starts a fresh sign-up", await leaver.locator("#name").waitFor({ timeout: 5000 }).then(() => true, () => false));
+
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();

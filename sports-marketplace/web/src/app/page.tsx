@@ -12,7 +12,8 @@ import { tint } from "@/components/Thumb";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ bye?: string }> }) {
+  const { bye } = await searchParams;
   const mk = market();
   const [{ m, locale }, user] = await Promise.all([getI18n(), getUser()]);
   const h = m.home;
@@ -31,6 +32,7 @@ export default async function Home() {
 
   return (
     <>
+      {bye && <div className="wrap" style={{ paddingTop: 16 }}><div className="banner-ok" role="status">{m.account.accountDeleted}</div></div>}
       <section className="hero">
         <svg className="court" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <g fill="none" stroke="currentColor" strokeWidth="3">

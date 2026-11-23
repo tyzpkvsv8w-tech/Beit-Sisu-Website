@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { createSession, destroySession, getUser, hashPassword, safeNext, verifyPassword } from "@/lib/auth";
 import { failures, rateLimit } from "@/lib/rate-limit";
+import { deletePhotos } from "@/lib/storage";
 import { market } from "@/lib/constants";
 import { getI18n, LOCALE_COOKIE } from "@/i18n";
 
@@ -65,4 +66,18 @@ export async function setLocale(locale: string) {
   const user = await getUser();
   if (user) await db.user.update({ where: { id: user.id }, data: { locale } });
   revalidatePath("/", "layout");
+}
+
+/**
+ * Permanently deletes the signed-in user and everything that belongs to them:
+ * ads and photos, saved items, conversations (for both sides), reports and sessions.
+ */
+export async function deleteAccount(form: FormData) {
+  const user = await getUser();
+  if (!user || form.get("confirm") !== "yes") return;
+  const photos = await db.photo.findMany({ where: { listing: { sellerId: user.id } }, select: { key: true } });
+  await db.user.delete({ where: { id: user.id } }); // related rows go with it (onDelete: Cascade)
+  await deletePhotos(photos.map((p) => p.key));
+  (await cookies()).delete("rk_session");
+  redirect("/?bye=1");
 }

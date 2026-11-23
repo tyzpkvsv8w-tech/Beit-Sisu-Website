@@ -19,7 +19,8 @@ function CityAndTerms() {
           <option value="" disabled>{m.auth.choose}</option>
           {market().cities.map((c) => <option key={c} value={c}>{m.cities[c]}</option>)}
         </select></div>
-      <label className="check"><input type="checkbox" name="terms" id="terms" /> {m.auth.terms}</label>
+      <label className="check"><input type="checkbox" name="terms" id="terms" />
+        <span>{m.auth.termsA} <a href="/terms" target="_blank" rel="noopener">{m.auth.termsLink}</a> {m.auth.termsAnd}{m.dir === "rtl" ? "" : " "}<a href="/privacy" target="_blank" rel="noopener">{m.auth.privacyLink}</a></span></label>
     </>
   );
 }

@@ -9,7 +9,7 @@ export const en = {
     searchLabel: "Search listings", home: "Home", sell: "Sell", chats: "Chats", moreCountries: "More countries coming soon",
     switchLang: "العربية", switchLangLabel: "التبديل إلى العربية",
     footer: "Second-hand sports gear, free for everyone. Funded by clearly labelled ads.",
-    advertiseWithUs: "Advertise with us", safetyTips: "Safety tips", seeAll: "See all →", browseAll: "Browse all →", back: "←",
+    advertiseWithUs: "Advertise with us", safetyTips: "Safety tips", terms: "Terms", privacy: "Privacy", seeAll: "See all →", browseAll: "Browse all →", back: "←",
     neg: "neg.", photos: "{n} photos", listings: "{n} listings", listing1: "1 listing", close: "Close", cancel: "Cancel", or: "or",
     removePhoto: "Remove photo", optional: "Optional", working: "Working…",
   },
@@ -67,7 +67,7 @@ export const en = {
     welcome: "Welcome back", login: "Log in", email: "Email", password: "Password", loginBtn: "Log in", loggingIn: "Logging in…",
     newHere: "New to ReKit?", createFree: "Create a free account", freeForever: "Free forever", createAccount: "Create account",
     name: "Name shown to buyers", namePh: "e.g. Sam R.", passwordHint: "At least 8 characters.", city: "Emirate / city", choose: "Choose…",
-    terms: "I agree to the terms of use and privacy policy", creating: "Creating account…", haveAccount: "Already have an account?",
+    termsA: "I agree to the", termsLink: "Terms of Use", termsAnd: "and", privacyLink: "Privacy Policy", creating: "Creating account…", haveAccount: "Already have an account?",
     phoneTitle: "Log in or sign up", phoneEyebrow: "One account for buying and selling", mobile: "UAE mobile number", mobilePh: "05X XXX XXXX",
     sendCode: "Send code", sending: "Sending…", codeSent: "We sent a 6-digit code to {phone}.", code: "6-digit code", verify: "Continue", verifying: "Checking…",
     changeNumber: "Use a different number", resend: "Send a new code", devCode: "Test mode, no text sent. Your code is {code}.",
@@ -100,6 +100,8 @@ export const en = {
     noAdsText: "Got gear you don't use? Post it in two minutes.", profile: "Profile", email: "Email", notSet: "Not added", mobile: "Mobile",
     verified: "Verified", addMobile: "Add mobile number", showPhone: "Show my number on my ads (logged-in buyers only)", saveProfile: "Save profile",
     profileSaved: "Profile saved.", language: "Language",
+    deleteTitle: "Delete your account", deleteText: "This permanently deletes your account, your ads and photos, your saved items and your conversations. It can't be undone.",
+    deleteBtn: "Delete my account", deleteConfirm: "Yes, permanently delete everything", accountDeleted: "Your account and its data have been deleted.",
   },
   savedPage: { title: "Saved", count: "Saved items: {n}", emptyTitle: "No saved items yet", emptyText: "Tap the heart on any listing to keep it here.", browse: "Browse listings" },
   chat: {
@@ -140,6 +142,11 @@ export const en = {
   safety: {
     title: "Buying & selling safely",
     items: ["Meet in a busy public place: a mall, a café, or the car park of your sports club.", "Inspect the item. Spin bike wheels, check racket frames for cracks, try boots on.", "Pay in person, in cash or by instant transfer once you have the item in your hands.", "Be wary of prices that look too good, or sellers who only want a courier and a deposit.", "Keep the conversation in ReKit chat so there is a record if something goes wrong.", "Report suspicious ads with the \"Report this ad\" link on the listing page."],
+  },
+  legal: {
+    updated: "Last updated: {date}", contents: "Contents",
+    draft: "Draft for legal review. The highlighted blanks still need to be completed, and these documents haven't yet been checked by a lawyer.",
+    languageNames: { en: "English", ar: "Arabic" },
   },
   notFound: { title: "Page not found", text: "This ad may have been sold or deleted.", cta: "Browse listings" },
   sports: {

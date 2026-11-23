@@ -50,6 +50,7 @@ See **[GO-LIVE.md](GO-LIVE.md)** for step-by-step Supabase + Vercel setup.
 - **Selling:** post, edit, mark sold, relist, delete. Up to 8 photos per ad. The browser shrinks photos before upload, and the server checks the file contents (JPG, PNG or WebP only).
 - **Buying:** browse by sport, keyword, emirate, price and condition, with sorting and pages. Save items with the heart. Every page works without JavaScript except chat and photo upload.
 - **Chat:** one conversation per buyer per listing. New messages appear within about 4 seconds, unread badges show in the header, and messages are marked read when opened. Sellers' phone numbers stay hidden unless they choose to show them, and then only to logged-in users.
+- **Your data:** users can permanently delete their account, with its ads, photos, saved items and conversations, from the account page.
 - **Trust & safety:** report an ad. Admins see reports and can dismiss them or remove the ad.
 - **Ads (the revenue):**
   - Campaigns live in the `AdCampaign` table, with four placements: home banner, sport takeover, in-feed and listing sidebar. They can be targeted by sport and city.
@@ -66,7 +67,7 @@ npm run build && npm start              # terminal 1 (add ALLOW_DEV_SMS=1 so tes
 npm run db:reset && npm run test:e2e    # terminal 2
 ```
 
-`tests/e2e.mjs` drives a real browser through 59 checks:
+`tests/e2e.mjs` drives a real browser through 67 checks:
 
 - browsing and filters
 - phone signup: wrong number, wrong code, missing city or terms
@@ -76,6 +77,7 @@ npm run db:reset && npm run test:e2e    # terminal 2
 - the SMS code limits
 - adding a phone number to an email account, including refusing someone else's number
 - reports, admin removal and advertiser enquiries
+- the Terms and Privacy pages in both languages, and deleting an account
 - Arabic: right-to-left layout, translated text and errors, Arabic search, and phone-width layouts in both languages
 - security: other people's ads and chats are off-limits, no open redirect, no path traversal, admin only for admins
 
@@ -87,6 +89,6 @@ npm run db:reset && npm run test:e2e    # terminal 2
 2. **Rate limiting:** `src/lib/rate-limit.ts` keeps counts in memory. On Vercel, each server instance keeps its own counts, so move them to a shared store (e.g. Upstash Redis) soon after launch. The SMS limits in Supabase's own settings apply regardless.
 3. **Email:** password reset and "new message" emails need an email provider (e.g. Resend or Postmark).
 4. **Ad management:** campaigns are added directly in the database for now (Supabase Table Editor → AdCampaign). Next steps are a create-campaign form in the admin page, plus payment.
-5. **Legal:** terms of use and a privacy policy (UAE PDPL) in English and Arabic, and a trade licence that covers online marketplace activity. The signup checkbox references terms that still need writing.
+5. **Legal:** draft Terms of Use and Privacy Policy are live at `/terms` and `/privacy` in both languages. Fill in the company details and get a UAE lawyer to review them: see [LEGAL-NOTES.md](LEGAL-NOTES.md). You also need a trade licence that covers online marketplace activity.
 6. **Arabic search engines:** the language is stored in a cookie, so Google sees one URL per page. For Arabic search results, add `/ar/...` URLs later.
 7. **Mobile apps:** make the site installable from the browser first (PWA), then build a React Native / Expo app.

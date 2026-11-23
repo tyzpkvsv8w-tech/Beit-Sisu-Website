@@ -36,7 +36,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div className="wrap">
               <div><strong style={{ color: "var(--fg)" }}>ReKit</strong> · {m.common.footer}</div>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                <Link href="/advertise">{m.common.advertiseWithUs}</Link><Link href="/safety">{m.common.safetyTips}</Link><Link href="/sell">{m.common.postAd}</Link>
+                <Link href="/advertise">{m.common.advertiseWithUs}</Link><Link href="/safety">{m.common.safetyTips}</Link>
+                <Link href="/terms">{m.common.terms}</Link><Link href="/privacy">{m.common.privacy}</Link>
               </div>
             </div>
           </footer>
