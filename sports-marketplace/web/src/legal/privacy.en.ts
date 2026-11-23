@@ -33,7 +33,7 @@ export const privacyEn: LegalDoc = {
         "Information you give us:",
         {
           list: [
-            "Account details: your mobile number (verified with a text-message code), your name, and your emirate or city. If you sign up with email, we also collect your email address and password. We store passwords only in a scrambled (hashed) form, so we can't see them. We also store your language choice.",
+            "Account details: your mobile number (verified with a text-message code), your name, and your emirate or city. If you sign up with email, we also collect your email address and password. You can also add an email address for alerts, which we only use once you confirm it from a link we send you. We store passwords only in a scrambled (hashed) form, so we can't see them. We also store your language choice.",
             "Your ads: title, description, price, condition, brand, size, area and photos. Ads are public. Photos are resized in your browser before upload, which normally removes hidden location data. Even so, check that your photos don't show anything personal.",
             "Messages you send and receive in ReKit chat.",
             "Items you save, and ads you report, including the reason you give.",
@@ -60,6 +60,8 @@ export const privacyEn: LegalDoc = {
             ["Publish your ads, run chat, and keep your saved items", "Needed to provide the service you signed up for"],
             ["Prevent fraud, spam and abuse, review reports, and enforce our Terms of Use", "Needed to keep ReKit safe for users, and to meet our legal obligations"],
             ["Answer your questions and advertising enquiries", "Needed to respond to your request"],
+            ["Email you when someone messages you, if you've confirmed an email address and kept alerts on", "Part of the service you signed up for. Turn these emails off at any time on your account page or with the link in each email."],
+            ["Send password-reset and email confirmation links", "Needed to provide the service you asked for"],
             ["Send service messages, such as login codes or notice of important changes", "Needed to provide the service. We won't send you marketing without your consent."],
             ["Show advertisers overall figures, such as the number of live ads or members", "Only totals, never your personal data"],
             ["Respond to lawful requests from UAE authorities", "Needed to comply with the law"],
@@ -92,6 +94,7 @@ export const privacyEn: LegalDoc = {
             ["Supabase", "Database, photo storage, and checking login codes. Supabase keeps its own record of the phone numbers that codes are sent to."],
             ["{smsProvider}", "Sends login codes to your phone by text message"],
             ["Vercel", "Hosts the website"],
+            ["Resend", "Sends our emails, such as password resets and new-message alerts"],
             ["Google Fonts", "Supplies the site's fonts, so Google receives your IP address when pages load"],
           ],
         },
@@ -116,6 +119,7 @@ export const privacyEn: LegalDoc = {
             ["Conversations", "Until you or the other person deletes their account. The whole conversation is then deleted for both of you."],
             ["Login codes", "Deleted once used. Unused codes expire after 10 minutes and are cleared regularly."],
             ["Login sessions", "Up to 30 days, or until you log out"],
+            ["Password-reset and confirmation links", "Work for 1 hour (reset) or 24 hours (confirmation). Records of them are deleted with your account."],
             ["Reports you make", "Until the ad is deleted, or up to 2 years"],
             ["Advertising enquiries", "Up to 2 years"],
             ["Server logs and backups", "A limited period set by our providers"],

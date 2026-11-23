@@ -41,6 +41,12 @@ See **[GO-LIVE.md](GO-LIVE.md)** for step-by-step Supabase + Vercel setup.
   - Each number can request 3 codes per 10 minutes, and each network 10 per hour.
   - Email-and-password accounts still work, and can add a verified number from the account page.
   - In production Supabase sends and checks the codes. Test mode, which shows codes on screen, is refused in production.
+- **Emails:**
+  - Password reset: a single-use link that expires in 1 hour. Resetting logs out every other device. The form gives the same answer whether or not an account exists.
+  - Email confirmation for new addresses.
+  - New-message alerts: one email per conversation until it's read, in the recipient's language, with a one-click unsubscribe and an on/off switch on the account page.
+  - Phone-only users can add an email for alerts. Emails only go to confirmed addresses.
+  - Resend sends the emails in production. In test mode they're saved to `.outbox/`.
 - **Accounts:** passwords are hashed with bcrypt. Sessions are random tokens in an HttpOnly cookie, and only a SHA-256 hash of each token is stored. Failed logins are rate-limited.
 - **Arabic:** the whole interface is in English and Arabic, with right-to-left layout and Arabic fonts (Cairo and IBM Plex Sans Arabic).
   - Visitors get Arabic automatically if their browser is set to it, and the header button switches language.
@@ -63,11 +69,11 @@ See **[GO-LIVE.md](GO-LIVE.md)** for step-by-step Supabase + Vercel setup.
 ## Tests
 
 ```bash
-npm run build && npm start              # terminal 1 (add ALLOW_DEV_SMS=1 so test-mode SMS works)
+ALLOW_DEV_SMS=1 ALLOW_DEV_EMAIL=1 ALLOW_DEV_SECRETS=1 npm start   # terminal 1, after npm run build
 npm run db:reset && npm run test:e2e    # terminal 2
 ```
 
-`tests/e2e.mjs` drives a real browser through 67 checks:
+`tests/e2e.mjs` drives a real browser through 88 checks:
 
 - browsing and filters
 - phone signup: wrong number, wrong code, missing city or terms
@@ -78,6 +84,7 @@ npm run db:reset && npm run test:e2e    # terminal 2
 - adding a phone number to an email account, including refusing someone else's number
 - reports, admin removal and advertiser enquiries
 - the Terms and Privacy pages in both languages, and deleting an account
+- emails: confirming addresses, alerts (one per conversation, Arabic for Arabic users), forged and real unsubscribe links, and password reset (no account guessing, single-use links, other devices logged out)
 - Arabic: right-to-left layout, translated text and errors, Arabic search, and phone-width layouts in both languages
 - security: other people's ads and chats are off-limits, no open redirect, no path traversal, admin only for admins
 
@@ -87,8 +94,7 @@ npm run db:reset && npm run test:e2e    # terminal 2
 
 1. **A real Supabase project:** follow [GO-LIVE.md](GO-LIVE.md). The Supabase integration has only been tested against the stand-in so far.
 2. **Rate limiting:** `src/lib/rate-limit.ts` keeps counts in memory. On Vercel, each server instance keeps its own counts, so move them to a shared store (e.g. Upstash Redis) soon after launch. The SMS limits in Supabase's own settings apply regardless.
-3. **Email:** password reset and "new message" emails need an email provider (e.g. Resend or Postmark).
-4. **Ad management:** campaigns are added directly in the database for now (Supabase Table Editor → AdCampaign). Next steps are a create-campaign form in the admin page, plus payment.
-5. **Legal:** draft Terms of Use and Privacy Policy are live at `/terms` and `/privacy` in both languages. Fill in the company details and get a UAE lawyer to review them: see [LEGAL-NOTES.md](LEGAL-NOTES.md). You also need a trade licence that covers online marketplace activity.
-6. **Arabic search engines:** the language is stored in a cookie, so Google sees one URL per page. For Arabic search results, add `/ar/...` URLs later.
-7. **Mobile apps:** make the site installable from the browser first (PWA), then build a React Native / Expo app.
+3. **Ad management:** campaigns are added directly in the database for now (Supabase Table Editor → AdCampaign). Next steps are a create-campaign form in the admin page, plus payment.
+4. **Legal:** draft Terms of Use and Privacy Policy are live at `/terms` and `/privacy` in both languages. Fill in the company details and get a UAE lawyer to review them: see [LEGAL-NOTES.md](LEGAL-NOTES.md). You also need a trade licence that covers online marketplace activity.
+5. **Arabic search engines:** the language is stored in a cookie, so Google sees one URL per page. For Arabic search results, add `/ar/...` URLs later.
+6. **Mobile apps:** make the site installable from the browser first (PWA), then build a React Native / Expo app.

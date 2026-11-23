@@ -55,7 +55,14 @@ In **Project Settings → API Keys** (or **Data API**), copy:
 
 The secret key gives full access. Only ever paste it into Vercel's settings, never into code or chat.
 
-## 6. Put the website on Vercel
+## 6. Email (Resend)
+
+1. Sign up at resend.com. The free plan covers a few thousand emails a month.
+2. Go to **Domains → Add domain**, add your domain (e.g. `rekit.ae`), and add the DNS records Resend shows you at your domain registrar. These let mail apps trust your emails, so they don't land in spam.
+3. Go to **API Keys → Create API key** with "Sending access". Paste it only into Vercel (next step).
+4. Pick a sender address on that domain, e.g. `ReKit <hello@rekit.ae>`.
+
+## 7. Put the website on Vercel
 
 1. Sign up at vercel.com with GitHub and click **Add New → Project**. Pick this repository.
 2. Set **Root Directory** to `sports-marketplace/web`. Vercel detects Next.js.
@@ -72,17 +79,23 @@ The secret key gives full access. Only ever paste it into Vercel's settings, nev
    | `SUPABASE_BUCKET` | `listing-photos` |
    | `NEXT_PUBLIC_PHOTO_BASE_URL` | `<Project URL>/storage/v1/object/public/listing-photos` |
    | `SMS_DRIVER` | `supabase` |
+   | `EMAIL_DRIVER` | `resend` |
+   | `RESEND_API_KEY` | from step 6 |
+   | `EMAIL_FROM` | e.g. `ReKit <hello@rekit.ae>` |
+   | `APP_URL` | your site's address, e.g. `https://rekit.ae` (no slash at the end) |
+   | `APP_SECRET` | 32+ random characters. Generate with `openssl rand -base64 48` or a password manager. Keep it secret. |
 
 4. Click **Deploy**. The build creates the database tables automatically
    (`prisma migrate deploy`), then builds the site.
 5. Open the site and log in with your own mobile number. You should get a text.
+6. On your account page, add your email address. You should get a confirmation email.
 
-## 7. Make yourself the admin
+## 8. Make yourself the admin
 
 In Supabase, go to **Table Editor → User**, find your row, and change `role` from `USER`
 to `ADMIN`. Then reload the site: **Admin** appears on your account page.
 
-## 8. Your domain
+## 9. Your domain
 
 In Vercel, go to **Project → Settings → Domains** and add your domain, e.g. `rekit.ae`.
 `.ae` domains are registered through accredited UAE registrars.
@@ -91,5 +104,6 @@ In Vercel, go to **Project → Settings → Domains** and add your domain, e.g. 
 
 - Don't run `npm run db:seed` or `db:reset`. They delete everything and load demo data,
   and the script refuses when `NODE_ENV=production`.
+- Don't set `EMAIL_DRIVER=dev`, `ALLOW_DEV_EMAIL` or `ALLOW_DEV_SECRETS`. These are for automated tests only.
 - Don't set `SMS_DRIVER=dev` or `ALLOW_DEV_SMS`. Test mode shows login codes on screen.
   The app refuses to use it in production unless `ALLOW_DEV_SMS=1` is set, which is only for automated tests.

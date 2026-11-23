@@ -37,6 +37,25 @@ async function phoneLogin(page, mobile) {
   await page.click("form.form-card button[type=submit]");
 }
 
+// Emails land in the outbox folder when EMAIL_DRIVER=dev.
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+const OUTBOX = path.resolve(process.env.OUTBOX_DIR || ".outbox");
+function emailsTo(to) {
+  try {
+    return readdirSync(OUTBOX).sort().map((f) => JSON.parse(readFileSync(path.join(OUTBOX, f), "utf8"))).filter((e) => e.to === to);
+  } catch { return []; }
+}
+async function waitForEmail(to, count = 1) {
+  for (let i = 0; i < 40; i++) {
+    const list = emailsTo(to);
+    if (list.length >= count) return list[count - 1];
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return null;
+}
+const linkIn = (mail, p) => mail?.text.match(new RegExp(`https?://\\S+${p}\\S*`))?.[0];
+
 // A real JPEG to upload, made by screenshotting a coloured box.
 const img = await newPage({ viewport: { width: 400, height: 300 } });
 await img.setContent('<div style="width:400px;height:300px;background:linear-gradient(135deg,#1747c9,#d9f24a)"></div>');
@@ -235,7 +254,8 @@ check("4th code request in 10 minutes is refused", limited);
 const emailUser = await newPage();
 await emailUser.goto(`${BASE}/signup`);
 await emailUser.fill("#name", "Email Person");
-await emailUser.fill("#email", `email${Date.now()}@example.com`);
+const emailAddress = `email${Date.now()}@example.com`;
+await emailUser.fill("#email", emailAddress);
 await emailUser.fill("#password", "a-strong-password");
 await emailUser.selectOption("#city", "Abu Dhabi");
 await emailUser.check("#terms");
@@ -313,6 +333,100 @@ check("account deleted and logged out", await leaver.getByText("Your account and
 await leaver.goto(`${BASE}/login`);
 await phoneLogin(leaver, leaverMobile);
 check("deleted number starts a fresh sign-up", await leaver.locator("#name").waitFor({ timeout: 5000 }).then(() => true, () => false));
+
+// 11a. Email sign-up sends a confirmation link
+const confirmMail = emailsTo(emailAddress).at(-1);
+check("email sign-up sends a confirmation link", !!linkIn(confirmMail, "/verify-email"));
+await emailUser.goto(linkIn(confirmMail, "/verify-email").replace("http://localhost:3000", BASE));
+check("confirmation link works", await emailUser.getByText("is confirmed").isVisible());
+await emailUser.goto(linkIn(confirmMail, "/verify-email").replace("http://localhost:3000", BASE));
+check("confirmation link only works once", await emailUser.getByText("Link not valid").isVisible());
+
+// 11b. A phone-only user adds an email for alerts
+const sellerEmail = `seller${Date.now()}@example.com`;
+await seller.goto(`${BASE}/account`);
+await seller.fill("#newEmail", "priya@rekit.test");
+await seller.getByRole("button", { name: "Send confirmation link" }).click();
+check("can't use another account's email", await seller.getByText("already exists").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await seller.fill("#newEmail", sellerEmail);
+await seller.getByRole("button", { name: "Send confirmation link" }).click();
+await seller.getByText(`We've sent a confirmation link to ${sellerEmail}`).waitFor();
+const addMail = await waitForEmail(sellerEmail);
+await seller.goto(linkIn(addMail, "/verify-email").replace("http://localhost:3000", BASE));
+await seller.goto(`${BASE}/account`);
+check("added email is confirmed and alerts are on", await seller.locator("#pNotify").isChecked() && (await seller.locator(".form-card").last().textContent()).includes(sellerEmail));
+
+// 11c. New-message alerts: one email per conversation until read, in the recipient's language
+const chatter = await newPage();
+await chatter.goto(`${BASE}/login?next=/browse`);
+await phoneLogin(chatter, randomMobile());
+await chatter.locator("#name").waitFor();
+await chatter.fill("#name", "Curious Buyer");
+await chatter.selectOption("#city", "Dubai");
+await chatter.check("#terms");
+await chatter.click("form.form-card button[type=submit]");
+await chatter.waitForURL(BASE + "/browse");
+await chatter.goto(`${BASE}/browse?q=${encodeURIComponent("دراجة جبلية")}`); // Hassan's listing; Hassan uses Arabic
+await chatter.locator(".card").first().click();
+await chatter.getByRole("button", { name: "Chat with seller" }).click();
+await chatter.waitForURL(/\/messages\//);
+await chatter.fill("#chatIn", "Hello, is the bike still for sale?");
+await chatter.click(".compose button");
+await chatter.locator(".msg.me").first().waitFor();
+await chatter.fill("#chatIn", "Also, does it come with pedals?");
+await chatter.click(".compose button");
+await chatter.locator(".msg.me").nth(1).waitFor();
+const alert = await waitForEmail("hassan@rekit.test");
+await new Promise((r) => setTimeout(r, 1500));
+check("recipient gets a new-message email", !!alert && alert.text.includes("Hello, is the bike still for sale?"));
+check("email is in the recipient's language (Arabic)", !!alert && alert.subject.includes("رسالة جديدة من Curious Buyer") && alert.html.includes('dir="rtl"'));
+check("only one email per conversation until it's read", emailsTo("hassan@rekit.test").length === 1);
+check("email has one-click unsubscribe headers", !!alert?.headers?.["List-Unsubscribe-Post"]);
+check("user content in the email is escaped", !alert.html.includes("<script"));
+const oneClick = alert.headers["List-Unsubscribe"].slice(1, -1).replace("http://localhost:3000", BASE);
+const tampered = await guest.request.post(oneClick.replace(/s=[^&]+/, "s=forged"));
+check("forged unsubscribe link is refused", tampered.status() === 400);
+await guest.goto(linkIn(alert, "/unsubscribe").replace("http://localhost:3000", BASE));
+await guest.getByRole("button", { name: "Stop emails" }).click();
+check("unsubscribe page works", await guest.getByText("You won't get new-message emails any more").waitFor({ timeout: 5000 }).then(() => true, () => false));
+check("one-click unsubscribe endpoint works", (await guest.request.post(oneClick)).status() === 200);
+
+// 11d. Password reset (run last: it changes Priya's password and logs her out everywhere)
+const resetter = await newPage();
+await resetter.goto(`${BASE}/login/email`);
+await resetter.getByRole("link", { name: "Forgot your password?" }).click();
+await resetter.waitForURL(BASE + "/forgot-password");
+await resetter.fill("#email", "nobody-here@example.com");
+await resetter.click("form.form-card button[type=submit]");
+const sentText = "If there's an account with that email";
+check("unknown email gets the same answer", await resetter.getByText(sentText).waitFor({ timeout: 5000 }).then(() => true, () => false));
+check("no email sent to unknown address", emailsTo("nobody-here@example.com").length === 0);
+await resetter.goto(`${BASE}/forgot-password`);
+await resetter.fill("#email", "priya@rekit.test");
+await resetter.click("form.form-card button[type=submit]");
+await resetter.getByText(sentText).waitFor();
+const resetLink = linkIn(emailsTo("priya@rekit.test").filter((e) => e.subject.includes("Reset")).at(-1), "/reset-password")?.replace("http://localhost:3000", BASE);
+check("reset email sent with a link", !!resetLink);
+await resetter.goto(resetLink);
+await resetter.fill("#password", "new-password-123");
+await resetter.fill("#confirm", "different-123");
+await resetter.click("form.form-card button[type=submit]");
+check("mismatched passwords rejected", await resetter.getByText("don't match").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await resetter.fill("#confirm", "new-password-123");
+await resetter.click("form.form-card button[type=submit]");
+await resetter.waitForURL(/\/account\?password=1/);
+check("password reset logs you in", await resetter.getByText("Your password has been changed").isVisible());
+await buyer.goto(`${BASE}/saved`);
+check("other sessions are logged out after reset", buyer.url().includes("/login"));
+await resetter.goto(resetLink);
+check("reset link only works once", await resetter.getByText("expired or has already been used").isVisible());
+const relog = await newPage();
+await relog.goto(`${BASE}/login/email`);
+await relog.fill("#email", "priya@rekit.test");
+await relog.fill("#password", "new-password-123");
+await relog.click("form.form-card button[type=submit]");
+await relog.waitForURL(BASE + "/");
+check("new password works", (await relog.locator(".user-menu").textContent()).includes("Priya"));
 
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);

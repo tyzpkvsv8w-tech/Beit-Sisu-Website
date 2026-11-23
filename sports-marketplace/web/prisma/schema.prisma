@@ -24,6 +24,10 @@ model User {
   showPhone       Boolean   @default(false)
   // "en" | "ar"
   locale          String    @default("en")
+  // Emails only go to verified addresses. A new address waits in pendingEmail until confirmed.
+  emailVerifiedAt DateTime?
+  pendingEmail    String?
+  notifyMessages  Boolean   @default(true)
   city         String?
   market       String   @default("ae")
   // "USER" or "ADMIN"
@@ -39,6 +43,7 @@ model User {
   selling       Conversation[] @relation("seller")
   messages      Message[]
   reports       Report[]
+  emailTokens   EmailToken[]
 }
 
 model Session {
@@ -160,6 +165,23 @@ model PhoneChallenge {
   createdAt  DateTime  @default(now())
 
   @@index([phone, createdAt])
+}
+
+// Single-use links sent by email: password reset (1 hour) and email confirmation (24 hours).
+model EmailToken {
+  // SHA-256 of the token in the link; the raw token is never stored
+  id        String    @id
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // "reset" | "verify"
+  purpose   String
+  // The address being confirmed (verify only)
+  email     String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, purpose])
 }
 
 // Display advertising sold to businesses

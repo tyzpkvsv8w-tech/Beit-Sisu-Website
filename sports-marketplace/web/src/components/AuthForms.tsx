@@ -105,7 +105,8 @@ export function LoginForm({ next }: { next: string }) {
       <div><div className="eyebrow">{m.auth.welcome}</div><h1>{m.auth.login}</h1></div>
       <input type="hidden" name="next" value={next} />
       <div className="field"><label htmlFor="email">{m.auth.email}</label><input id="email" name="email" type="email" autoComplete="email" dir="ltr" /></div>
-      <div className="field"><label htmlFor="password">{m.auth.password}</label><input id="password" name="password" type="password" autoComplete="current-password" dir="ltr" /></div>
+      <div className="field"><label htmlFor="password">{m.auth.password}</label><input id="password" name="password" type="password" autoComplete="current-password" dir="ltr" />
+        <Link href="/forgot-password" className="hint" style={{ color: "var(--accent)", justifySelf: "end" }}>{m.password.forgotLink}</Link></div>
       {state?.error && <div className="err" role="alert">{state.error}</div>}
       <SubmitButton pending={pending} className="btn btn-primary btn-block" pendingText={m.auth.loggingIn}>{m.auth.loginBtn}</SubmitButton>
       <div className="alt"><Link href={`/login?next=${encodeURIComponent(next)}`}>{m.auth.usePhone}</Link></div>

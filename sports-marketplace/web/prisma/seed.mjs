@@ -16,7 +16,7 @@ async function main() {
     db.adCampaign.deleteMany(), db.adEnquiry.deleteMany(),
   ]);
   const passwordHash = await bcrypt.hash("rekit-demo-123", 10);
-  const mk = (email, name, extra = {}) => db.user.create({ data: { email, name, passwordHash, city: "Dubai", ...extra } });
+  const mk = (email, name, extra = {}) => db.user.create({ data: { email, emailVerifiedAt: new Date(), name, passwordHash, city: "Dubai", ...extra } });
 
   const admin = await mk("admin@rekit.test", "ReKit Admin", { role: "ADMIN" });
   const people = {};

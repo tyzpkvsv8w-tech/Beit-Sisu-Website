@@ -53,7 +53,7 @@ The policy was written from the code. If the app changes, update the policy firs
 | No analytics or advertising trackers; ad counts are totals only | `src/lib/ads.ts`, `src/app/go/[id]/route.ts` |
 | Delete your account from the account page; everything goes with it, including conversations for both sides | `deleteAccount` in `src/app/actions/auth.ts` (database cascade), and the photos are removed from storage |
 | Ad photos removed from storage when the ad is deleted | `setListingStatus` in `src/app/actions/listings.ts` |
-| Third parties: Supabase, the SMS provider, Vercel, Google Fonts | Google Fonts could be self-hosted to remove it from the list |
+| Third parties: Supabase, the SMS provider, Vercel, Resend (email), Google Fonts | Google Fonts could be self-hosted to remove it from the list |
 
 ## 4. Gaps to close before or soon after launch
 

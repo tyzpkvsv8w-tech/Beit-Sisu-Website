@@ -76,7 +76,7 @@ export function EnquiryForm() {
 // Stored in English so the ad team sees the same values whatever the language.
 const BUDGETS = ["Under 2,000", "2,000 – 10,000", "10,000 – 50,000", "50,000+"];
 
-type ProfileUser = { name: string; phone: string | null; showPhone: boolean; city: string | null; email: string | null };
+type ProfileUser = { name: string; phone: string | null; showPhone: boolean; city: string | null; email: string | null; emailVerifiedAt: Date | null; notifyMessages: boolean };
 
 export function ProfileForm({ user }: { user: ProfileUser }) {
   const { m } = useI18n();
@@ -89,7 +89,7 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
         <div><dt>{t.mobile}</dt><dd>{user.phone
           ? <><bdi dir="ltr">{displayPhone(user.phone)}</bdi> <span className="verified">✓ {t.verified}</span></>
           : <Link href="/account/phone" style={{ color: "var(--accent)" }}>{t.addMobile}</Link>}</dd></div>
-        <div><dt>{t.email}</dt><dd dir={user.email ? "ltr" : undefined} style={{ textAlign: "start" }}>{user.email ?? t.notSet}</dd></div>
+        <div><dt>{t.email}</dt><dd dir={user.email ? "ltr" : undefined} style={{ textAlign: "start" }}>{user.email ?? t.notSet}{user.email && !user.emailVerifiedAt && <span className="note"> ({t.emailUnverified})</span>}</dd></div>
       </dl>
       <div className="row2">
         <div className="field"><label htmlFor="pName">{m.auth.name}</label><input id="pName" name="name" defaultValue={user.name} dir="auto" /></div>
@@ -97,6 +97,12 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
           <select id="pCity" name="city" defaultValue={user.city ?? market().cities[0]}>{market().cities.map((c) => <option key={c} value={c}>{m.cities[c]}</option>)}</select></div>
       </div>
       {user.phone && <label className="check"><input type="checkbox" name="showPhone" id="pShow" defaultChecked={user.showPhone} /> {t.showPhone}</label>}
+      {user.email && user.emailVerifiedAt ? (
+        <>
+          <input type="hidden" name="notifyField" value="1" />
+          <label className="check"><input type="checkbox" name="notifyMessages" id="pNotify" defaultChecked={user.notifyMessages} /> {t.notify}</label>
+        </>
+      ) : <span className="hint">{t.notifyNeedsEmail}</span>}
       {state?.error && <div className="err">{state.error}</div>}
       {state?.ok && <div className="ok">{state.ok}</div>}
       <SubmitButton pending={pending} pendingText={m.sell.saving}>{t.saveProfile}</SubmitButton>

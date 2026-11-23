@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { notifyNewMessage } from "@/lib/notify";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getUser, requireUser } from "@/lib/auth";
@@ -52,10 +54,12 @@ export async function sendMessage(conversationId: string, body: string): Promise
   if (!rateLimit(`msg:${user.id}`, 60, 60 * 1000)) return { error: m.errors.tooFast };
   const convo = await db.conversation.findUnique({ where: { id: conversationId } });
   if (!convo || (convo.buyerId !== user.id && convo.sellerId !== user.id)) return { error: m.errors.noConversation };
-  await db.$transaction([
+  const [message] = await db.$transaction([
     db.message.create({ data: { conversationId, senderId: user.id, body: text } }),
     db.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } }),
   ]);
+  // Runs after the reply is sent, so a slow email service never slows down chat.
+  after(() => notifyNewMessage(message.id).catch((e) => console.error("Message email failed", e)));
   return {};
 }
 
@@ -98,10 +102,13 @@ export async function updateProfile(_: FormState, form: FormData): Promise<FormS
   const parsed = z.object({
     name: z.string().trim().min(2, m.errors.name).max(40, m.errors.name),
     showPhone: z.string().optional().transform((v) => v === "on"),
+    notifyMessages: z.string().optional().transform((v) => v === "on"),
     city: z.string({ required_error: m.errors.city }).refine((c) => market().cities.includes(c), m.errors.city),
   }).safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  await db.user.update({ where: { id: user.id }, data: parsed.data });
+  const { notifyMessages, ...data } = parsed.data;
+  // The alerts checkbox only shows once an email is confirmed; leave the setting alone otherwise.
+  await db.user.update({ where: { id: user.id }, data: form.has("notifyField") ? { ...data, notifyMessages } : data });
   revalidatePath("/account");
   return { ok: m.account.profileSaved };
 }

@@ -5,6 +5,7 @@ import { money, timeAgo } from "@/lib/format";
 import { fmt, getI18n } from "@/i18n";
 import { Thumb } from "@/components/Thumb";
 import { ProfileForm } from "@/components/SmallForms";
+import { EmailSettings } from "@/components/EmailForms";
 import { ConfirmDelete, DeleteAccount } from "@/components/ConfirmDelete";
 import { LangSwitch } from "@/components/LangSwitch";
 import { setListingStatus } from "@/app/actions/listings";
@@ -15,7 +16,7 @@ export async function generateMetadata() {
   return { title: m.account.title };
 }
 
-export default async function Account({ searchParams }: { searchParams: Promise<{ deleted?: string; phone?: string }> }) {
+export default async function Account({ searchParams }: { searchParams: Promise<{ deleted?: string; phone?: string; password?: string }> }) {
   const me = await requireUser("/account");
   const sp = await searchParams;
   const { m, locale } = await getI18n();
@@ -40,6 +41,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       </div>
       {sp.deleted && <div className="banner-ok">{t.deleted}</div>}
       {sp.phone && <div className="banner-ok">{m.auth.phoneAdded}</div>}
+      {sp.password && <div className="banner-ok">{m.password.done}</div>}
       {listings.length ? (
         <div className="mylist">
           {listings.map((l) => (
@@ -69,7 +71,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       ) : (
         <div className="empty"><h3>{t.noAds}</h3><p>{t.noAdsText}</p><Link className="btn btn-primary" href="/sell">{m.common.postAdFree}</Link></div>
       )}
-      <div style={{ maxWidth: 620 }}><ProfileForm user={user} /></div>
+      <div style={{ maxWidth: 620, display: "grid", gap: 16 }}><ProfileForm user={user} /><EmailSettings user={user} /></div>
       <div className="panel danger-zone" style={{ maxWidth: 620 }}>
         <h2 style={{ fontSize: 22 }}>{t.deleteTitle}</h2>
         <p style={{ margin: 0 }}>{t.deleteText}</p>

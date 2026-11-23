@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { createSession, destroySession, getUser, hashPassword, safeNext, verifyPassword } from "@/lib/auth";
 import { failures, rateLimit } from "@/lib/rate-limit";
 import { deletePhotos } from "@/lib/storage";
+import { sendVerification } from "@/lib/notify";
 import { market } from "@/lib/constants";
 import { getI18n, LOCALE_COOKIE } from "@/i18n";
 
@@ -32,8 +33,10 @@ export async function signup(_: FormState, form: FormData): Promise<FormState> {
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { name, email, password, city } = parsed.data;
   if (await db.user.findUnique({ where: { email } })) return { error: m.errors.emailTaken };
-  const user = await db.user.create({ data: { name, email, city, passwordHash: await hashPassword(password) } });
+  const { locale } = await getI18n();
+  const user = await db.user.create({ data: { name, email, city, locale, passwordHash: await hashPassword(password) } });
   await createSession(user.id);
+  await sendVerification(user, email).catch((e) => console.error("Verification email failed", e));
   redirect(safeNext(form.get("next")));
 }
 
