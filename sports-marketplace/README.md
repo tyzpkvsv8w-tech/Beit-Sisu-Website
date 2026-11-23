@@ -7,6 +7,7 @@ advertisers pay for placements.
 | Folder | What it is |
 |---|---|
 | [`web/`](web/README.md) | **The real app.** SMS login, English + Arabic, listings with photos, chat, saved items, reports, ad slots, admin. Start here. |
+| [`LAUNCH-CHECKLIST.md`](LAUNCH-CHECKLIST.md) | What must be done before launch, including the parked legal review. |
 | [`prototype/`](prototype/index.html) | The first clickable mock-up (one HTML file, sample data, no backend). |
 
 ## Revenue model (ads only, users always free)

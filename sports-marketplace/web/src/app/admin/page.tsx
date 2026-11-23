@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { en } from "@/i18n/en";
+import { COMPANY } from "@/legal/company";
 
 // The admin page is an internal tool, kept in English.
 import { timeAgo } from "@/lib/format";
@@ -22,6 +23,12 @@ export default async function Admin() {
   return (
     <div className="wrap section" style={{ display: "grid", gap: 24 }}>
       <div className="toolbar"><div><h1>Admin</h1></div></div>
+      {COMPANY.draft && (
+        <div className="legal-draft" role="note">
+          Reminder: the Terms of Use and Privacy Policy are still drafts waiting for legal review.
+          See LAUNCH-CHECKLIST.md. This goes away when <code>draft</code> is set to false in src/legal/company.ts.
+        </div>
+      )}
       <div className="adv-stats">
         <div className="stat"><b>{users}</b><span>members</span></div>
         <div className="stat"><b>{live}</b><span>live ads</span></div>
