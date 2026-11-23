@@ -13,6 +13,7 @@ import { FavButton } from "@/components/FavButton";
 import { Gallery } from "@/components/Gallery";
 import { ReportButton } from "@/components/SmallForms";
 import { startConversation } from "@/app/actions/social";
+import { paymentsBlockedInApp } from "@/lib/app-mode";
 import { setListingStatus } from "@/app/actions/listings";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> };
@@ -59,6 +60,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
       <div className="crumbs"><Link href="/">{m.common.home}</Link>{sep}<Link href={`/browse?sport=${l.sport}`}>{sportName}</Link>{sep}<span>{m.cities[l.city]}</span></div>
       {sp.posted && <div className="banner-ok" style={{ marginTop: 12 }}>{t.postedBanner}</div>}
       {sp.updated && <div className="banner-ok" style={{ marginTop: 12 }}>{t.updatedBanner}</div>}
+      {sp.blocked && <div className="legal-draft" style={{ marginTop: 12 }} role="alert">{m.block.cantMessage}</div>}
       <div className="detail">
         <div className="d-left" style={{ display: "grid", gap: 16, minWidth: 0 }}>
           <div className="gallery">
@@ -96,7 +98,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
               <>
                 <div className="note">{fmt(t.yourAd, { n: l.views })}</div>
                 <Link className="btn btn-primary btn-block" href={`/listing/${l.id}/edit`}>{t.edit}</Link>
-                {l.seller.isBusiness && l.status === "ACTIVE" && (
+                {l.seller.isBusiness && l.status === "ACTIVE" && !(await paymentsBlockedInApp()) && (
                   <Link className="btn btn-volt btn-block" href={`/listing/${l.id}/promote`}>
                     {sponsored ? fmt(m.promote.until, { date: l.sponsoredUntil!.toLocaleDateString(locale === "ar" ? "ar-AE-u-nu-latn" : "en-GB", { day: "numeric", month: "short", timeZone: "Asia/Dubai" }) }) : m.promote.button}
                   </Link>

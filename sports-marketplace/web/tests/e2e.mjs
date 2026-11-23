@@ -781,6 +781,92 @@ if (process.env.E2E_PUSH) {
   await pushBrowser.close();
 }
 
+// 15. Google Play requirements: blocking, account deletion page, app link, payments in the app
+const victim = await newPage();
+await victim.goto(`${BASE}/login/email?next=/messages`);
+await victim.fill("#email", "omar@rekit.test");
+await victim.fill("#password", "rekit-demo-123");
+await victim.click("form.form-card button[type=submit]");
+await victim.waitForURL(BASE + "/messages");
+const pest = await newPage();
+await pest.goto(`${BASE}/signup?next=/browse`);
+await pest.fill("#name", "Pushy Buyer");
+await pest.fill("#email", `pest${Date.now()}@example.com`);
+await pest.fill("#password", "a-strong-password");
+await pest.selectOption("#city", "Dubai");
+await pest.check("#terms");
+await pest.click("form.form-card button[type=submit]");
+await pest.waitForURL(BASE + "/browse");
+await pest.goto(`${BASE}/browse?q=Bullpadel`);
+await pest.locator(".card").first().click();
+await pest.waitForURL(/\/listing\//);
+const omarListingUrl = pest.url();
+await pest.getByRole("button", { name: "Chat with seller" }).click();
+await pest.waitForURL(/\/messages\//);
+const pestChat = pest.url();
+await pest.fill("#chatIn", "Give it to me for 100 or else.");
+await pest.click(".compose button");
+await pest.locator(".msg.me").first().waitFor();
+await victim.goto(`${BASE}/messages`);
+await victim.locator(".inbox a", { hasText: "Pushy Buyer" }).click();
+await victim.getByRole("button", { name: "Block" }).click();
+await victim.check("#blockReport");
+await victim.locator("dialog").getByRole("button", { name: "Block" }).click();
+await victim.waitForURL(/\/messages\?blocked=1/);
+check("blocking hides the chat from the inbox", await victim.getByText("Blocked. They can't message you").isVisible() && (await victim.locator(".inbox a", { hasText: "Pushy Buyer" }).count()) === 0);
+await pest.goto(pestChat);
+check("blocked person can't reply", await pest.getByText("You can't reply to this conversation").isVisible() && (await pest.locator("#chatIn").count()) === 0);
+await pest.goto(omarListingUrl);
+await pest.getByRole("button", { name: "Chat with seller" }).click();
+await pest.waitForURL(/blocked=1/);
+check("blocked person can't start a new chat", await pest.getByText("You can't message this seller").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await admin.goto(`${BASE}/admin`);
+check("block and report reaches the admin", (await admin.locator("table.data", { hasText: "Abusive or scam messages" }).count()) === 1);
+await victim.goto(`${BASE}/account`);
+check("blocked people are listed on the account page", (await victim.getByTestId("blocked-people").textContent()).includes("Pushy Buyer"));
+await victim.getByTestId("blocked-people").getByRole("button", { name: "Unblock" }).click();
+await victim.waitForLoadState("networkidle");
+await pest.goto(pestChat);
+check("unblocking allows messages again", await pest.locator("#chatIn").waitFor({ timeout: 5000 }).then(() => true, () => false));
+
+for (const lang of ["en", "ar"]) {
+  const pc = await browser.newContext({ viewport: { width: 360, height: 640 } });
+  await pc.addCookies([{ name: "rk_lang", value: lang, url: BASE }]);
+  const pp = await pc.newPage();
+  await pp.goto(`${BASE}/login/email?next=/messages`);
+  await pp.fill("#email", "omar@rekit.test");
+  await pp.fill("#password", "rekit-demo-123");
+  await pp.click("form.form-card button[type=submit]");
+  await pp.waitForURL(BASE + "/messages");
+  await pp.locator(".inbox a").first().click();
+  await pp.waitForURL(/\/messages\//);
+  await pp.locator(".compose").waitFor();
+  const [cw, sw] = await pp.evaluate(() => { const c = document.querySelector(".chat-page"); return [c.clientWidth, c.scrollWidth]; });
+  check(`chat fits a phone screen (${lang})`, sw <= cw, `${sw} > ${cw}`);
+  await pc.close();
+}
+
+await guest.goto(`${BASE}/delete-account`);
+check("public account deletion page", (await guest.locator("h1").textContent()) === "Delete your ReKit account" && await guest.getByText("payment records").isVisible());
+const links = await (await guest.request.get(`${BASE}/.well-known/assetlinks.json`)).json();
+check("app link file names the Android app", links[0]?.target?.package_name === "ae.rekit.app" && links[0].target.sha256_cert_fingerprints.length === 1);
+
+const droid = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const dp = await droid.newPage();
+await dp.goto(`${BASE}/?source=twa`);
+await dp.waitForFunction(() => document.cookie.includes("rk_app=android"));
+await dp.waitForLoadState("networkidle");
+check("the Google Play app hides the install suggestion", (await dp.locator(".install-bar").count()) === 0);
+await dp.goto(`${BASE}/login/email?next=/advertise/book`);
+await dp.fill("#email", "gym@rekit.test");
+await dp.fill("#password", "rekit-demo-123");
+await dp.click("form.form-card button[type=submit]");
+await dp.waitForURL(BASE + "/advertise/book");
+check("ad booking is website-only inside the Android app", await dp.getByTestId("web-only").isVisible() && (await dp.locator("#adterms").count()) === 0);
+await dp.goto(`${BASE}/advertise`);
+check("Advertise page hides Book online in the app", (await dp.getByRole("link", { name: "Book online" }).count()) === 0);
+await droid.close();
+
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();

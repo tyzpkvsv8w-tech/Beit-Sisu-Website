@@ -13,6 +13,7 @@ import { PushSettings } from "@/components/PushNotifications";
 import { vapidPublicKey } from "@/lib/push";
 import { setListingStatus } from "@/app/actions/listings";
 import { logout } from "@/app/actions/auth";
+import { unblock } from "@/app/actions/blocks";
 
 export async function generateMetadata() {
   const { m } = await getI18n();
@@ -24,6 +25,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const { m, locale } = await getI18n();
   const t = m.account;
+  const blockedPeople = await db.block.findMany({ where: { blockerId: me.id }, include: { blocked: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" } });
   const [user, listings] = await Promise.all([
     db.user.findUniqueOrThrow({ where: { id: me.id } }),
     db.listing.findMany({
@@ -77,12 +79,21 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       )}
       <div style={{ maxWidth: 620, display: "grid", gap: 16 }}><ProfileForm user={user} /><EmailSettings user={user} /></div>
       <PushSettings publicKey={vapidPublicKey()} />
+      <div className="panel" style={{ maxWidth: 620 }} data-testid="blocked-people">
+        <h2 style={{ fontSize: 22 }}>{m.block.listTitle}</h2>
+        {blockedPeople.length === 0 ? <p className="note" style={{ margin: 0 }}>{m.block.none}</p> : blockedPeople.map((b) => (
+          <form key={b.blockedId} action={unblock} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <bdi>{b.blocked.name}</bdi><input type="hidden" name="userId" value={b.blockedId} />
+            <button className="btn btn-ghost btn-sm" type="submit">{m.block.unblock}</button>
+          </form>
+        ))}
+      </div>
       <div className="panel" style={{ maxWidth: 620 }}>
         <h2 style={{ fontSize: 22 }}>{m.app.installApp}</h2>
         <p style={{ margin: 0 }}>{m.app.installText}</p>
         <InstallButton />
       </div>
-      <div className="panel danger-zone" style={{ maxWidth: 620 }}>
+      <div className="panel danger-zone" style={{ maxWidth: 620 }} id="delete">
         <h2 style={{ fontSize: 22 }}>{t.deleteTitle}</h2>
         <p style={{ margin: 0 }}>{t.deleteText}</p>
         <DeleteAccount />

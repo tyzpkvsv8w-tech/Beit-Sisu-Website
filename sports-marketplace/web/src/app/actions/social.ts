@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { notifyNewMessage } from "@/lib/notify";
+import { blockedBetween } from "@/lib/blocks";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getUser, requireUser } from "@/lib/auth";
@@ -36,6 +37,7 @@ export async function startConversation(form: FormData) {
   const listing = await db.listing.findUnique({ where: { id: listingId } });
   if (!listing || listing.status === "REMOVED") redirect("/");
   if (listing.sellerId === user.id) redirect("/messages");
+  if (await blockedBetween(user.id, listing.sellerId)) redirect(`/listing/${listingId}?blocked=1`);
   const convo = await db.conversation.upsert({
     where: { listingId_buyerId: { listingId, buyerId: user.id } },
     update: {},
@@ -54,6 +56,7 @@ export async function sendMessage(conversationId: string, body: string): Promise
   if (!rateLimit(`msg:${user.id}`, 60, 60 * 1000)) return { error: m.errors.tooFast };
   const convo = await db.conversation.findUnique({ where: { id: conversationId } });
   if (!convo || (convo.buyerId !== user.id && convo.sellerId !== user.id)) return { error: m.errors.noConversation };
+  if (await blockedBetween(convo.buyerId, convo.sellerId)) return { error: m.errors.blocked };
   const [message] = await db.$transaction([
     db.message.create({ data: { conversationId, senderId: user.id, body: text } }),
     db.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } }),

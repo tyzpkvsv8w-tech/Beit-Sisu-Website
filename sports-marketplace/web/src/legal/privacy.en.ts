@@ -164,6 +164,7 @@ export const privacyEn: LegalDoc = {
             ["rk_session", "Keeps you logged in. Lasts 30 days, or until you log out."],
             ["rk_otp", "Remembers a login that's in progress while you enter your code. Lasts 15 minutes."],
             ["rk_lang", "Remembers whether you chose English or Arabic. Lasts 1 year."],
+            ["rk_app", "Set only in the Google Play app, so the site knows it's running inside the app. Lasts 1 year."],
           ],
         },
         "ReKit also keeps a few things in your browser's own storage. These never leave your device:",

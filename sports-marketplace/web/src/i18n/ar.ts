@@ -11,7 +11,7 @@ export const ar: Messages = {
     searchLabel: "البحث في الإعلانات", home: "الرئيسية", sell: "بيع", chats: "المحادثات", moreCountries: "دول أخرى قريبًا",
     switchLang: "English", switchLangLabel: "Switch to English",
     footer: "معدات رياضية مستعملة، مجانًا للجميع. نموّل الموقع بإعلانات واضحة ومميّزة.",
-    advertiseWithUs: "أعلن معنا", safetyTips: "نصائح الأمان", terms: "الشروط", privacy: "الخصوصية", adTerms: "شروط الإعلان", seeAll: "عرض الكل ←", browseAll: "تصفّح الكل ←", back: "→",
+    advertiseWithUs: "أعلن معنا", safetyTips: "نصائح الأمان", terms: "الشروط", privacy: "الخصوصية", adTerms: "شروط الإعلان", deleteAccount: "حذف الحساب", seeAll: "عرض الكل ←", browseAll: "تصفّح الكل ←", back: "→",
     neg: "قابل للتفاوض", photos: "{n} صور", listings: "الإعلانات: {n}", listing1: "إعلان واحد", close: "إغلاق", cancel: "إلغاء", or: "أو",
     removePhoto: "حذف الصورة", optional: "اختياري", working: "جارٍ التنفيذ…",
   },
@@ -101,6 +101,7 @@ export const ar: Messages = {
     advertiser: "أدخل اسم نشاطك التجاري (حتى 40 حرفًا)", headline: "اكتب عنوانًا (حتى 60 حرفًا)", adBody: "اكتب نص الإعلان (حتى 140 حرفًا)",
     cta: "اكتب نص الزر (حتى 20 حرفًا)", adTerms: "يرجى الموافقة على شروط الإعلان", paymentFailed: "تعذّر بدء عملية الدفع. حاول بعد دقيقة.",
     listingNotActive: "يمكن ترويج الإعلانات المنشورة فقط.",
+    blocked: "لا يمكنك مراسلة هذا الشخص.", appPayments: "حجز الإعلانات غير متاح في تطبيق Android. يرجى استخدام موقع ReKit في المتصفح.",
     enquiryName: "أدخل اسمك", enquiryBusiness: "أدخل اسم نشاطك التجاري", enquiryEmail: "أدخل بريد عمل صحيحًا", tooManyEnquiries: "طلبات كثيرة من هذه الشبكة. حاول لاحقًا.",
   },
   account: {
@@ -239,6 +240,7 @@ export const ar: Messages = {
     install: "تثبيت", notNow: "ليس الآن", iosTitle: "أضف ReKit إلى شاشتك الرئيسية",
     iosSteps: "في Safari، اضغط زر المشاركة، ثم اختر \"إضافة إلى الشاشة الرئيسية\".", installApp: "تثبيت التطبيق",
     installed: "تطبيق ReKit مثبّت على هذا الجهاز.", iosAccount: "على iPhone: افتح ReKit في Safari، واضغط مشاركة، ثم \"إضافة إلى الشاشة الرئيسية\".",
+    webOnly: "حجز الإعلانات والترويج غير متاح في تطبيق Android. يرجى استخدام موقع ReKit في المتصفح.",
     shortcutSell: "بِع شيئًا", shortcutSearch: "بحث", shortcutMessages: "الرسائل",
   },
   push: {
@@ -253,6 +255,19 @@ export const ar: Messages = {
     chatPrompt: "هل تريد إشعارًا عندما يردّ؟", chatYes: "تفعيل", chatNo: "لا، شكرًا",
     privacyNote: "تعرض الإشعارات اسم المرسل والإعلان وبداية الرسالة. تسجيل الخروج يوقفها على هذا الجهاز.",
   },
+  block: {
+    button: "حظر", title: "حظر {name}؟", text: "لن يتمكن من مراسلتك، وستُخفى هذه المحادثة من صندوق رسائلك. لن نُعلمه بذلك.",
+    report: "أبلغ فريق ReKit عن هذه المحادثة أيضًا", confirm: "حظر", done: "تم الحظر. لا يمكنه مراسلتك بعد الآن.",
+    youBlocked: "لقد حظرت {name}.", unblock: "إلغاء الحظر", cantReply: "لا يمكنك الرد في هذه المحادثة.",
+    listTitle: "الأشخاص المحظورون", none: "لم تحظر أحدًا.", cantMessage: "لا يمكنك مراسلة هذا البائع.",
+  },
+  deletePage: {
+    title: "حذف حسابك على ReKit", intro: "يمكنك حذف حسابك وبياناته في أي وقت، من التطبيق أو الموقع.",
+    howTitle: "كيفية حذف حسابك", steps: ["سجّل الدخول إلى ReKit.", "افتح صفحة حسابك (اضغط \"حسابي\" في الأسفل، أو اسمك في الأعلى).", "مرّر إلى \"حذف حسابك\" واضغط \"حذف حسابي\"، ثم أكّد."],
+    goAccount: "الذهاب إلى حسابي", deletedTitle: "ما نحذفه", deleted: ["ملفك الشخصي ورقم جوالك وبريدك الإلكتروني", "إعلاناتك وصورها", "العناصر المحفوظة", "محادثاتك (لكلا الطرفين)", "إعدادات الإشعارات وجلسات الدخول"],
+    keptTitle: "ما نحتفظ به", kept: "إذا دفعت مقابل إعلانات، نحتفظ بسجلات الدفع (المبلغ والضريبة والتاريخ) طوال المدة التي يشترطها قانون الضرائب الإماراتي، وهي 5 سنوات على الأقل.",
+    noAccessTitle: "لا تستطيع تسجيل الدخول؟", noAccess: "راسلنا على {email} من البريد الإلكتروني المسجّل في حسابك، أو أخبرنا برقم الجوال الذي استخدمته، وسنحذف الحساب خلال 30 يومًا.",
+  },
   notFound: { title: "الصفحة غير موجودة", text: "ربما تم بيع هذا الإعلان أو حذفه.", cta: "تصفّح الإعلانات" },
   sports: {
     "padel-tennis": "بادل وتنس", cycling: "دراجات", gym: "صالة رياضية ولياقة", football: "كرة القدم", golf: "غولف", water: "رياضات مائية",
@@ -264,7 +279,7 @@ export const ar: Messages = {
   },
   reportReasons: {
     "Scam or fraud": "احتيال أو نصب", "Prohibited or counterfeit item": "منتج محظور أو مقلّد", "Wrong category": "فئة خاطئة",
-    "Already sold": "تم بيعه بالفعل", "Offensive content": "محتوى مسيء", Other: "سبب آخر",
+    "Already sold": "تم بيعه بالفعل", "Offensive content": "محتوى مسيء", "Abusive or scam messages": "رسائل مسيئة أو احتيالية", Other: "سبب آخر",
   },
   countries: { ae: "الإمارات العربية المتحدة", aeShort: "الإمارات" },
 };

@@ -14,6 +14,7 @@ import { COMPANY } from "@/legal/company";
 import { fmt, getI18n } from "@/i18n";
 import type { Messages } from "@/i18n/en";
 import type { FormState } from "./auth";
+import { paymentsBlockedInApp } from "@/lib/app-mode";
 
 const WEEK = 7 * 86400e3;
 
@@ -51,6 +52,7 @@ async function startCheckout(orderId: string, name: string, q: ReturnType<typeof
 export async function bookCampaign(_: FormState, form: FormData): Promise<FormState> {
   const me = await requireUser("/advertise/book");
   const { m } = await getI18n();
+  if (await paymentsBlockedInApp()) return { error: m.errors.appPayments };
   const parsed = z.object({
     product: z.enum(["HOME_BANNER", "SPORT_TAKEOVER"], { errorMap: () => ({ message: m.errors.product }) }),
     sport: z.string().optional(),
@@ -100,6 +102,7 @@ export async function promoteListing(_: FormState, form: FormData): Promise<Form
   const listingId = String(form.get("listingId"));
   const me = await requireUser(`/listing/${listingId}/promote`);
   const { m } = await getI18n();
+  if (await paymentsBlockedInApp()) return { error: m.errors.appPayments };
   const user = await db.user.findUniqueOrThrow({ where: { id: me.id } });
   if (!user.isBusiness) return { error: m.promote.onlyBusiness };
   const weeks = Number(form.get("weeks"));
@@ -126,6 +129,7 @@ export async function promoteListing(_: FormState, form: FormData): Promise<Form
 /** Pay the remaining balance of a booking whose checkout was left open. */
 export async function resumeCheckout(form: FormData) {
   const me = await requireUser("/advertise/bookings");
+  if (await paymentsBlockedInApp()) redirect("/advertise/bookings");
   const { m } = await getI18n();
   const order = await db.order.findUnique({ where: { id: String(form.get("orderId")) } });
   if (!order || order.userId !== me.id || order.status !== "PENDING") redirect("/advertise/bookings");

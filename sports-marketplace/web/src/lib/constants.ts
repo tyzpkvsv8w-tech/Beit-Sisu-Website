@@ -50,6 +50,7 @@ export const REPORT_REASONS = [
   "Wrong category",
   "Already sold",
   "Offensive content",
+  "Abusive or scam messages",
   "Other",
 ] as const;
 

@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { COMPANY } from "@/legal/company";
 import { fmt, getI18n } from "@/i18n";
 import { PromoteForm } from "@/components/PromoteForm";
+import { paymentsBlockedInApp } from "@/lib/app-mode";
 
 export async function generateMetadata() {
   const { m } = await getI18n();
@@ -25,7 +26,9 @@ export default async function Promote({ params }: { params: Promise<{ id: string
         <h1>{m.promote.title}</h1>
         <p style={{ margin: 0 }}>{m.promote.text}</p>
         {until && <div className="banner-ok">{fmt(m.promote.until, { date: until.toLocaleDateString(locale === "ar" ? "ar-AE-u-nu-latn" : "en-GB", { day: "numeric", month: "long", timeZone: "Asia/Dubai" }) })}. {m.promote.extend}</div>}
-        {!user.isBusiness ? (
+        {(await paymentsBlockedInApp()) ? (
+          <p className="legal-draft" style={{ margin: 0 }} data-testid="web-only">{m.app.webOnly}</p>
+        ) : !user.isBusiness ? (
           <><p className="err" style={{ margin: 0 }}>{m.promote.onlyBusiness}</p><Link className="btn btn-ghost" href="/account">{m.common.account}</Link></>
         ) : listing.status !== "ACTIVE" ? (
           <p className="err" style={{ margin: 0 }}>{m.errors.listingNotActive}</p>

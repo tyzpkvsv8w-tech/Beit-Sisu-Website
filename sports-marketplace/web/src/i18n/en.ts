@@ -9,7 +9,7 @@ export const en = {
     searchLabel: "Search listings", home: "Home", sell: "Sell", chats: "Chats", moreCountries: "More countries coming soon",
     switchLang: "العربية", switchLangLabel: "التبديل إلى العربية",
     footer: "Second-hand sports gear, free for everyone. Funded by clearly labelled ads.",
-    advertiseWithUs: "Advertise with us", safetyTips: "Safety tips", terms: "Terms", privacy: "Privacy", adTerms: "Advertising terms", seeAll: "See all →", browseAll: "Browse all →", back: "←",
+    advertiseWithUs: "Advertise with us", safetyTips: "Safety tips", terms: "Terms", privacy: "Privacy", adTerms: "Advertising terms", deleteAccount: "Delete account", seeAll: "See all →", browseAll: "Browse all →", back: "←",
     neg: "neg.", photos: "{n} photos", listings: "{n} listings", listing1: "1 listing", close: "Close", cancel: "Cancel", or: "or",
     removePhoto: "Remove photo", optional: "Optional", working: "Working…",
   },
@@ -99,6 +99,7 @@ export const en = {
     advertiser: "Enter your business name (up to 40 characters)", headline: "Write a headline (up to 60 characters)", adBody: "Write the ad text (up to 140 characters)",
     cta: "Write the button text (up to 20 characters)", adTerms: "Please accept the Advertising Terms", paymentFailed: "We couldn't start the payment. Try again in a minute.",
     listingNotActive: "Only live ads can be promoted.",
+    blocked: "You can't message this person.", appPayments: "Booking ads isn't available in the Android app. Please use the ReKit website in a browser.",
     enquiryName: "Enter your name", enquiryBusiness: "Enter your business name", enquiryEmail: "Enter a valid work email", tooManyEnquiries: "Too many enquiries from this network. Try again later.",
   },
   account: {
@@ -237,6 +238,7 @@ export const en = {
     install: "Install", notNow: "Not now", iosTitle: "Add ReKit to your home screen",
     iosSteps: "In Safari, tap the Share button, then choose \"Add to Home Screen\".", installApp: "Install the app",
     installed: "ReKit is installed on this device.", iosAccount: "On iPhone: open ReKit in Safari, tap Share, then \"Add to Home Screen\".",
+    webOnly: "Booking ads and promotions isn't available in the Android app. Please use the ReKit website in a browser.",
     shortcutSell: "Sell something", shortcutSearch: "Search", shortcutMessages: "Messages",
   },
   push: {
@@ -251,6 +253,19 @@ export const en = {
     chatPrompt: "Get a notification when they reply?", chatYes: "Turn on", chatNo: "No thanks",
     privacyNote: "Notifications show the sender's name, the ad and the start of the message. Logging out turns them off on this device.",
   },
+  block: {
+    button: "Block", title: "Block {name}?", text: "They won't be able to message you, and this chat will be hidden from your inbox. We don't tell them.",
+    report: "Also report this chat to the ReKit team", confirm: "Block", done: "Blocked. They can't message you any more.",
+    youBlocked: "You've blocked {name}.", unblock: "Unblock", cantReply: "You can't reply to this conversation.",
+    listTitle: "Blocked people", none: "You haven't blocked anyone.", cantMessage: "You can't message this seller.",
+  },
+  deletePage: {
+    title: "Delete your ReKit account", intro: "You can delete your account and its data at any time, from the app or the website.",
+    howTitle: "How to delete your account", steps: ["Log in to ReKit.", "Open your account page (tap Account at the bottom, or your name at the top).", "Scroll down to \"Delete your account\" and tap \"Delete my account\", then confirm."],
+    goAccount: "Go to my account", deletedTitle: "What we delete", deleted: ["Your profile, mobile number and email address", "Your ads and their photos", "Your saved items", "Your conversations (for both people in them)", "Notification settings and login sessions"],
+    keptTitle: "What we keep", kept: "If you paid for advertising, we keep the payment records (amount, VAT, date) for as long as UAE tax law requires, which is at least 5 years.",
+    noAccessTitle: "Can't log in?", noAccess: "Email {email} from the email address on your account, or tell us the mobile number you used, and we'll delete the account for you within 30 days.",
+  },
   notFound: { title: "Page not found", text: "This ad may have been sold or deleted.", cta: "Browse listings" },
   sports: {
     "padel-tennis": "Padel & Tennis", cycling: "Cycling", gym: "Gym & Fitness", football: "Football", golf: "Golf", water: "Water Sports",
@@ -262,7 +277,7 @@ export const en = {
   } as Record<string, string>,
   reportReasons: {
     "Scam or fraud": "Scam or fraud", "Prohibited or counterfeit item": "Prohibited or counterfeit item", "Wrong category": "Wrong category",
-    "Already sold": "Already sold", "Offensive content": "Offensive content", Other: "Other",
+    "Already sold": "Already sold", "Offensive content": "Offensive content", "Abusive or scam messages": "Abusive or scam messages", Other: "Other",
   } as Record<string, string>,
   countries: { ae: "United Arab Emirates", aeShort: "UAE" },
 };

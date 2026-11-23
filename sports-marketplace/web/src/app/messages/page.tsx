@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { timeAgo } from "@/lib/format";
 import { getI18n } from "@/i18n";
 import { Thumb } from "@/components/Thumb";
+import { blockedIds } from "@/lib/blocks";
 
 export async function generateMetadata() {
   const { m } = await getI18n();
@@ -11,10 +12,12 @@ export async function generateMetadata() {
 }
 export const dynamic = "force-dynamic";
 
-export default async function Inbox() {
+export default async function Inbox({ searchParams }: { searchParams: Promise<{ blocked?: string }> }) {
+  const { blocked } = await searchParams;
   const user = await requireUser("/messages");
   const { m, locale } = await getI18n();
-  const convos = await db.conversation.findMany({
+  const hidden = await blockedIds(user.id);
+  const all = await db.conversation.findMany({
     where: { OR: [{ buyerId: user.id }, { sellerId: user.id }], messages: { some: {} } },
     orderBy: { updatedAt: "desc" },
     include: {
@@ -25,9 +28,11 @@ export default async function Inbox() {
       _count: { select: { messages: { where: { readAt: null, senderId: { not: user.id } } } } },
     },
   });
+  const convos = all.filter((c) => !hidden.has(c.buyerId === user.id ? c.sellerId : c.buyerId));
   return (
     <div className="wrap section" style={{ maxWidth: 820 }}>
       <div className="toolbar"><div><h1>{m.chat.title}</h1></div></div>
+      {blocked && <div className="banner-ok" role="status" style={{ marginBottom: 12 }}>{m.block.done}</div>}
       {convos.length ? (
         <div className="inbox">
           {convos.map((c) => {

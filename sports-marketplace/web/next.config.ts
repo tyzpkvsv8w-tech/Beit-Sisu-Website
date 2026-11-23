@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
     // Listings are posted with up to 8 compressed photos.
     serverActions: { bodySizeLimit: "25mb" },
   },
+  async rewrites() {
+    return [{ source: "/.well-known/assetlinks.json", destination: "/api/assetlinks" }];
+  },
   async headers() {
     return [
       {

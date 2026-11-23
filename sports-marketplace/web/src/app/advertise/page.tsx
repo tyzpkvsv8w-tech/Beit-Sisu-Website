@@ -3,6 +3,7 @@ import { num } from "@/lib/format";
 import { db } from "@/lib/db";
 import { fmt, getI18n } from "@/i18n";
 import { EnquiryForm } from "@/components/SmallForms";
+import { paymentsBlockedInApp } from "@/lib/app-mode";
 
 export async function generateMetadata() {
   const { m } = await getI18n();
@@ -14,6 +15,7 @@ export default async function Advertise() {
   const mk = market();
   const { m, locale } = await getI18n();
   const a = m.advertise;
+  const inApp = await paymentsBlockedInApp();
   const [listings, users] = await Promise.all([db.listing.count({ where: { status: "ACTIVE", market: mk.code } }), db.user.count()]);
   const rate = (r: string) => (!r ? a.custom : locale === "ar" ? `${r} درهم` : `AED ${r}`);
   return (
@@ -22,8 +24,8 @@ export default async function Advertise() {
         <div className="eyebrow" style={{ color: "inherit", opacity: 0.8 }}>{a.eyebrow}</div>
         <h1>{a.title}</h1>
         <p>{a.text}</p>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><a className="btn btn-volt" href="/advertise/book">{a.bookOnline}</a><a className="btn btn-ghost" href="#enquire">{a.kit}</a></div>
-        <p style={{ fontSize: 14 }}>{a.bookNote}</p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{!inApp && <a className="btn btn-volt" href="/advertise/book">{a.bookOnline}</a>}<a className="btn btn-ghost" href="#enquire">{a.kit}</a></div>
+        <p style={{ fontSize: 14 }}>{inApp ? m.app.webOnly : a.bookNote}</p>
       </div></section>
       <section className="section"><div className="wrap">
         <div className="adv-stats">

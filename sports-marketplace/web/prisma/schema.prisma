@@ -47,6 +47,20 @@ model User {
   campaigns     AdCampaign[]
   orders        Order[]
   pushSubs      PushSubscription[]
+  blocking      Block[] @relation("blocker")
+  blockedBy     Block[] @relation("blocked")
+}
+
+// One user blocking another: neither can message the other, and their chats are hidden.
+model Block {
+  blockerId String
+  blocker   User     @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
 }
 
 model Session {
