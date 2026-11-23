@@ -162,6 +162,13 @@ export const privacyEn: LegalDoc = {
             ["rk_lang", "Remembers whether you chose English or Arabic. Lasts 1 year."],
           ],
         },
+        "ReKit also keeps a few things in your browser's own storage. These never leave your device:",
+        {
+          rows: [
+            ["App files", "The site's code, styles, fonts, icons and an offline page, so the app opens quickly and can show a message when you have no connection. Pages, messages and account details are never stored this way."],
+            ["rk_views, rk_install_dismissed", "Count the pages you've viewed on this device and remember if you chose \"Not now\", so we suggest installing the app only from your second visit and not again for 30 days."],
+          ],
+        },
         "We don't use analytics or advertising cookies. If we ever want to add cookies that aren't needed for ReKit to work, we'll ask you first.",
       ],
     },

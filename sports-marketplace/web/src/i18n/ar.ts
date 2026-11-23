@@ -234,6 +234,13 @@ export const ar: Messages = {
     price: "{price} أسبوعيًا + الضريبة", until: "مروَّج حتى {date}", extend: "تُضاف مدة الترويج بعد تاريخ الانتهاء الحالي.", pay: "المتابعة إلى الدفع",
     onlyBusiness: "الترويج متاح للحسابات التجارية. فعّل خيار \"أبيع بصفتي نشاطًا تجاريًا\" في صفحة حسابك لاستخدامه.",
   },
+  app: {
+    installTitle: "احصل على تطبيق ReKit", installText: "أضف ReKit إلى شاشتك الرئيسية. يفتح بملء الشاشة مثل التطبيق، ولا يشغل مساحة تُذكر.",
+    install: "تثبيت", notNow: "ليس الآن", iosTitle: "أضف ReKit إلى شاشتك الرئيسية",
+    iosSteps: "في Safari، اضغط زر المشاركة، ثم اختر \"إضافة إلى الشاشة الرئيسية\".", installApp: "تثبيت التطبيق",
+    installed: "تطبيق ReKit مثبّت على هذا الجهاز.", iosAccount: "على iPhone: افتح ReKit في Safari، واضغط مشاركة، ثم \"إضافة إلى الشاشة الرئيسية\".",
+    shortcutSell: "بِع شيئًا", shortcutSearch: "بحث", shortcutMessages: "الرسائل",
+  },
   notFound: { title: "الصفحة غير موجودة", text: "ربما تم بيع هذا الإعلان أو حذفه.", cta: "تصفّح الإعلانات" },
   sports: {
     "padel-tennis": "بادل وتنس", cycling: "دراجات", gym: "صالة رياضية ولياقة", football: "كرة القدم", golf: "غولف", water: "رياضات مائية",

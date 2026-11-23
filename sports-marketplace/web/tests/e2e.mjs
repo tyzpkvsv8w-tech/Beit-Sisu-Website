@@ -566,6 +566,70 @@ const w3 = await arabic.evaluate(() => document.documentElement.scrollWidth);
 check("Arabic booking page fits phone width", w3 <= 390, `scrollWidth=${w3}`);
 await shot(arabic, "15-arabic-booking");
 
+// 13. Installable app
+const mf = await (await guest.request.get(`${BASE}/manifest.webmanifest`)).json();
+check("manifest describes an installable app", mf.name === "ReKit" && mf.display === "standalone" && mf.start_url.startsWith("/") && mf.icons.some((i) => i.sizes === "192x192") && mf.icons.some((i) => i.sizes === "512x512") && mf.icons.some((i) => i.purpose === "maskable"));
+check("manifest has shortcuts", mf.shortcuts?.length === 3);
+const arMf = await (await arabic.request.get(`${BASE}/manifest.webmanifest`)).json();
+check("manifest follows the user's language", arMf.lang === "ar" && arMf.dir === "rtl" && arMf.shortcuts[0].name === "بِع شيئًا");
+for (const [file, size] of [["icon-192.png", 192], ["icon-512.png", 512], ["maskable-512.png", 512], ["apple-touch-icon.png", 180]]) {
+  const r = await guest.request.get(`${BASE}/icons/${file}`);
+  const b = await r.body();
+  check(`icon ${file} is a ${size}px PNG`, r.ok() && b.readUInt32BE(16) === size && b.readUInt32BE(20) === size);
+}
+const swRes = await guest.request.get(`${BASE}/sw.js`);
+check("service worker is never cached by browsers", swRes.ok() && /no-cache/.test(swRes.headers()["cache-control"] ?? ""));
+
+const appCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const appPage = await appCtx.newPage();
+appPage.on("pageerror", (e) => errors.push(e.message));
+await appPage.goto(BASE);
+await appPage.evaluate(() => navigator.serviceWorker.ready);
+const cdp = await appCtx.newCDPSession(appPage);
+const { installabilityErrors } = await cdp.send("Page.getInstallabilityErrors");
+check("Chrome says the site is installable", installabilityErrors.length === 0, JSON.stringify(installabilityErrors));
+await appPage.reload();
+await appPage.goto(`${BASE}/browse`); // fetches the page's code so it's stored for later
+const cached = await appPage.evaluate(async () => (await Promise.all((await caches.keys()).map(async (k) => (await (await caches.open(k)).keys()).map((r) => new URL(r.url))))).flat().map((u) => u.origin === location.origin ? u.pathname : u.hostname));
+check("only shared files are stored on the device, never personal pages", cached.length > 0 && cached.every((p) => p.startsWith("/_next/static/") || p.startsWith("/icons/") || p === "/offline.html" || p.startsWith("fonts.")), cached.filter((p) => !p.startsWith("/_next/static/")).join(","));
+await appCtx.setOffline(true);
+await appPage.goto(`${BASE}/messages`).catch(() => {});
+check("offline page shows when there's no connection", await appPage.getByText("You're offline").isVisible() && await appPage.getByText("أنت غير متصل بالإنترنت").isVisible());
+await appCtx.setOffline(false);
+
+// Install suggestion: from the second page view, with "Not now" remembered
+const fakePrompt = () => { const e = new Event("beforeinstallprompt", { cancelable: true }); e.prompt = async () => { window.__prompted = true; }; e.userChoice = Promise.resolve({ outcome: "dismissed" }); window.dispatchEvent(e); };
+const fresh = await browser.newContext({ viewport: { width: 390, height: 844 } });
+const fp = await fresh.newPage();
+await fp.goto(BASE);
+await fp.evaluate(fakePrompt);
+check("no install suggestion on the first page view", (await fp.locator(".install-bar").count()) === 0);
+await fp.goto(`${BASE}/browse`);
+await fp.evaluate(fakePrompt);
+await fp.locator(".install-bar").waitFor({ timeout: 5000 }).catch(() => {});
+check("install suggestion from the second page view", await fp.locator(".install-bar").isVisible());
+await fp.getByRole("button", { name: "Install" }).click();
+check("Install opens the browser's install dialog", await fp.evaluate(() => window.__prompted === true));
+await fp.goto(`${BASE}/safety`);
+await fp.evaluate(fakePrompt);
+await fp.locator(".install-bar").waitFor({ timeout: 5000 });
+await fp.getByRole("button", { name: "Not now" }).click();
+await fp.goto(BASE);
+await fp.evaluate(fakePrompt);
+await fp.waitForTimeout(500);
+check("\"Not now\" is remembered", (await fp.locator(".install-bar").count()) === 0);
+await fresh.close();
+
+const iphone = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1" });
+const ip = await iphone.newPage();
+await ip.goto(BASE);
+await ip.goto(`${BASE}/browse`);
+await ip.locator(".install-bar").waitFor({ timeout: 5000 }).catch(() => {});
+check("iPhone gets Add to Home Screen steps", (await ip.locator(".install-bar").textContent().catch(() => "")).includes("Add to Home Screen") && (await ip.getByRole("button", { name: "Install" }).count()) === 0);
+await shot(ip, "18-iphone-install-tip");
+await iphone.close();
+await appCtx.close();
+
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();

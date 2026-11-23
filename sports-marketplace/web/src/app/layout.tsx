@@ -4,13 +4,30 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 import { getI18n } from "@/i18n";
 import { I18nProvider } from "@/i18n/client";
+import { InstallBanner, ServiceWorker } from "@/components/AppInstall";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { m } = await getI18n();
-  return { title: { default: m.meta.title, template: "%s · ReKit" }, description: m.meta.description };
+  return {
+    title: { default: m.meta.title, template: "%s · ReKit" },
+    description: m.meta.description,
+    applicationName: "ReKit",
+    icons: { icon: "/icons/favicon-32.png", apple: "/icons/apple-touch-icon.png" },
+    appleWebApp: { capable: true, title: "ReKit", statusBarStyle: "default" },
+    formatDetection: { telephone: false },
+  };
 }
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // Colours the phone's status bar to match the header.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#141c29" },
+  ],
+};
 
 const FONTS = {
   en: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Inter:wght@400;500;600;700&display=swap",
@@ -41,6 +58,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </div>
             </div>
           </footer>
+          <InstallBanner />
+          <ServiceWorker />
         </I18nProvider>
       </body>
     </html>

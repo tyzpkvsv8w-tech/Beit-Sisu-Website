@@ -23,4 +23,6 @@ Tick these off before ReKit goes public. ⛔ means launch is blocked until it's 
 - [x] Form in the admin page for creating ad campaigns, and taking payment.
 - [ ] VAT tax invoices for advertisers, once VAT-registered.
 - [ ] Shared rate limiting (e.g. Upstash Redis) before running on several servers.
-- [ ] Installable app (PWA), then iOS and Android apps.
+- [x] Installable app (PWA).
+- [ ] Google Play and App Store listings (optional), and push notifications for new messages.
+- [ ] Before launch, install ReKit on a real iPhone and Android phone and check the icon, full-screen view and offline page.

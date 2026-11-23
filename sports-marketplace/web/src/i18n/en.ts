@@ -232,6 +232,13 @@ export const en = {
     price: "{price} per week + VAT", until: "Promoted until {date}", extend: "Promotion is added after the current end date.", pay: "Continue to payment",
     onlyBusiness: "Promotion is for business accounts. Turn on \"I sell as a business\" on your account page to use it.",
   },
+  app: {
+    installTitle: "Get the ReKit app", installText: "Add ReKit to your home screen. It opens full screen like an app and takes almost no space.",
+    install: "Install", notNow: "Not now", iosTitle: "Add ReKit to your home screen",
+    iosSteps: "In Safari, tap the Share button, then choose \"Add to Home Screen\".", installApp: "Install the app",
+    installed: "ReKit is installed on this device.", iosAccount: "On iPhone: open ReKit in Safari, tap Share, then \"Add to Home Screen\".",
+    shortcutSell: "Sell something", shortcutSearch: "Search", shortcutMessages: "Messages",
+  },
   notFound: { title: "Page not found", text: "This ad may have been sold or deleted.", cta: "Browse listings" },
   sports: {
     "padel-tennis": "Padel & Tennis", cycling: "Cycling", gym: "Gym & Fitness", football: "Football", golf: "Golf", water: "Water Sports",
