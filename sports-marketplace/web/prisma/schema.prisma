@@ -83,7 +83,10 @@ model PushSubscription {
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionId  String
   session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  // The push service URL the browser gave us, plus the keys used to encrypt messages for it
+  // "web" (browser Web Push) or "apns" (the iPhone app, through Apple Push Notification service)
+  kind       String    @default("web")
+  // Web: the push service URL the browser gave us, plus the keys used to encrypt messages for it.
+  // APNs: "apns:" + the device token (keys are empty).
   endpoint   String    @unique
   p256dh     String
   auth       String

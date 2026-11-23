@@ -64,6 +64,9 @@ The policy was written from the code. If the app changes, update the policy firs
 |---|---|---|
 | In-app payments | Ad bookings and promotions are website-only inside the Android app | Confirm whether Google Play's Payments policy allows advertising purchases with Stripe in a TWA. If it does, set `ANDROID_ALLOW_PAYMENTS=1`. |
 | Data safety form | Answers in `android/store-listing/data-safety.md` | Check them alongside the Privacy Policy. |
+| App Store payments | Ad bookings are website-only inside the iPhone app, with no purchase buttons or links | Confirm against App Store Guideline 3.1 (in-app purchase and links to external purchases). If allowed, set `IOS_ALLOW_PAYMENTS=1`. |
+| App Store privacy labels | Answers in `ios/store-listing/app-privacy.md` | Check them alongside the Privacy Policy. |
+| Banned-items filter | Built-in English and Arabic word list in `web/src/lib/moderation.ts` | Check the list against the Terms' prohibited items, and add terms with `MODERATION_EXTRA_TERMS`. |
 
 ## 4. Gaps to close before or soon after launch
 

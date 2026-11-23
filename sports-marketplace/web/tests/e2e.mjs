@@ -867,6 +867,116 @@ await dp.goto(`${BASE}/advertise`);
 check("Advertise page hides Book online in the app", (await dp.getByRole("link", { name: "Book online" }).count()) === 0);
 await droid.close();
 
+// 16. Apple App Store requirements: iPhone app mode, Apple notifications, native share, universal links, content filter
+await guest.goto(`${BASE}/help`);
+check("help page shows contact details", (await guest.locator("h1").textContent()) === "Help and contact" && await guest.getByText("We reply within one working day").isVisible());
+const aasa = await (await guest.request.get(`${BASE}/.well-known/apple-app-site-association`)).json();
+check("universal links file names the iPhone app", aasa.applinks.details[0]?.appIDs[0] === "ABCDE12345.ae.rekit.app" && aasa.applinks.details[0].components.some((c) => c["/"] === "/go/*" && c.exclude));
+
+// Post an ad for a banned item: blocked in English and Arabic
+await seller.goto(`${BASE}/sell`);
+await seller.fill("#title", "Testosterone vials, sealed");
+await seller.selectOption("#sport", "gym");
+await seller.fill("#description", "Never used, still in the box.");
+await seller.fill("#price", "300");
+await seller.click("form.form-card button[type=submit]");
+check("ads for banned items are blocked", await seller.getByText("can't be sold on ReKit").waitFor({ timeout: 5000 }).then(() => true, () => false));
+await seller.fill("#title", "Genuine Nike boots, not fake");
+await seller.fill("#description", "Pistol grip pump included, bought in Dubai Mall.");
+await seller.click("form.form-card button[type=submit]");
+check("innocent ads aren't caught by the filter", await seller.waitForURL(/\/listing\/.+\?posted=1/, { timeout: 15000 }).then(() => true, () => false));
+
+// The iPhone app: a stand-in for the native bridge Capacitor puts in the page
+const IOS_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ReKitApp-iOS/1.0";
+const fakeCapacitor = (token) => {
+  const listeners = {};
+  window.__capListeners = listeners;
+  let granted = localStorage.getItem("fake_apns") === "1";
+  window.Capacitor = {
+    isNativePlatform: () => true, getPlatform: () => "ios",
+    Plugins: {
+      PushNotifications: {
+        checkPermissions: async () => ({ receive: granted ? "granted" : "prompt" }),
+        requestPermissions: async () => { granted = true; localStorage.setItem("fake_apns", "1"); return { receive: "granted" }; },
+        register: async () => { setTimeout(() => (listeners.registration || []).forEach((cb) => cb({ value: token })), 50); },
+        addListener: async (ev, cb) => { (listeners[ev] ||= []).push(cb); return { remove: async () => { listeners[ev] = (listeners[ev] || []).filter((x) => x !== cb); } }; },
+      },
+      Share: { share: async (o) => { window.__shared = o; return {}; } },
+    },
+  };
+};
+const iosCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: IOS_UA });
+const iosToken = "a1b2c3d4".repeat(8);
+await iosCtx.addInitScript(fakeCapacitor, iosToken);
+const ios = await iosCtx.newPage();
+ios.on("pageerror", (e) => errors.push(e.message));
+await ios.goto(`${BASE}/signup?next=/account`);
+await ios.fill("#name", "iPhone Tester");
+await ios.fill("#email", `iphone${Date.now()}@example.com`);
+await ios.fill("#password", "a-strong-password");
+await ios.selectOption("#city", "Dubai");
+await ios.check("#terms");
+await ios.click("form.form-card button[type=submit]");
+await ios.waitForURL(BASE + "/account");
+check("the iPhone app has no install suggestions", (await ios.locator(".install-bar").count()) === 0 && (await ios.getByRole("heading", { name: "Install the app" }).count()) === 0);
+await ios.locator('[data-testid=push-settings][data-status=off]').waitFor({ timeout: 8000 });
+await ios.getByRole("button", { name: "Turn on notifications" }).click();
+check("Apple notifications can be turned on in the iPhone app", await ios.locator('[data-testid=push-settings][data-status=on]').waitFor({ timeout: 8000 }).then(() => true, () => false));
+await ios.goto(`${BASE}/advertise/book`);
+check("ad booking is website-only in the iPhone app", await ios.getByTestId("web-only").isVisible());
+
+await ios.goto(`${BASE}/browse?q=Bullpadel`);
+await ios.locator(".card").first().click();
+await ios.waitForURL(/\/listing\//);
+await ios.getByRole("button", { name: "Share" }).click();
+check("Share uses the iPhone's native share sheet", await ios.waitForFunction(() => window.__shared?.url?.includes("/listing/"), null, { timeout: 3000 }).then(() => true, () => false));
+await ios.getByRole("button", { name: "Chat with seller" }).click();
+await ios.waitForURL(/\/messages\//);
+const iosChat = new URL(ios.url()).pathname;
+await ios.fill("#chatIn", "Hello from the iPhone app");
+await ios.click(".compose button");
+await ios.locator(".msg.me").first().waitFor();
+
+const omar2 = await newPage();
+await omar2.goto(`${BASE}/login/email?next=/messages`);
+await omar2.fill("#email", "omar@rekit.test");
+await omar2.fill("#password", "rekit-demo-123");
+await omar2.click("form.form-card button[type=submit]");
+await omar2.waitForURL(BASE + "/messages");
+await omar2.locator(".inbox a", { hasText: "iPhone Tester" }).click();
+await omar2.fill("#chatIn", "Yes, still available!");
+await omar2.click(".compose button");
+await omar2.locator(".msg.me", { hasText: "Yes, still available!" }).waitFor();
+const apnsLog = async () => { try { return JSON.parse(readFileSync(process.env.APNS_LOG_FILE, "utf8")); } catch { return []; } };
+let sentToIphone = [];
+for (let i = 0; i < 40 && !sentToIphone.length; i++) { sentToIphone = (await apnsLog()).filter((e) => e.token === iosToken); if (!sentToIphone.length) await new Promise((r) => setTimeout(r, 250)); }
+const apn = sentToIphone[0];
+check("Apple notification sent when a message arrives", apn?.status === 200 && apn.body.aps.alert.title === "Omar K. sent you a message" && apn.body.aps.alert.body.includes("Yes, still available!") && apn.body.url === iosChat);
+check("Apple notification is signed and addressed to the app", apn?.headers.topic === "ae.rekit.app" && apn.headers.pushType === "alert" && apn.headers.collapseId?.startsWith("conv-"));
+
+// Tapping the notification opens the chat; links to other sites are ignored
+await ios.goto(`${BASE}/browse`);
+await ios.evaluate(() => (window.__capListeners.pushNotificationActionPerformed || []).forEach((cb) => cb({ notification: { data: { url: "//evil.example.com" } } })));
+await ios.waitForTimeout(500);
+check("notification taps can't open other sites", new URL(ios.url()).host === new URL(BASE).host);
+await ios.evaluate((u) => (window.__capListeners.pushNotificationActionPerformed || []).forEach((cb) => cb({ notification: { data: { url: u } } })), iosChat);
+check("tapping a notification opens the chat", await ios.waitForURL(BASE + iosChat, { timeout: 5000 }).then(() => true, () => false));
+
+// A phone that deleted the app: Apple says "Unregistered", and the token is removed
+const deadToken = "dead" + "0".repeat(60);
+const deadReg = await ios.evaluate(async (t) => (await fetch("/api/push/subscription", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "apns", token: t }) })).status, deadToken);
+await omar2.fill("#chatIn", "Are you still there?");
+await omar2.click(".compose button");
+await omar2.locator(".msg.me", { hasText: "Are you still there?" }).waitFor();
+let deadHit = [];
+for (let i = 0; i < 40 && !deadHit.length; i++) { deadHit = (await apnsLog()).filter((e) => e.token === deadToken); if (!deadHit.length) await new Promise((r) => setTimeout(r, 250)); }
+await new Promise((r) => setTimeout(r, 500));
+const deadActive = await ios.evaluate(async (t) => (await (await fetch(`/api/push/subscription?endpoint=apns:${t}`)).json()).active, deadToken);
+check("uninstalled iPhones are removed after Apple's 410", deadReg === 200 && deadHit[0]?.status === 410 && deadActive === false);
+const badToken = await ios.evaluate(async () => (await fetch("/api/push/subscription", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "apns", token: "not-a-token" }) })).status);
+check("invalid Apple device tokens are rejected", badToken === 400);
+await iosCtx.close();
+
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();

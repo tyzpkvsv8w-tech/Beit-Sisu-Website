@@ -9,7 +9,7 @@ export const en = {
     searchLabel: "Search listings", home: "Home", sell: "Sell", chats: "Chats", moreCountries: "More countries coming soon",
     switchLang: "العربية", switchLangLabel: "التبديل إلى العربية",
     footer: "Second-hand sports gear, free for everyone. Funded by clearly labelled ads.",
-    advertiseWithUs: "Advertise with us", safetyTips: "Safety tips", terms: "Terms", privacy: "Privacy", adTerms: "Advertising terms", deleteAccount: "Delete account", seeAll: "See all →", browseAll: "Browse all →", back: "←",
+    advertiseWithUs: "Advertise with us", safetyTips: "Safety tips", terms: "Terms", privacy: "Privacy", adTerms: "Advertising terms", deleteAccount: "Delete account", help: "Help", seeAll: "See all →", browseAll: "Browse all →", back: "←",
     neg: "neg.", photos: "{n} photos", listings: "{n} listings", listing1: "1 listing", close: "Close", cancel: "Cancel", or: "or",
     removePhoto: "Remove photo", optional: "Optional", working: "Working…",
   },
@@ -100,6 +100,7 @@ export const en = {
     cta: "Write the button text (up to 20 characters)", adTerms: "Please accept the Advertising Terms", paymentFailed: "We couldn't start the payment. Try again in a minute.",
     listingNotActive: "Only live ads can be promoted.",
     blocked: "You can't message this person.", appPayments: "Booking ads isn't available in the Android app. Please use the ReKit website in a browser.",
+    prohibitedItem: "This looks like an item that can't be sold on ReKit ({term}). See \"Items you can't sell\" in our Terms of Use.",
     enquiryName: "Enter your name", enquiryBusiness: "Enter your business name", enquiryEmail: "Enter a valid work email", tooManyEnquiries: "Too many enquiries from this network. Try again later.",
   },
   account: {
@@ -265,6 +266,14 @@ export const en = {
     goAccount: "Go to my account", deletedTitle: "What we delete", deleted: ["Your profile, mobile number and email address", "Your ads and their photos", "Your saved items", "Your conversations (for both people in them)", "Notification settings and login sessions"],
     keptTitle: "What we keep", kept: "If you paid for advertising, we keep the payment records (amount, VAT, date) for as long as UAE tax law requires, which is at least 5 years.",
     noAccessTitle: "Can't log in?", noAccess: "Email {email} from the email address on your account, or tell us the mobile number you used, and we'll delete the account for you within 30 days.",
+  },
+  share: { button: "Share", copied: "Link copied" },
+  help: {
+    title: "Help and contact", intro: "Questions about ReKit, a problem with an ad or another user, or something not working? We're here to help.",
+    contactTitle: "Contact us", contact: "Email {email}. We reply within one working day.",
+    reportTitle: "Report an ad or a person",
+    report: ["On any ad, tap \"Report this ad\" and choose a reason.", "In any chat, tap \"Block\". You can also report the chat to our team at the same time.", "We review reports within 24 hours and remove ads or accounts that break our Terms of Use."],
+    links: "More help", safety: "Buying and selling safely", account: "Delete your account", terms: "Terms of Use", privacy: "Privacy Policy", advertise: "Advertising with ReKit",
   },
   notFound: { title: "Page not found", text: "This ad may have been sold or deleted.", cta: "Browse listings" },
   sports: {

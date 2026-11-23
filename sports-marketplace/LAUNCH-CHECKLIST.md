@@ -28,6 +28,9 @@ Tick these off before ReKit goes public. ⛔ means launch is blocked until it's 
 - [ ] Google Play: developer account (organisation, with a D-U-N-S number), build the app, set `ANDROID_CERT_SHA256`, and submit. Everything else is ready (see `android/README.md`).
 - [ ] Ask your lawyer whether ad bookings may be paid inside the Android app (Google Play Payments policy). They're website-only until then.
 - [ ] Regenerate the Play Store screenshots with real listings before submitting.
-- [ ] Apple App Store (optional, needs a native app).
+- [ ] Apple App Store: Apple Developer Program (organisation, USD 99 a year), a Mac with Xcode or a cloud build service, the APNs key and Team ID on Vercel, build, TestFlight, then submit. Everything else is ready (see `ios/README.md`).
+- [ ] Create the App Review demo account (`review@…`) on the live site.
+- [ ] Ask your lawyer whether ad bookings may be paid inside the iPhone app (App Store Guideline 3.1). They're website-only until then.
+- [ ] Retake the App Store screenshots with real listings before submitting.
 - [ ] ⛔ Generate the notification keys (`npm run vapid`) and add them to Vercel. See `web/GO-LIVE.md`.
 - [ ] Before launch, install ReKit on a real iPhone and Android phone and check the icon, full-screen view, offline page and a real notification.

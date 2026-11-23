@@ -99,7 +99,7 @@ export const privacyEn: LegalDoc = {
             ["Vercel", "Hosts the website"],
             ["Resend", "Sends our emails, such as password resets and new-message alerts"],
             ["Stripe", "Takes card payments for advertising and listing promotions"],
-            ["Your browser's push service (Google, Apple, Mozilla or Microsoft)", "Delivers notifications to your device. Notifications are encrypted for your device, so the push service can't read them."],
+            ["Your device's push service (Google, Apple, Mozilla or Microsoft; Apple Push Notification service in the iPhone app)", "Delivers notifications to your device. On the web, notifications are encrypted for your device so the push service can't read them; in the iPhone app they go through Apple's secure connection."],
             ["Google Fonts", "Supplies the site's fonts, so Google receives your IP address when pages load"],
           ],
         },

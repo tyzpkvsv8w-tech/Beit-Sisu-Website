@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSessionId, getUser } from "@/lib/auth";
 import { isAllowedEndpoint } from "@/lib/push";
+import { isApnsToken } from "@/lib/apns";
 
 // Turns notifications on or off for this device. Used by the account page, the chat
 // prompt, and the service worker when the browser renews a subscription.
@@ -31,7 +32,20 @@ export async function POST(req: Request) {
   if (!sameOrigin(req)) return NextResponse.json({ error: "Bad origin" }, { status: 403 });
   const [user, sessionId] = await Promise.all([getUser(), getSessionId()]);
   if (!user || !sessionId) return NextResponse.json({ error: "Not logged in" }, { status: 401 });
-  const parsed = subSchema.safeParse(await req.json().catch(() => null));
+  const json = await req.json().catch(() => null);
+  // The iPhone app registers an Apple device token instead of a web push subscription.
+  if (json?.kind === "apns") {
+    const token = String(json.token ?? "");
+    if (!isApnsToken(token)) return NextResponse.json({ error: "Invalid token" }, { status: 400 });
+    const endpoint = `apns:${token.toLowerCase()}`;
+    await db.pushSubscription.upsert({
+      where: { endpoint },
+      update: { userId: user.id, sessionId, kind: "apns" },
+      create: { userId: user.id, sessionId, endpoint, kind: "apns", p256dh: "", auth: "" },
+    });
+    return NextResponse.json({ active: true });
+  }
+  const parsed = subSchema.safeParse(json);
   if (!parsed.success || !isAllowedEndpoint(parsed.data.endpoint)) return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   const { endpoint, keys } = parsed.data;
   // If this device was used by someone else before, it now belongs to whoever is logged in.

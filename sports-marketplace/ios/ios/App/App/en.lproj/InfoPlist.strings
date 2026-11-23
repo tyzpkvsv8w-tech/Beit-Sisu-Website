@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "ReKit";
+"NSCameraUsageDescription" = "ReKit uses the camera so you can take photos of the gear you're selling.";
+"NSPhotoLibraryUsageDescription" = "ReKit opens your photos so you can add pictures to your ad.";

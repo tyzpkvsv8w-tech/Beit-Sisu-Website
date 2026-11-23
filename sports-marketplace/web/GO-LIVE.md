@@ -126,6 +126,10 @@ In Vercel, go to **Project → Settings → Domains** and add your domain, e.g. 
 
 See `../android/README.md`. When the app exists, add `ANDROID_PACKAGE_NAME` and `ANDROID_CERT_SHA256` on Vercel.
 
+## 12. Apple App Store (optional)
+
+See `../ios/README.md`. When the app exists, add `APPLE_TEAM_ID`, `IOS_BUNDLE_ID` and the four `APNS_` settings on Vercel.
+
 ## What not to do in production
 
 - Don't run `npm run db:seed` or `db:reset`. They delete everything and load demo data,

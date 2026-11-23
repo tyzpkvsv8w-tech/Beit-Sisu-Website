@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/i18n/client";
+import { nativePush, nativePushToken } from "@/lib/native";
 
 type Status = "loading" | "unconfigured" | "unsupported" | "ios-install" | "blocked" | "on" | "off";
 
@@ -26,8 +27,19 @@ export function usePush(publicKey: string | null) {
   const [failed, setFailed] = useState(false);
 
   const refresh = useCallback(async () => {
+    // Inside the iPhone app: Apple notifications through the native plugin.
+    const native = nativePush();
+    if (native) {
+      const { receive } = await native.checkPermissions();
+      if (receive === "denied") return setStatus("blocked");
+      if (receive !== "granted") return setStatus("off");
+      const token = await nativePushToken(native);
+      if (!token) return setStatus("off");
+      const res = await fetch(`/api/push/subscription?endpoint=${encodeURIComponent("apns:" + token.toLowerCase())}`, { cache: "no-store" }).then((r) => r.json()).catch(() => ({ active: false }));
+      return setStatus(res.active ? "on" : "off");
+    }
     if (!publicKey) return setStatus("unconfigured");
-    if (isIos() && !isStandalone()) return setStatus("ios-install");
+    if (isIos() && !isStandalone()) return setStatus("ios-install"); // Safari: needs the home-screen app
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return setStatus("unsupported");
     if (Notification.permission === "denied") return setStatus("blocked");
     const reg = await navigator.serviceWorker.getRegistration();
@@ -41,9 +53,21 @@ export function usePush(publicKey: string | null) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const turnOn = useCallback(async () => {
-    if (!publicKey) return false;
+    const native = nativePush();
+    if (!publicKey && !native) return false;
     setBusy(true); setFailed(false);
     try {
+      if (native) {
+        const { receive } = await native.requestPermissions();
+        if (receive !== "granted") { setStatus(receive === "denied" ? "blocked" : "off"); return false; }
+        const token = await nativePushToken(native);
+        if (!token) throw new Error("No device token");
+        const res = await fetch("/api/push/subscription", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "apns", token }) });
+        if (!res.ok) throw new Error(`Server said ${res.status}`);
+        setStatus("on");
+        return true;
+      }
+      if (!publicKey) return false;
       const permission = await Notification.requestPermission();
       if (permission !== "granted") { setStatus(permission === "denied" ? "blocked" : "off"); return false; }
       const reg = await registration();
@@ -63,6 +87,13 @@ export function usePush(publicKey: string | null) {
   const turnOff = useCallback(async () => {
     setBusy(true);
     try {
+      const native = nativePush();
+      if (native) {
+        const token = await nativePushToken(native);
+        if (token) await fetch("/api/push/subscription", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: "apns:" + token.toLowerCase() }) });
+        setStatus("off");
+        return;
+      }
       const sub = await (await navigator.serviceWorker.getRegistration())?.pushManager.getSubscription();
       if (sub) {
         await fetch("/api/push/subscription", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: sub.endpoint }) });
@@ -106,7 +137,8 @@ export function ChatPushPrompt({ publicKey, show }: { publicKey: string | null; 
   const { status, busy, turnOn } = usePush(publicKey);
   const [dismissed, setDismissed] = useState(true);
   useEffect(() => { try { setDismissed(!!localStorage.getItem(PROMPT_KEY)); } catch { setDismissed(false); } }, []);
-  if (!show || dismissed || status !== "off" || (typeof Notification !== "undefined" && Notification.permission !== "default")) return null;
+  const browserAsked = !nativePush() && typeof Notification !== "undefined" && Notification.permission !== "default";
+  if (!show || dismissed || status !== "off" || browserAsked) return null;
   const hide = () => { try { localStorage.setItem(PROMPT_KEY, "1"); } catch { /* ignore */ } setDismissed(true); };
   return (
     <div className="push-prompt" role="status">

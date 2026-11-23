@@ -1,13 +1,19 @@
-// Produces Google Play graphics from the running site (with sample data):
-//   phone screenshots 1080x1920 in English and Arabic, feature graphics 1024x500, and the 512px icon.
+// Produces store graphics from the running site (with sample data).
+//   Google Play (default): phone screenshots 1080x1920, feature graphics 1024x500, 512px icon.
+//   App Store (--ios):     iPhone 6.9" screenshots 1320x2868.
+// All in English and Arabic.
 // Usage: start the app with sample data (npm run db:reset && npm start), then
-//   node scripts/make-store-assets.cjs [baseUrl]
+//   node scripts/make-store-assets.cjs [--ios] [baseUrl]
 const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
 
-const BASE = process.argv[2] || "http://localhost:3000";
-const OUT = path.join(__dirname, "..", "..", "android", "store-listing", "graphics");
+const IOS = process.argv.includes("--ios");
+const BASE = process.argv.slice(2).find((a) => !a.startsWith("--")) || "http://localhost:3000";
+const OUT = path.join(__dirname, "..", "..", IOS ? "ios" : "android", "store-listing", "graphics");
+// iPhone 6.9" (440x956 points at 3x) or a common Android phone (360x640 at 3x).
+const SCREEN = IOS ? { width: 440, height: 956 } : { width: 360, height: 640 };
+const IOS_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ReKitApp-iOS/1.0";
 
 const FEATURE = (lang) => `<!doctype html><html lang="${lang}" dir="${lang === "ar" ? "rtl" : "ltr"}"><head>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800&family=Cairo:wght@800&family=Inter:wght@500&family=IBM+Plex+Sans+Arabic:wght@500&display=swap" rel="stylesheet">
@@ -39,16 +45,18 @@ async function login(page, email, password) {
   const browser = await chromium.launch();
 
   for (const lang of ["en", "ar"]) {
-    const fg = await browser.newPage({ viewport: { width: 1024, height: 500 } });
-    await fg.setContent(FEATURE(lang), { waitUntil: "networkidle" });
-    await fg.screenshot({ path: path.join(OUT, `feature-graphic-${lang}.png`) });
-    await fg.close();
+    if (!IOS) {
+      const fg = await browser.newPage({ viewport: { width: 1024, height: 500 } });
+      await fg.setContent(FEATURE(lang), { waitUntil: "networkidle" });
+      await fg.screenshot({ path: path.join(OUT, `feature-graphic-${lang}.png`) });
+      await fg.close();
+    }
 
-    // 360x640 at 3x = 1080x1920, a common Android phone. The rk_app cookie makes it look like the installed app.
-    const ctx = await browser.newContext({ viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
-    await ctx.addCookies([{ name: "rk_lang", value: lang, url: BASE }, { name: "rk_app", value: "android", url: BASE }]);
+    // Looks like the installed app: the rk_app cookie (Android) or the app's user agent (iPhone).
+    const ctx = await browser.newContext({ viewport: SCREEN, deviceScaleFactor: 3, isMobile: true, hasTouch: true, ...(IOS ? { userAgent: IOS_UA } : {}) });
+    await ctx.addCookies([{ name: "rk_lang", value: lang, url: BASE }, ...(IOS ? [] : [{ name: "rk_app", value: "android", url: BASE }])]);
     const p = await ctx.newPage();
-    const shot = async (n) => { await p.waitForTimeout(600); await p.screenshot({ path: path.join(OUT, `phone-${lang}-${n}.png`) }); };
+    const shot = async (n) => { await p.waitForTimeout(600); await p.screenshot({ path: path.join(OUT, `${IOS ? "iphone" : "phone"}-${lang}-${n}.png`) }); };
     await p.goto(BASE); await shot(1);
     await p.goto(`${BASE}/browse?sport=padel-tennis`); await shot(2);
     await p.goto(`${BASE}/browse?sport=cycling`);
@@ -62,7 +70,7 @@ async function login(page, email, password) {
     await shot(5);
     await ctx.close();
   }
-  fs.copyFileSync(path.join(__dirname, "..", "public", "icons", "icon-512.png"), path.join(OUT, "icon-512.png"));
+  if (!IOS) fs.copyFileSync(path.join(__dirname, "..", "public", "icons", "icon-512.png"), path.join(OUT, "icon-512.png"));
   await browser.close();
   console.log(`Store graphics written to ${OUT}`);
 })();

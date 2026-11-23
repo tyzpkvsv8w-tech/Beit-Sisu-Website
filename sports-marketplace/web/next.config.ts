@@ -6,7 +6,10 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "25mb" },
   },
   async rewrites() {
-    return [{ source: "/.well-known/assetlinks.json", destination: "/api/assetlinks" }];
+    return [
+      { source: "/.well-known/assetlinks.json", destination: "/api/assetlinks" },
+      { source: "/.well-known/apple-app-site-association", destination: "/api/apple-app-site-association" },
+    ];
   },
   async headers() {
     return [

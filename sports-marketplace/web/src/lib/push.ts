@@ -1,6 +1,7 @@
 import "server-only";
 import webpush from "web-push";
 import { db } from "./db";
+import { apnsConfigured, sendApns } from "./apns";
 
 // Web Push with VAPID keys. Generate a key pair once with `npm run vapid` and set:
 // VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT (mailto: or https: contact).
@@ -37,10 +38,27 @@ export type PushPayload = { title: string; body: string; url: string; tag: strin
 
 /** Sends to every device the user has turned notifications on for. Dead subscriptions are removed. */
 export async function sendPushToUser(userId: string, payload: PushPayload) {
-  if (!configure()) return 0;
+  const webReady = configure();
   const subs = await db.pushSubscription.findMany({ where: { userId } });
   let sent = 0;
   await Promise.all(subs.map(async (s) => {
+    if (s.kind === "apns") {
+      if (!apnsConfigured()) return;
+      const r = await sendApns(s.endpoint.slice(5), {
+        aps: { alert: { title: payload.title, body: payload.body }, sound: "default", "thread-id": payload.tag },
+        url: payload.url,
+      }, payload.tag);
+      if (r.status === 200) {
+        sent++;
+        await db.pushSubscription.update({ where: { id: s.id }, data: { lastSentAt: new Date() } }).catch(() => {});
+      } else if (r.status === 410 || r.reason === "BadDeviceToken" || r.reason === "Unregistered") {
+        await db.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
+      } else {
+        console.error("APNs failed", r.status, r.reason);
+      }
+      return;
+    }
+    if (!webReady) return;
     if (!isAllowedEndpoint(s.endpoint)) { await db.pushSubscription.delete({ where: { id: s.id } }).catch(() => {}); return; }
     try {
       // web-push encrypts the message and signs the request; we send it ourselves with fetch.

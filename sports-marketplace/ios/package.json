@@ -1,0 +1,22 @@
+{
+  "name": "rekit-ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ReKit iPhone app: a native shell around the live site, with Apple push notifications and native sharing.",
+  "scripts": {
+    "sync": "cap sync ios",
+    "open": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
+    "@capacitor/push-notifications": "^7.0.3",
+    "@capacitor/share": "^7.0.2",
+    "@capacitor/splash-screen": "^7.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.4",
+    "typescript": "^5.9.3"
+  }
+}

@@ -12,6 +12,7 @@ import { AdCard } from "@/components/Ads";
 import { FavButton } from "@/components/FavButton";
 import { Gallery } from "@/components/Gallery";
 import { ReportButton } from "@/components/SmallForms";
+import { ShareButton } from "@/components/ShareButton";
 import { startConversation } from "@/app/actions/social";
 import { paymentsBlockedInApp } from "@/lib/app-mode";
 import { setListingStatus } from "@/app/actions/listings";
@@ -129,6 +130,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
               </>
             )}
           </div>
+          <ShareButton title={l.title} path={`/listing/${l.id}`} />
           <div className="panel">
             <strong>{t.safetyTitle}</strong>
             <ul className="tips">{t.tips.map((x) => <li key={x}>{x}</li>)}</ul>

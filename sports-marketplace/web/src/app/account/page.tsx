@@ -11,6 +11,7 @@ import { LangSwitch } from "@/components/LangSwitch";
 import { InstallButton } from "@/components/AppInstall";
 import { PushSettings } from "@/components/PushNotifications";
 import { vapidPublicKey } from "@/lib/push";
+import { inApp } from "@/lib/app-mode";
 import { setListingStatus } from "@/app/actions/listings";
 import { logout } from "@/app/actions/auth";
 import { unblock } from "@/app/actions/blocks";
@@ -88,11 +89,13 @@ export default async function Account({ searchParams }: { searchParams: Promise<
           </form>
         ))}
       </div>
-      <div className="panel" style={{ maxWidth: 620 }}>
-        <h2 style={{ fontSize: 22 }}>{m.app.installApp}</h2>
-        <p style={{ margin: 0 }}>{m.app.installText}</p>
-        <InstallButton />
-      </div>
+      {!(await inApp()) && (
+        <div className="panel" style={{ maxWidth: 620 }}>
+          <h2 style={{ fontSize: 22 }}>{m.app.installApp}</h2>
+          <p style={{ margin: 0 }}>{m.app.installText}</p>
+          <InstallButton />
+        </div>
+      )}
       <div className="panel danger-zone" style={{ maxWidth: 620 }} id="delete">
         <h2 style={{ fontSize: 22 }}>{t.deleteTitle}</h2>
         <p style={{ margin: 0 }}>{t.deleteText}</p>

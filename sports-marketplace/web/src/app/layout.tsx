@@ -6,7 +6,8 @@ import { getI18n } from "@/i18n";
 import { I18nProvider } from "@/i18n/client";
 import { InstallBanner, ServiceWorker } from "@/components/AppInstall";
 import { AppMode } from "@/components/AppMode";
-import { cookies } from "next/headers";
+import { inApp as getInApp } from "@/lib/app-mode";
+import { NativeBridge } from "@/components/NativeBridge";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { m } = await getI18n();
@@ -39,7 +40,7 @@ const FONTS = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { m, locale } = await getI18n();
-  const inApp = (await cookies()).get("rk_app")?.value === "android";
+  const inApp = !!(await getInApp());
   return (
     <html lang={locale} dir={m.dir}>
       <head>
@@ -56,13 +57,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div className="wrap">
               <div><strong style={{ color: "var(--fg)" }}>ReKit</strong> · {m.common.footer}</div>
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                <Link href="/advertise">{m.common.advertiseWithUs}</Link><Link href="/safety">{m.common.safetyTips}</Link>
+                <Link href="/help">{m.common.help}</Link><Link href="/advertise">{m.common.advertiseWithUs}</Link><Link href="/safety">{m.common.safetyTips}</Link>
                 <Link href="/terms">{m.common.terms}</Link><Link href="/privacy">{m.common.privacy}</Link><Link href="/advertising-terms">{m.common.adTerms}</Link><Link href="/delete-account">{m.common.deleteAccount}</Link>
               </div>
             </div>
           </footer>
           {!inApp && <InstallBanner />}
           <AppMode />
+          <NativeBridge />
           <ServiceWorker />
         </I18nProvider>
       </body>

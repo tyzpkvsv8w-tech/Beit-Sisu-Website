@@ -11,6 +11,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { fmt, getI18n } from "@/i18n";
 import type { Messages } from "@/i18n/en";
 import type { FormState } from "./auth";
+import { findProhibited } from "@/lib/moderation";
 
 function listingSchema(m: Messages) {
   const optional = z.string().trim().max(80).optional().transform((v) => v || null);
@@ -53,6 +54,8 @@ export async function createListing(_: FormState, form: FormData): Promise<FormS
   if (!rateLimit(`post:${user.id}`, 20, 24 * 3600 * 1000)) return { error: m.errors.dailyLimit };
   const parsed = listingSchema(m).safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const banned = findProhibited(parsed.data.title, parsed.data.description, parsed.data.brand);
+  if (banned) return { error: fmt(m.errors.prohibitedItem, { term: banned }) };
   const files = photosFrom(form);
   if (files.length > MAX_PHOTOS) return { error: fmt(m.errors.maxPhotos, { max: MAX_PHOTOS }) };
   const saved = await saveAll(files, m);
@@ -79,6 +82,8 @@ export async function updateListing(_: FormState, form: FormData): Promise<FormS
   if (!listing) return { error: m.errors.notYours };
   const parsed = listingSchema(m).safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const banned = findProhibited(parsed.data.title, parsed.data.description, parsed.data.brand);
+  if (banned) return { error: fmt(m.errors.prohibitedItem, { term: banned }) };
 
   const keep = new Set(form.getAll("keepPhoto").map(String));
   const kept = listing.photos.filter((p) => keep.has(p.id)).sort((a, b) => a.position - b.position);
