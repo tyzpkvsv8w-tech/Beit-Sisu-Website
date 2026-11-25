@@ -1,0 +1,14 @@
+node_modules/
+ios/App/build/
+ios/App/DerivedData/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml
+ios/App/Pods/
+*.xcuserstate
+xcuserdata/
+# Apple keys and certificates never go in the repository.
+*.p8
+*.p12
+*.mobileprovision
+*.cer

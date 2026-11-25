@@ -1,0 +1,10 @@
+# Never commit the signing key: store it in a password manager and a safe backup.
+*.keystore
+*.jks
+*.apk
+*.aab
+*.idsig
+app/build/
+build/
+.gradle/
+local.properties

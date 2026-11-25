@@ -1,0 +1,73 @@
+import type { Metadata, Viewport } from "next";
+import Link from "next/link";
+import "./globals.css";
+import { Header } from "@/components/Header";
+import { getI18n } from "@/i18n";
+import { I18nProvider } from "@/i18n/client";
+import { InstallBanner, ServiceWorker } from "@/components/AppInstall";
+import { AppMode } from "@/components/AppMode";
+import { inApp as getInApp } from "@/lib/app-mode";
+import { NativeBridge } from "@/components/NativeBridge";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { m } = await getI18n();
+  return {
+    title: { default: m.meta.title, template: "%s · ReKit" },
+    description: m.meta.description,
+    applicationName: "ReKit",
+    icons: { icon: "/icons/favicon-32.png", apple: "/icons/apple-touch-icon.png" },
+    appleWebApp: { capable: true, title: "ReKit", statusBarStyle: "default" },
+    formatDetection: { telephone: false },
+  };
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // Colours the phone's status bar to match the header.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#141c29" },
+  ],
+};
+
+const FONTS = {
+  en: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Inter:wght@400;500;600;700&display=swap",
+  // Barlow stays for the Latin logo and numbers; Cairo and IBM Plex Sans Arabic cover Arabic text.
+  ar: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;1,800&family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap",
+};
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { m, locale } = await getI18n();
+  const inApp = !!(await getInApp());
+  return (
+    <html lang={locale} dir={m.dir}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="stylesheet" href={FONTS[locale]} />
+      </head>
+      <body>
+        <I18nProvider locale={locale} m={m}>
+          <Header />
+          <main>{children}</main>
+          <footer className="foot">
+            <div className="wrap">
+              <div><strong style={{ color: "var(--fg)" }}>ReKit</strong> · {m.common.footer}</div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                <Link href="/help">{m.common.help}</Link><Link href="/advertise">{m.common.advertiseWithUs}</Link><Link href="/safety">{m.common.safetyTips}</Link>
+                <Link href="/terms">{m.common.terms}</Link><Link href="/privacy">{m.common.privacy}</Link><Link href="/advertising-terms">{m.common.adTerms}</Link><Link href="/delete-account">{m.common.deleteAccount}</Link>
+              </div>
+            </div>
+          </footer>
+          {!inApp && <InstallBanner />}
+          <AppMode />
+          <NativeBridge />
+          <ServiceWorker />
+        </I18nProvider>
+      </body>
+    </html>
+  );
+}

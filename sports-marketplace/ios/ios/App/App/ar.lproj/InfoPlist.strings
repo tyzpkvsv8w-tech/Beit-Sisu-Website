@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "ReKit";
+"NSCameraUsageDescription" = "يستخدم ReKit الكاميرا لتلتقط صورًا للمعدات التي تبيعها.";
+"NSPhotoLibraryUsageDescription" = "يفتح ReKit صورك لتضيف صورًا إلى إعلانك.";
