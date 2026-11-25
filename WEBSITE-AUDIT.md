@@ -931,3 +931,10 @@ Site Kit, 20 Oct–16 Nov:
 - **Result:** no Elementor references left on the homepage. Smash Balloon's extra `sb-elementor.css` (5 KB render-blocking) no longer loads.
 - **Checks:** all 16 pages same as before; booking smoke test OK; Collaborations form OK; cache purged; logged out.
 - **Note:** UpdraftPlus keeps only the 2 latest backups (plus the 6 Oct one). The next backup will rotate out the 18 Nov "original site before redesign" backup unless retention is raised; suggested to the owner.
+
+## Update 25 Nov 2026: original-site backup preserved in Google Drive
+
+- The UpdraftPlus backup of 18 Nov 2026 (taken before any redesign work) was copied from the UpdraftPlus Drive folder into a separate folder: **"Beit Sisu – Original site backup 18 Nov 2026 (keep)"** (in My Drive).
+- 6 files copied, sizes verified identical: database (25.7 MB), plugins (93.4 MB), themes (11 MB), uploads (176.7 MB), mu-plugins (22.7 MB), others (5 KB). Total about 330 MB.
+- UpdraftPlus only manages files in its own folder, so this copy is not deleted when old backups rotate out (retention is 2).
+- To restore: upload the 6 files in UpdraftPlus → Backup/Restore → "Upload backup files", then Restore.
