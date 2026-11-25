@@ -124,9 +124,20 @@ model Listing {
   conversations Conversation[]
   reports       Report[]
   orders        Order[]
+  viewDays      ListingViewDay[]
 
   @@index([market, status, sport])
   @@index([createdAt])
+}
+
+// Views per listing per day (UAE date). Only the count is stored, never who viewed.
+model ListingViewDay {
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  day       DateTime @db.Date
+  views     Int      @default(0)
+
+  @@id([listingId, day])
 }
 
 model Photo {

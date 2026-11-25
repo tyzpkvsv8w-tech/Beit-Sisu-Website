@@ -73,6 +73,25 @@ async function main() {
     { ...L(shops.gym, "gym", "Ex-hotel commercial treadmills, delivered & installed", 3900, "Good", "Abu Dhabi", "Mussafah", "Commercial grade", "Commercial", 0, true, "Refurbished commercial cardio from hotel gym upgrades. Delivery and installation included anywhere in the UAE."), sponsoredUntil: until },
   ]) await db.listing.create({ data });
 
+  // Two weeks of daily views per listing, so sellers' charts have something to show.
+  let r = 7;
+  const rand = () => (r = (r * 16807) % 2147483647) / 2147483647; // repeatable pseudo-random numbers
+  const uaeDay = (back) => new Date(new Date(Date.now() + 4 * 3600e3 - back * 86400e3).toISOString().slice(0, 10) + "T00:00:00Z");
+  for (const l of created) {
+    const ageDays = Math.floor((Date.now() - l.createdAt.getTime()) / 86400e3);
+    const base = 2 + Math.floor(rand() * 10);
+    const days = [];
+    for (let back = 13; back >= 0; back--) {
+      if (back > ageDays) continue; // no views before the ad existed
+      const weekend = [5, 6].includes(uaeDay(back).getUTCDay()) ? 1.5 : 1; // busier Fri/Sat
+      days.push({ listingId: l.id, day: uaeDay(back), views: Math.round(base * weekend * (0.5 + rand())) });
+    }
+    if (days.length) {
+      await db.listingViewDay.createMany({ data: days });
+      await db.listing.update({ where: { id: l.id }, data: { views: days.reduce((a, d) => a + d.views, 0) } });
+    }
+  }
+
   // A sample conversation so the inbox isn't empty for the demo buyer.
   const convo = await db.conversation.create({ data: { listingId: created[0].id, buyerId: p.priya.id, sellerId: p.omar.id } });
   await db.message.createMany({ data: [

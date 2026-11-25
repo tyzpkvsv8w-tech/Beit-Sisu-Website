@@ -13,6 +13,8 @@ import { FavButton } from "@/components/FavButton";
 import { Gallery } from "@/components/Gallery";
 import { ReportButton } from "@/components/SmallForms";
 import { ShareButton } from "@/components/ShareButton";
+import { ViewsChart } from "@/components/ViewsChart";
+import { recordView, viewStats } from "@/lib/views";
 import { startConversation } from "@/app/actions/social";
 import { paymentsBlockedInApp } from "@/lib/app-mode";
 import { setListingStatus } from "@/app/actions/listings";
@@ -46,7 +48,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
   const sponsored = !!l.sponsoredUntil && l.sponsoredUntil > new Date();
   const sportName = m.sports[l.sport];
   const sep = locale === "ar" ? "‹" : "›";
-  if (!mine) await db.listing.update({ where: { id }, data: { views: { increment: 1 } } });
+  if (!mine) await recordView(id);
 
   const [similar, ad, saved] = await Promise.all([
     db.listing.findMany({ where: { sport: l.sport, status: "ACTIVE", id: { not: l.id }, market: l.market }, orderBy: { createdAt: "desc" }, take: 4, include: cardInclude }),
@@ -54,6 +56,13 @@ export default async function ListingPage({ params, searchParams }: Props) {
     savedIds(user?.id, [l.id]),
   ]);
   const similarSaved = await savedIds(user?.id, similar.map((x) => x.id));
+  // The seller's own numbers.
+  const [stats, counts] = mine
+    ? await Promise.all([viewStats(l.id), db.listing.findUnique({ where: { id: l.id }, select: { _count: { select: { favorites: true, conversations: true } } } }).then((r) => r?._count)])
+    : [null, null];
+  const trend = !stats ? "" : stats.prev7 === 0 ? (stats.last7 > 0 ? m.stats.fresh : "")
+    : stats.last7 === stats.prev7 ? m.stats.same
+    : fmt(stats.last7 > stats.prev7 ? m.stats.up : m.stats.down, { n: Math.round((Math.abs(stats.last7 - stats.prev7) / stats.prev7) * 100) });
   const showPhone = l.seller.showPhone && l.seller.phone;
 
   return (
@@ -97,7 +106,6 @@ export default async function ListingPage({ params, searchParams }: Props) {
             </div>
             {mine ? (
               <>
-                <div className="note">{fmt(t.yourAd, { n: l.views })}</div>
                 <Link className="btn btn-primary btn-block" href={`/listing/${l.id}/edit`}>{t.edit}</Link>
                 {l.seller.isBusiness && l.status === "ACTIVE" && !(await paymentsBlockedInApp()) && (
                   <Link className="btn btn-volt btn-block" href={`/listing/${l.id}/promote`}>
@@ -130,6 +138,20 @@ export default async function ListingPage({ params, searchParams }: Props) {
               </>
             )}
           </div>
+          {mine && stats && (
+            <div className="panel listing-stats" id="stats" data-testid="listing-stats">
+              <strong>{m.stats.title}</strong>
+              <dl className="stat-row">
+                <div><dt>{m.stats.total}</dt><dd className="price" data-testid="stat-total">{l.views}</dd></div>
+                <div><dt>{m.stats.week}</dt><dd className="price" data-testid="stat-week">{stats.last7}</dd>
+                  <span className="trend">{trend}</span></div>
+                <div><dt>{m.stats.saves}</dt><dd className="price">{counts?.favorites ?? 0}</dd></div>
+                <div><dt>{m.stats.chats}</dt><dd className="price">{counts?.conversations ?? 0}</dd></div>
+              </dl>
+              <ViewsChart series={stats.series} />
+              <p className="hint" style={{ margin: 0 }}>{m.stats.note}</p>
+            </div>
+          )}
           <ShareButton title={l.title} path={`/listing/${l.id}`} />
           <div className="panel">
             <strong>{t.safetyTitle}</strong>

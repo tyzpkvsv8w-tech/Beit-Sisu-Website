@@ -15,6 +15,7 @@ import { inApp } from "@/lib/app-mode";
 import { setListingStatus } from "@/app/actions/listings";
 import { logout } from "@/app/actions/auth";
 import { unblock } from "@/app/actions/blocks";
+import { weeklyViews } from "@/lib/views";
 
 export async function generateMetadata() {
   const { m } = await getI18n();
@@ -35,6 +36,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       include: { photos: { orderBy: { position: "asc" }, take: 1 }, _count: { select: { conversations: true, favorites: true } } },
     }),
   ]);
+  const thisWeek = await weeklyViews(listings.map((l) => l.id));
   return (
     <div className="wrap section" style={{ display: "grid", gap: 22 }}>
       <div className="toolbar">
@@ -60,7 +62,8 @@ export default async function Account({ searchParams }: { searchParams: Promise<
                   <span className={`status-pill status-${l.status}`}>{l.status === "ACTIVE" ? t.live : t.sold}</span>
                   <strong className="price">{money(l.price, locale)}</strong>
                   <span>{timeAgo(l.createdAt, locale)}</span>
-                  <span>{fmt(t.stats, { views: l.views, saves: l._count.favorites, chats: l._count.conversations })}</span>
+                  <span data-testid="my-ad-stats">{fmt(t.stats, { views: l.views, week: thisWeek.get(l.id) ?? 0, saves: l._count.favorites, chats: l._count.conversations })}</span>
+                  <Link href={`/listing/${l.id}#stats`} style={{ color: "var(--accent)" }}>{m.stats.seeStats}</Link>
                 </div>
               </div>
               <div className="acts">

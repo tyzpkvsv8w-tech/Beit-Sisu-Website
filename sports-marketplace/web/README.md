@@ -53,6 +53,9 @@ See **[GO-LIVE.md](GO-LIVE.md)** for step-by-step Supabase + Vercel setup.
   - Sports, conditions, cities, prices (درهم) and dates are all localised.
   - Listings show exactly as their sellers wrote them, in either language, and search finds both.
   - All text lives in `src/i18n/en.ts` and `src/i18n/ar.ts`. TypeScript flags any string missing from the Arabic file.
+- **Views for sellers:** each ad page shows its seller (and only its seller) total views, views in the last 7 days compared with the week before, saves, chats, and a 14-day chart with a hover tooltip and a screen-reader table. "My ads" shows views this week.
+  - Each visitor counts once per ad per day, and refreshes, the seller's own visits, search engines and link previews don't count.
+  - Visitors are told apart by a scrambled IP and browser hash held in memory for a day. Only daily totals are stored (`ListingViewDay`).
 - **Selling:** post, edit, mark sold, relist, delete. Up to 8 photos per ad. The browser shrinks photos before upload, and the server checks the file contents (JPG, PNG or WebP only).
 - **Buying:** browse by sport, keyword, emirate, price and condition, with sorting and pages. Save items with the heart. Every page works without JavaScript except chat and photo upload.
 - **Chat:** one conversation per buyer per listing. New messages appear within about 4 seconds, unread badges show in the header, and messages are marked read when opened. Sellers' phone numbers stay hidden unless they choose to show them, and then only to logged-in users.
@@ -107,7 +110,7 @@ ALLOW_DEV_SMS=1 ALLOW_DEV_EMAIL=1 ALLOW_DEV_SECRETS=1 npm start   # terminal 1, 
 npm run db:reset && npm run test:e2e    # terminal 2
 ```
 
-`tests/e2e.mjs` drives a real browser through 172 checks:
+`tests/e2e.mjs` drives a real browser through 180 checks:
 
 - browsing and filters
 - phone signup: wrong number, wrong code, missing city or terms
@@ -120,6 +123,7 @@ npm run db:reset && npm run test:e2e    # terminal 2
 - the Terms and Privacy pages in both languages, and deleting an account
 - ad booking: double-booking blocked (including by unpaid holds), VAT totals, https-only links, paying, cancelling at checkout and rebooking, approval and refund emails, the admin campaign form going live, business-only promotions, forged payment notifications refused, and the Arabic booking page
 - push notifications, using `tests/push-mock.mjs` as the push service and Chrome's newer headless mode (the default headless browser has no notification support). Covers turning on, encrypted and signed delivery (decrypted by the test), the phone displaying it, one notification per chat, logging out stopping it, expired subscriptions cleaned up, blocking other websites and made-up push addresses, the chat prompt, and the iPhone message. Run with `E2E_PUSH=1` and the push stand-in running.
+- listing views: once per visitor per day, refreshes, robots and the seller not counted, stats only visible to the seller, the 14-day chart and its tooltip, the screen-reader table, and Arabic
 - App Store requirements, using `tests/apns-mock.mjs` as Apple's push service (it checks the signed token): the universal links file, the banned-items filter (and that innocent ads pass), the iPhone app hiding install tips and payments, Apple notifications turned on and delivered with the right title, link and collapse ID, notification taps opening the chat (and not other sites), uninstalled phones removed after Apple's 410, invalid tokens rejected, the native share sheet, and the Help page
 - Google Play requirements: blocking and unblocking (a blocked person can't reply or start a new chat, block-and-report reaches the admin), the account deletion page, the app link file, payments hidden inside the Android app, and the chat fitting a phone screen in both languages
 - the installable app: the manifest in both languages, icon sizes, Chrome's own installability check, the offline page, only shared files stored on the device, and the install suggestion on Android and iPhone (second page view, "Not now" remembered)

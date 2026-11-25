@@ -104,7 +104,7 @@ export const en = {
     enquiryName: "Enter your name", enquiryBusiness: "Enter your business name", enquiryEmail: "Enter a valid work email", tooManyEnquiries: "Too many enquiries from this network. Try again later.",
   },
   account: {
-    title: "My ads", count: "Ads: {n}", admin: "Admin", live: "Live", sold: "Sold", stats: "{views} views · {saves} saves · {chats} chats", edit: "Edit",
+    title: "My ads", count: "Ads: {n}", admin: "Admin", live: "Live", sold: "Sold", stats: "{views} views ({week} this week) · {saves} saves · {chats} chats", edit: "Edit",
     relist: "Relist", markSold: "Mark sold", delete: "Delete", yesDelete: "Yes, delete", keep: "Keep", deleted: "Ad deleted.", noAds: "No ads yet",
     noAdsText: "Got gear you don't use? Post it in two minutes.", profile: "Profile", email: "Email", notSet: "Not added", mobile: "Mobile",
     verified: "Verified", addMobile: "Add mobile number", showPhone: "Show my number on my ads (logged-in buyers only)", saveProfile: "Save profile",
@@ -274,6 +274,12 @@ export const en = {
     reportTitle: "Report an ad or a person",
     report: ["On any ad, tap \"Report this ad\" and choose a reason.", "In any chat, tap \"Block\". You can also report the chat to our team at the same time.", "We review reports within 24 hours and remove ads or accounts that break our Terms of Use."],
     links: "More help", safety: "Buying and selling safely", account: "Delete your account", terms: "Terms of Use", privacy: "Privacy Policy", advertise: "Advertising with ReKit",
+  },
+  stats: {
+    title: "How your ad is doing", total: "Total views", week: "Last 7 days", saves: "Saves", chats: "Chats",
+    up: "Up {n}% on the week before", down: "Down {n}% on the week before", same: "Same as the week before", fresh: "First week",
+    chart: "Views per day, last 14 days", tooltip: "{date}: {n} views", tooltip1: "{date}: 1 view",
+    note: "Each person counts once a day, and your own visits don't count. Only you can see this.", seeStats: "See stats",
   },
   notFound: { title: "Page not found", text: "This ad may have been sold or deleted.", cta: "Browse listings" },
   sports: {

@@ -977,6 +977,57 @@ const badToken = await ios.evaluate(async () => (await fetch("/api/push/subscrip
 check("invalid Apple device tokens are rejected", badToken === 400);
 await iosCtx.close();
 
+// 17. Listing views: counted once per visitor per day, shown only to the seller
+const statsOwner = await newPage();
+await statsOwner.goto(`${BASE}/login/email?next=/account`);
+await statsOwner.fill("#email", "aisha@rekit.test");
+await statsOwner.fill("#password", "rekit-demo-123");
+await statsOwner.click("form.form-card button[type=submit]");
+await statsOwner.waitForURL(BASE + "/account");
+check("My ads shows views this week", /\d+ views \(\d+ this week\)/.test(await statsOwner.getByTestId("my-ad-stats").first().textContent()));
+const aishaAd = await statsOwner.locator(".myrow .t").first().getAttribute("href");
+const readStats = async () => {
+  await statsOwner.goto(BASE + aishaAd);
+  return { total: +(await statsOwner.getByTestId("stat-total").textContent()), week: +(await statsOwner.getByTestId("stat-week").textContent()) };
+};
+const before = await readStats();
+check("seller's own visits don't count", (await readStats()).total === before.total);
+const visit = async (ua, times = 1) => {
+  const c = await browser.newContext({ userAgent: ua });
+  const vp = await c.newPage();
+  for (let i = 0; i < times; i++) await vp.goto(BASE + aishaAd);
+  const sees = await vp.getByTestId("listing-stats").count();
+  await c.close();
+  return sees;
+};
+const seenByVisitor = await visit("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 ViewTest/1", 3); // one person, three visits
+await visit("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Safari/605.1 ViewTest/2");                       // a second person
+await visit("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)");                    // a search engine
+await visit("WhatsApp/2.23.20.0");                                                                          // a link preview
+const after = await readStats();
+check("each visitor counts once a day; refreshes and robots don't count", after.total === before.total + 2 && after.week === before.week + 2, `${before.total} -> ${after.total}`);
+check("only the seller sees the stats", seenByVisitor === 0);
+const bars = statsOwner.locator(".views-chart rect");
+check("chart shows the last 14 days", (await bars.count()) === 14);
+await bars.nth(0).hover();
+const firstTip = await statsOwner.getByTestId("views-tip").textContent();
+await bars.nth(13).hover();
+const lastTip = await statsOwner.getByTestId("views-tip").textContent();
+check("hovering a day shows its views", firstTip !== lastTip && /views?$/.test(lastTip));
+check("chart numbers are available as a table for screen readers", (await statsOwner.locator(".views-chart table tr").count()) === 14);
+await shot(statsOwner, "19-listing-stats");
+const arStats = await browser.newContext({ viewport: { width: 390, height: 844 } });
+await arStats.addCookies([{ name: "rk_lang", value: "ar", url: BASE }]);
+const asp = await arStats.newPage();
+await asp.goto(`${BASE}/login/email?next=${encodeURIComponent(aishaAd)}`);
+await asp.fill("#email", "aisha@rekit.test");
+await asp.fill("#password", "rekit-demo-123");
+await asp.click("form.form-card button[type=submit]");
+await asp.waitForURL(BASE + aishaAd);
+check("stats in Arabic", await asp.getByText("أداء إعلانك").isVisible() && (await asp.evaluate(() => document.documentElement.scrollWidth)) <= 390);
+await shot(asp, "20-listing-stats-ar");
+await arStats.close();
+
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();

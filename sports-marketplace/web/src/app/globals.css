@@ -446,3 +446,25 @@ table.summary tr.total td { font-weight: 800; font-size: 17px; border-bottom: 0;
 .blocked-bar { padding: 12px 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
 .chat-page header .block-btn { margin-inline-start: auto; }
 .block-sheet { display: grid; gap: 12px; padding: 18px; }
+
+/* ---- Listing stats (seller only) ---- */
+.listing-stats { gap: 14px; scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 80px); }
+.stat-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.stat-row > div { background: var(--bg); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.stat-row dt { font-size: 12px; color: var(--muted); }
+.stat-row dd { margin: 0; font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+[lang="ar"] .stat-row dd { font-family: "Barlow Condensed", var(--display); }
+.stat-row .trend { font-size: 12px; color: var(--muted); }
+.views-chart { margin: 0; display: grid; gap: 6px; }
+.views-chart-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.views-chart-head .lbl { font-size: 12px; color: var(--muted); }
+.views-tip { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.views-chart svg { width: 100%; height: auto; display: block; overflow: visible; direction: ltr; }
+.views-chart .bar { fill: var(--accent); opacity: .55; }
+.views-chart .bar.on { opacity: 1; }
+.views-chart .base { stroke: var(--line); stroke-width: 1; }
+.views-chart .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 3; opacity: .7; }
+.views-chart .axis { fill: var(--muted); font-size: 9px; font-family: var(--body); }
+.views-chart rect:focus { outline: none; }
+.views-chart rect:focus-visible { stroke: var(--accent); stroke-width: 1.5; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
