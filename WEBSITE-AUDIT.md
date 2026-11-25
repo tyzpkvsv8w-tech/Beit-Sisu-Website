@@ -914,3 +914,12 @@ Site Kit, 20 Oct–16 Nov:
 ## Update: 25 November 2026: Bing Webmaster Tools set up (owner)
 - Done by the owner, importing from Google Search Console. Together with Bing Places (Google Business Profile imported) and the llms.txt and FAQ structured data, all recommended AI-search steps on the website and listing side are now done.
 - Next: check Bing Webmaster Tools → Sitemaps (`sitemap_index.xml` should show as submitted) and use URL Submission for each new article. Revisit the Site Kit "AI Assistant" channel and test prompts in ChatGPT/Perplexity in 3–4 weeks.
+
+## Update: 25 November 2026: pages submitted to Bing via IndexNow
+- The owner asked to complete "make sure the sitemap is in Bing" and "submit the new article". Their Bing Webmaster Tools account is behind their Microsoft login, so this was done through **IndexNow**, Bing's official URL-submission protocol, instead.
+  - **Sitemap:** Bing finds it through `robots.txt` (`Sitemap: https://beitsisu.com/sitemap_index.xml`). The owner can confirm under Bing Webmaster Tools → Sitemaps.
+  - **Key file:** a small `init` hook in `functions.php` serves `https://beitsisu.com/b71ca09dc44b2b6e8fbe2bc691078e23.txt` (plain text, noindex). It's needed for future submissions too; don't remove it.
+  - **Submitted:** all 17 sitemap URLs, including the new prices article (list in `indexnow-submitted-urls-2026-11-25.txt`). api.indexnow.org replied **HTTP 202 Accepted**; it shares submissions with Bing, Yandex, Seznam and Naver.
+  - Network: `api.indexnow.org` was added to this session environment's allowed hosts with the owner's approval.
+- Checks: all 16 pages same as before; booking smoke test OK; logged out.
+- **For future articles:** resubmit the new URL with the same key, or use Bing Webmaster Tools → URL Submission.
