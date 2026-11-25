@@ -910,3 +910,7 @@ Site Kit, 20 Oct–16 Nov:
   - llms.txt will pick it up at Yoast's next scheduled regeneration
 - Booking smoke test OK; cache purged; logged out.
 - **Owner said Google Business Profile has been imported to Bing Places.** Still recommended: Bing Webmaster Tools (import from Search Console).
+
+## Update: 25 November 2026: Bing Webmaster Tools set up (owner)
+- Done by the owner, importing from Google Search Console. Together with Bing Places (Google Business Profile imported) and the llms.txt and FAQ structured data, all recommended AI-search steps on the website and listing side are now done.
+- Next: check Bing Webmaster Tools → Sitemaps (`sitemap_index.xml` should show as submitted) and use URL Submission for each new article. Revisit the Site Kit "AI Assistant" channel and test prompts in ChatGPT/Perplexity in 3–4 weeks.
