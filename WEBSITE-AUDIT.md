@@ -938,3 +938,9 @@ Site Kit, 20 Oct–16 Nov:
 - 6 files copied, sizes verified identical: database (25.7 MB), plugins (93.4 MB), themes (11 MB), uploads (176.7 MB), mu-plugins (22.7 MB), others (5 KB). Total about 330 MB.
 - UpdraftPlus only manages files in its own folder, so this copy is not deleted when old backups rotate out (retention is 2).
 - To restore: upload the 6 files in UpdraftPlus → Backup/Restore → "Upload backup files", then Restore.
+
+## Update 25 Nov 2026: automatic weekly backups switched on
+
+- UpdraftPlus → Settings: files and database schedule changed from **Manual** to **Weekly**; retention raised from **2 to 4** for both. Remote storage stays Google Drive.
+- First automatic backup: Thu 26 Nov 2026, about 08:00 (site time), then every Thursday. Four weekly backups means roughly a month of restore points.
+- The preserved 18 Nov copy sits in its own Drive folder and is not affected by rotation.
