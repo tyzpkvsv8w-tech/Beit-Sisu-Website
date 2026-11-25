@@ -923,3 +923,11 @@ Site Kit, 20 Oct–16 Nov:
   - Network: `api.indexnow.org` was added to this session environment's allowed hosts with the owner's approval.
 - Checks: all 16 pages same as before; booking smoke test OK; logged out.
 - **For future articles:** resubmit the new URL with the same key, or use Bing Webmaster Tools → URL Submission.
+
+## Update: 25 November 2026: Elementor removed (owner request)
+- Backup first: UpdraftPlus 25 Nov 2026 15:22 (Google Drive copy).
+- **Removed:** the Elementor plugin (deactivated through its own link, then deleted) and the Hello Elementor theme. Both were installed 18 Nov by the admin login, and Hello Elementor caused that day's blank homepage.
+- **Kept:** beit-sisu (active) and Twenty Twenty-Five (fallback).
+- **Result:** no Elementor references left on the homepage. Smash Balloon's extra `sb-elementor.css` (5 KB render-blocking) no longer loads.
+- **Checks:** all 16 pages same as before; booking smoke test OK; Collaborations form OK; cache purged; logged out.
+- **Note:** UpdraftPlus keeps only the 2 latest backups (plus the 6 Oct one). The next backup will rotate out the 18 Nov "original site before redesign" backup unless retention is raised; suggested to the owner.
