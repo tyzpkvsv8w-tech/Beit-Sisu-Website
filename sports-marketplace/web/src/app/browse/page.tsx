@@ -8,6 +8,7 @@ import { cardInclude, savedIds } from "@/lib/queries";
 import { ListingCard } from "@/components/ListingCard";
 import { AdCard } from "@/components/Ads";
 import { FilterToggle } from "@/components/FilterToggle";
+import { recordImpressions } from "@/lib/discovery";
 import { fmt, getI18n } from "@/i18n";
 
 export async function generateMetadata() {
@@ -56,6 +57,7 @@ export default async function Browse({ searchParams }: { searchParams: Promise<S
     pickAd("INFEED", { sport: sport || undefined, city: city || undefined }),
   ]);
   const saved = await savedIds(user?.id, listings.map((l) => l.id));
+  if (q) await recordImpressions([...new Set([...sponsored, ...listings].map((l) => l.id))], q);
   const sponsoredIds = new Set(sponsored.map((s) => s.id));
 
   // Mix paid placements into results: a sponsored listing first, an ad card after 6, another sponsored after 11.

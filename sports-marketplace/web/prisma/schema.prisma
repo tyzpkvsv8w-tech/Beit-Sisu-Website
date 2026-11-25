@@ -125,6 +125,7 @@ model Listing {
   reports       Report[]
   orders        Order[]
   viewDays      ListingViewDay[]
+  discovery     ListingDiscovery[]
 
   @@index([market, status, sport])
   @@index([createdAt])
@@ -138,6 +139,25 @@ model ListingViewDay {
   views     Int      @default(0)
 
   @@id([listingId, day])
+}
+
+// How buyers found a listing, per day: the search terms it appeared for, and where views came
+// from. Totals only, never who searched. term is the normalised search text for "search",
+// the sport for "browse", and "" otherwise.
+model ListingDiscovery {
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  day         DateTime @db.Date
+  // "search" | "browse" | "home" | "similar" | "saved" | "messages" | "other"
+  source      String
+  term        String   @default("")
+  // Times the listing appeared in results for this search
+  impressions Int      @default(0)
+  // Views that came from here
+  views       Int      @default(0)
+
+  @@id([listingId, day, source, term])
+  @@index([listingId, day])
 }
 
 model Photo {

@@ -281,6 +281,15 @@ export const en = {
     chart: "Views per day, last 14 days", tooltip: "{date}: {n} views", tooltip1: "{date}: 1 view",
     note: "Each person counts once a day, and your own visits don't count. Only you can see this.", seeStats: "See stats",
   },
+  found: {
+    title: "How people found your ad", period: "Last 30 days",
+    searches: "Searches that showed your ad", shown: "Shown in searches", viewed: "Led to a view",
+    row: "shown {shown} · {views} views", row1: "shown {shown} · 1 view", more: "and {n} more searches",
+    noSearches: "No searches have shown your ad yet. Putting the brand, model and size in the title helps it come up.",
+    sources: "Where views came from", noViews: "No views yet.",
+    source: { search: "Searches", browse: "Browsing a sport", home: "Home page", similar: "Other ads", saved: "Saved items", messages: "Messages", other: "Links and direct visits" } as Record<string, string>,
+    privacy: "Totals only. We never show who searched, and skip searches that look like phone numbers or emails.",
+  },
   notFound: { title: "Page not found", text: "This ad may have been sold or deleted.", cta: "Browse listings" },
   sports: {
     "padel-tennis": "Padel & Tennis", cycling: "Cycling", gym: "Gym & Fitness", football: "Football", golf: "Golf", water: "Water Sports",

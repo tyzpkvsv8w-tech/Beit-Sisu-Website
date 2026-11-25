@@ -15,6 +15,8 @@ import { ReportButton } from "@/components/SmallForms";
 import { ShareButton } from "@/components/ShareButton";
 import { ViewsChart } from "@/components/ViewsChart";
 import { recordView, viewStats } from "@/lib/views";
+import { discoveryStats, recordViewSource } from "@/lib/discovery";
+import { FoundBy } from "@/components/FoundBy";
 import { startConversation } from "@/app/actions/social";
 import { paymentsBlockedInApp } from "@/lib/app-mode";
 import { setListingStatus } from "@/app/actions/listings";
@@ -48,7 +50,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
   const sponsored = !!l.sponsoredUntil && l.sponsoredUntil > new Date();
   const sportName = m.sports[l.sport];
   const sep = locale === "ar" ? "‹" : "›";
-  if (!mine) await recordView(id);
+  if (!mine && (await recordView(id))) await recordViewSource(id);
 
   const [similar, ad, saved] = await Promise.all([
     db.listing.findMany({ where: { sport: l.sport, status: "ACTIVE", id: { not: l.id }, market: l.market }, orderBy: { createdAt: "desc" }, take: 4, include: cardInclude }),
@@ -57,9 +59,9 @@ export default async function ListingPage({ params, searchParams }: Props) {
   ]);
   const similarSaved = await savedIds(user?.id, similar.map((x) => x.id));
   // The seller's own numbers.
-  const [stats, counts] = mine
-    ? await Promise.all([viewStats(l.id), db.listing.findUnique({ where: { id: l.id }, select: { _count: { select: { favorites: true, conversations: true } } } }).then((r) => r?._count)])
-    : [null, null];
+  const [stats, counts, found] = mine
+    ? await Promise.all([viewStats(l.id), db.listing.findUnique({ where: { id: l.id }, select: { _count: { select: { favorites: true, conversations: true } } } }).then((r) => r?._count), discoveryStats(l.id)])
+    : [null, null, null];
   const trend = !stats ? "" : stats.prev7 === 0 ? (stats.last7 > 0 ? m.stats.fresh : "")
     : stats.last7 === stats.prev7 ? m.stats.same
     : fmt(stats.last7 > stats.prev7 ? m.stats.up : m.stats.down, { n: Math.round((Math.abs(stats.last7 - stats.prev7) / stats.prev7) * 100) });
@@ -152,6 +154,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
               <p className="hint" style={{ margin: 0 }}>{m.stats.note}</p>
             </div>
           )}
+          {mine && found && <FoundBy data={found} />}
           <ShareButton title={l.title} path={`/listing/${l.id}`} />
           <div className="panel">
             <strong>{t.safetyTitle}</strong>

@@ -1028,6 +1028,35 @@ check("stats in Arabic", await asp.getByText("أداء إعلانك").isVisible(
 await shot(asp, "20-listing-stats-ar");
 await arStats.close();
 
+// 18. Which searches found a listing (seller only)
+const searcher = await browser.newContext({ userAgent: "Mozilla/5.0 (X11; Linux x86_64) Chrome/131.0 SearchTest/1" });
+const sp = await searcher.newPage();
+await sp.goto(`${BASE}/browse?q=Vaporfly`);
+await sp.goto(`${BASE}/browse?q=vaporfly`); // same search again (different case): counts once
+await sp.goto(`${BASE}/browse?q=${encodeURIComponent("call me 050 123 4567")}`); // looks like a phone number: never recorded
+await sp.goto(`${BASE}/browse?q=${encodeURIComponent("seller@example.com")}`); // email: never recorded
+await sp.goto(`${BASE}/browse?q=vaporfly`);
+await sp.locator(".card", { hasText: "Vaporfly" }).first().click();
+await sp.waitForURL(/\/listing\//);
+const vaporflyUrl = new URL(sp.url()).pathname;
+check("visitors don't see how listings were found", (await sp.getByTestId("found-by").count()) === 0);
+await sp.goto(`${BASE}/browse?sport=running`);
+await sp.locator(".card", { hasText: "Garmin" }).first().click(); // a view from browsing a sport
+await sp.waitForURL(/\/listing\//);
+await searcher.close();
+
+await statsOwner.goto(BASE + vaporflyUrl);
+const termsText = await statsOwner.getByTestId("found-terms").textContent();
+const vaporflyRow = await statsOwner.getByTestId("found-terms").locator("li", { hasText: "vaporfly" }).textContent();
+check("seller sees the search that found the ad", /vaporfly\s*shown 1 · 1 view/.test(vaporflyRow), vaporflyRow);
+check("searches that look like phone numbers or emails aren't recorded", !/050|@/.test(termsText));
+check("seller sees where views came from", (await statsOwner.getByTestId("found-sources").textContent()).includes("Searches"));
+const garminUrl = await (async () => { await statsOwner.goto(`${BASE}/account`); return statsOwner.locator(".myrow .t", { hasText: "Garmin" }).getAttribute("href"); })();
+await statsOwner.goto(BASE + garminUrl);
+check("views from browsing a sport are counted", (await statsOwner.getByTestId("found-sources").textContent()).includes("Browsing a sport"));
+await statsOwner.getByTestId("found-by").scrollIntoViewIfNeeded();
+await statsOwner.getByTestId("found-by").screenshot({ path: SHOTS ? `${SHOTS}/21-found-by.png` : undefined }).catch(() => {});
+
 check("no browser errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();

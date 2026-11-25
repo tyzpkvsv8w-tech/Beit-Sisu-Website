@@ -47,7 +47,7 @@ export const privacyEn: LegalDoc = {
             "Cookies that keep you logged in and remember your language. See \"Cookies\" below.",
             "If you turn on notifications: the push address your browser gives us for that device, and the keys used to encrypt notifications for it.",
             "Technical data such as your IP address, browser type, the pages you request and when. Our hosting provider records this in server logs. We use it for security, for example to limit repeated login attempts and code requests.",
-            "How many times each ad is viewed per day, shown only to the seller, and how many times each advertiser's ad is shown and clicked. These are totals and aren't linked to you. To count each visitor only once a day, we use a scrambled form of your IP address and browser that is kept in memory for a day and never saved.",
+            "How many times each ad is viewed per day, the words people searched for when it appeared in results, and where its views came from (such as a search or the home page), shown only to the seller. Searches that look like phone numbers or email addresses aren't recorded. We also count how many times each advertiser's ad is shown and clicked. These are totals and aren't linked to you. To count each visitor only once a day, we use a scrambled form of your IP address and browser that is kept in memory for a day and never saved.",
           ],
         },
       ],

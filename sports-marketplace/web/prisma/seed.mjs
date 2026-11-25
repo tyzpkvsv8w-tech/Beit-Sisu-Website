@@ -6,12 +6,19 @@ import bcrypt from "bcryptjs";
 
 const db = new PrismaClient();
 const H = 3600e3, D = 24 * H;
+// What buyers typically search for in each sport (for the sample "how people found your ad" data).
+const SEARCH_TERMS = {
+  "padel-tennis": ["padel racket", "tennis racket"], cycling: ["road bike", "mountain bike"], gym: ["dumbbells", "rowing machine"],
+  football: ["football boots", "goals"], golf: ["golf clubs", "golf trolley"], water: ["kitesurf", "paddle board"],
+  running: ["running shoes", "garmin"], cricket: ["cricket bat", "cricket pads"], basketball: ["basketball hoop", "basketball"],
+  combat: ["boxing gloves", "punch bag"], snow: ["ski boots", "skis"], outdoor: ["tent", "camping"],
+};
 const ago = (ms) => new Date(Date.now() - ms);
 
 async function main() {
   if (process.env.NODE_ENV === "production") throw new Error("Refusing to seed in production");
   await db.$transaction([
-    db.order.deleteMany(), db.message.deleteMany(), db.conversation.deleteMany(), db.favorite.deleteMany(), db.report.deleteMany(),
+    db.order.deleteMany(), db.listingDiscovery.deleteMany(), db.message.deleteMany(), db.conversation.deleteMany(), db.favorite.deleteMany(), db.report.deleteMany(),
     db.photo.deleteMany(), db.listing.deleteMany(), db.session.deleteMany(), db.phoneChallenge.deleteMany(), db.user.deleteMany(),
     db.adCampaign.deleteMany(), db.adEnquiry.deleteMany(),
   ]);
@@ -89,6 +96,27 @@ async function main() {
     if (days.length) {
       await db.listingViewDay.createMany({ data: days });
       await db.listing.update({ where: { id: l.id }, data: { views: days.reduce((a, d) => a + d.views, 0) } });
+      // How those views were found: searches (with the terms used), browsing, home page, other ads, links.
+      const terms = [...(SEARCH_TERMS[l.sport] ?? []).slice(0, 2), l.brand?.toLowerCase().split(" ")[0]].filter((t) => t && t.length > 1);
+      const found = new Map();
+      const add = (day, source, term, views, impressions = 0) => {
+        const k = `${day.toISOString()}|${source}|${term}`;
+        const cur = found.get(k) ?? { listingId: l.id, day, source, term, views: 0, impressions: 0 };
+        cur.views += views; cur.impressions += impressions; found.set(k, cur);
+      };
+      for (const d of days) {
+        let left = d.views;
+        for (const term of terms) {
+          const v = Math.min(left, Math.round(d.views * (0.15 + rand() * 0.2)));
+          left -= v;
+          add(d.day, "search", term, v, v * (2 + Math.floor(rand() * 4)) + Math.floor(rand() * 3));
+        }
+        const browse = Math.min(left, Math.round(left * 0.45)); left -= browse; if (browse) add(d.day, "browse", l.sport, browse);
+        const home = Math.min(left, Math.round(left * 0.4)); left -= home; if (home) add(d.day, "home", "", home);
+        const similar = Math.min(left, Math.round(left * 0.5)); left -= similar; if (similar) add(d.day, "similar", "", similar);
+        if (left) add(d.day, "other", "", left);
+      }
+      await db.listingDiscovery.createMany({ data: [...found.values()] });
     }
   }
 

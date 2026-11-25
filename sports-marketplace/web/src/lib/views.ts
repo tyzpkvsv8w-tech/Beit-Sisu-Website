@@ -27,14 +27,28 @@ function alreadyCounted(key: string) {
 /** The UAE calendar day as the Date Postgres stores in a DATE column. */
 const dayOf = (ymd: string) => new Date(`${ymd}T00:00:00Z`);
 
-export async function recordView(listingId: string) {
+/** A short-lived, anonymous id for the current visitor, or null for robots and prefetches. */
+export async function visitorKey() {
   const h = await headers();
   const ua = h.get("user-agent") ?? "";
-  if (!ua || BOTS.test(ua) || h.get("purpose") === "prefetch" || h.get("next-router-prefetch")) return;
+  if (!ua || BOTS.test(ua) || h.get("purpose") === "prefetch" || h.get("next-router-prefetch")) return null;
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
+  return createHash("sha256").update(`${ip}|${ua}`).digest("base64url").slice(0, 16);
+}
+
+/** True the first time a visitor does `what` today (e.g. views a listing or runs a search). */
+export function firstTimeToday(what: string, visitor: string) {
+  return !alreadyCounted(`${what}:${visitor}:${uaeDate()}`);
+}
+
+export { dayOf };
+
+/** Counts a view. Returns true if it counted (first time this visitor saw the listing today). */
+export async function recordView(listingId: string) {
+  const visitor = await visitorKey();
+  if (!visitor) return false;
   const today = uaeDate();
-  const visitor = createHash("sha256").update(`${ip}|${ua}`).digest("base64url").slice(0, 16);
-  if (alreadyCounted(`${listingId}:${visitor}:${today}`)) return;
+  if (alreadyCounted(`${listingId}:${visitor}:${today}`)) return false;
   await db.$transaction([
     db.listing.update({ where: { id: listingId }, data: { views: { increment: 1 } } }),
     db.listingViewDay.upsert({
@@ -43,6 +57,7 @@ export async function recordView(listingId: string) {
       create: { listingId, day: dayOf(today), views: 1 },
     }),
   ]);
+  return true;
 }
 
 export type ViewDay = { date: string; views: number };
